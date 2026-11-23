@@ -444,3 +444,108 @@ a:focus-visible,
     bottom: 12px !important;
   }
 }
+
+.panel-layout-menu {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  color: var(--ink);
+}
+
+.panel-layout-menu summary,
+.panel-layout-options,
+.panel-move-handle {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: var(--pixel-shadow);
+}
+
+.panel-layout-menu summary {
+  width: max-content;
+  margin-left: auto;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.panel-layout-options {
+  width: min(265px, calc(100vw - 32px));
+  max-height: calc(100dvh - 110px);
+  overflow: auto;
+  padding: 12px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.panel-layout-options fieldset {
+  border: 1px solid var(--gold);
+  margin: 10px 0;
+  padding: 6px 8px;
+}
+
+.panel-layout-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.panel-layout-reset,
+.panel-layout-edit,
+.panel-move-handle {
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  padding: 4px 8px;
+}
+
+.panel-layout-reset,
+.panel-layout-edit { cursor: pointer; }
+
+.panel-layout-edit[aria-pressed="true"] {
+  background: var(--crimson);
+  color: var(--paper);
+}
+
+#game-ui .panel-move-handle {
+  display: none;
+  width: max-content;
+  align-self: center;
+  margin: 0 4px 4px 0;
+  font-size: 12px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+#game-ui.editing-panels .panel-move-handle { display: inline-block; }
+#game-ui .panel-move-handle:active { cursor: grabbing; }
+
+#game-ui > :is(#event-panel, #profile-panel, #semester-info, #stat-bar).panel-positioned {
+  left: var(--panel-x) !important;
+  top: var(--panel-y) !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: min(var(--panel-width), 100%) !important;
+  animation: none !important;
+  z-index: 15 !important;
+}
+
+#game-ui > .panel-user-hidden { display: none !important; }
+
+@media (max-width: 700px) {
+  .panel-layout-menu {
+    top: 76px;
+    right: 12px;
+    bottom: auto;
+  }
+}
+
+@media (max-width: 700px) and (orientation: portrait) {
+  #game-ui #event-panel { z-index: 9 !important; }
+}

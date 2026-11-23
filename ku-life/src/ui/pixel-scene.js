@@ -25,14 +25,26 @@ export function drawPixelStudent(ctx, state, x, y, scale = 1, pose = null) {
   bodyOffset = torsoBob;
   r(0,18,7,12,'#503345');r(1,20,5,8,'#b67d4c');
   r(1,24,5,3,'#d09a59');r(2,25,2,1,'#f4c883');
-  const armLift = pose?.jumping ? -5 : 0;
   const drawSleeve = (x, y) => {
     r(x,y,5,10,dark);r(x+1,y+1,3,6,'#e5c9a3');
     r(x+1,y+2,1,5,'#f5dfb9');r(x+1,y+7,3,1,'#97334b');
     r(x+1,y+8,3,2,skinShade);
   };
-  drawSleeve(2-stride,19+armLift);
-  drawSleeve(17+stride,19+armLift);
+  if (pose?.jumping) {
+    // Each raised forearm meets an upper sleeve that overlaps the jacket shoulder.
+    for (const side of [0, 1]) {
+      const arm = (x, y, w, h, color) => r(side ? 22 - x - w : x, y, w, h, color);
+      arm(0, 12, 5, 9, dark);
+      arm(2, 17, 6, 6, dark);
+      arm(1, 13, 3, 3, skin);
+      arm(1, 16, 3, 1, '#97334b');
+      arm(1, 17, 3, 3, '#f5dfb9');
+      arm(3, 18, 4, 4, '#e5c9a3');
+    }
+  } else {
+    drawSleeve(2-stride,19);
+    drawSleeve(17+stride,19);
+  }
   r(5,17,13,13,dark);r(6,18,11,11,look.outfitColor);
   r(6,19,2,8,outfitShade);r(15,19,2,8,outfitLight);
   r(7,18,2,10,'#ad744e');r(7,19,1,7,'#deb282');

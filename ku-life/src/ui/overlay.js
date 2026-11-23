@@ -7,6 +7,7 @@
  */
 
 import { GAME_DATA } from '../game/state.js';
+import { PanelLayout } from './panel-layout.js';
 import { drawPixelPortrait } from './pixel-scene.js';
 
 export class UIOverlay {
@@ -16,6 +17,7 @@ export class UIOverlay {
     this.elements = {};
 
     this.createUI();
+    this.panelLayout = new PanelLayout(this.elements);
     this.bindEvents();
     this.hideAll();
     this.showStartScreen();
@@ -105,7 +107,9 @@ export class UIOverlay {
       color: #312E81;
       pointer-events: auto;
     `;
-    this.elements.semesterInfo.innerHTML = '1학기 / 8학기';
+    this.elements.semesterLabel = document.createElement('span');
+    this.elements.semesterLabel.textContent = '1학기 / 8학기';
+    this.elements.semesterInfo.appendChild(this.elements.semesterLabel);
     this.elements.root.appendChild(this.elements.semesterInfo);
 
     this.elements.profilePanel = document.createElement('aside');
@@ -342,6 +346,7 @@ export class UIOverlay {
   // ===== 화면 전환 메서드 =====
 
   hideAll() {
+    this.panelLayout.setActive(false);
     this.elements.eventPanel.style.display = 'none';
     this.elements.startScreen.style.display = 'none';
     this.elements.endingScreen.style.display = 'none';
@@ -430,9 +435,7 @@ export class UIOverlay {
     }
 
     // 게임 엔진에 초기 데이터 전달하여 시작
-    this.hideAll();
-    this.elements.statBar.style.display = 'flex';
-    this.elements.semesterInfo.style.display = 'block';
+    this.showGameUI();
 
     if (this.onGameStart) {
       this.onGameStart(this.charSelections);
@@ -441,6 +444,7 @@ export class UIOverlay {
 
   showGameUI() {
     this.hideAll();
+    this.panelLayout.setActive(true);
     this.elements.statBar.style.display = 'flex';
     this.elements.semesterInfo.style.display = 'block';
     this.elements.profilePanel.style.display = 'flex';
@@ -616,7 +620,7 @@ export class UIOverlay {
   }
 
   updateSemester(semester, total = 8) {
-    this.elements.semesterInfo.textContent = `${semester}학기 / ${total}학기`;
+    this.elements.semesterLabel.textContent = `${semester}학기 / ${total}학기`;
   }
 
   restartGame() {
