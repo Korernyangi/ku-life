@@ -1,11 +1,37 @@
+import { getSeasonFromSemester } from '../voxel/particles.js';
+
 // All artwork uses the scene's 320 × 180 logical pixel grid.
 const STONE = ['#b2a38c', '#9b8c79', '#d8c8a7', '#72675d'];
-const TREES = [
-  ['#653d56', '#aa6078', '#e19a9d', '#ffcab2'],
-  ['#274f48', '#466e51', '#719158', '#9fb36c'],
-  ['#703e3d', '#a7553d', '#d38146', '#eeb364'],
-  ['#445665', '#718592', '#a5b1b4', '#e2dacc'],
-];
+const CAMPUS_SEASONS = {
+  spring: {
+    sky: ['#a7c9cf', '#c4d9cd', '#a8bb9c'],
+    ground: ['#829777', '#adb38b'],
+    tree: ['#653d56', '#aa6078', '#e19a9d', '#ffcab2'],
+    paving: ['#b2a48b', '#968774', '#cfc1a0', '#7c6f65'],
+    scatter: '#efb5ad',
+  },
+  summer: {
+    sky: ['#72aabd', '#9bc8c9', '#82ae96'],
+    ground: ['#4e7d54', '#83a35c'],
+    tree: ['#274f48', '#466e51', '#719158', '#b4c777'],
+    paving: ['#b9ad8b', '#9d8f71', '#d7c69c', '#756e5f'],
+    scatter: '#dfe39c',
+  },
+  autumn: {
+    sky: ['#ba9da1', '#dfb99f', '#d0ac8a'],
+    ground: ['#958268', '#b4936e'],
+    tree: ['#703e3d', '#a7553d', '#d38146', '#f4bd69'],
+    paving: ['#b2967c', '#967967', '#d5b597', '#765c59'],
+    scatter: '#e4954e',
+  },
+  winter: {
+    sky: ['#8195ac', '#a9bbcb', '#bdc7cd'],
+    ground: ['#b4c3c8', '#edf0e8'],
+    tree: ['#445665', '#718592', '#a5b1b4', '#f0f2ea'],
+    paving: ['#acb9bd', '#889aa8', '#e2e9e7', '#586b7d'],
+    scatter: '#f9f8ee',
+  },
+};
 
 function stonework(rect, x, y, width, height, colors = STONE) {
   rect(x, y, width, height, colors[0]);
@@ -45,16 +71,76 @@ function tree(rect, x, ground, colors) {
   }
 }
 
+function summerSun(rect) {
+  rect(237, 19, 37, 12, '#eed591');
+  rect(242, 14, 27, 22, '#eed591');
+  rect(245, 17, 21, 16, '#ffdf88');
+  rect(249, 14, 13, 22, '#ffdf88');
+  rect(249, 19, 12, 9, '#fff0ab');
+  for (const [x, y, w, h] of [[254, 7, 3, 4], [254, 39, 3, 5], [230, 24, 5, 2], [277, 24, 5, 2]]) {
+    rect(x, y, w, h, '#fff0ab');
+  }
+  for (let i = 0; i < 6; i++) {
+    rect(247 - i * 5, 37 + i * 3, 11, 2, '#fff3bf44');
+    rect(263 + i * 5, 37 + i * 3, 10, 2, '#fff3bf44');
+  }
+}
+
+function snowman(rect, x, y) {
+  rect(x - 3, y, 30, 3, '#718797');
+  rect(x + 3, y - 10, 19, 11, '#d9e8e9');
+  rect(x + 6, y - 13, 13, 16, '#f3f5eb');
+  rect(x + 5, y - 22, 15, 9, '#dbe9e9');
+  rect(x + 8, y - 24, 10, 11, '#faf8ee');
+  rect(x + 7, y - 28, 12, 4, '#394354');
+  rect(x + 5, y - 25, 16, 2, '#394354');
+  rect(x + 9, y - 20, 2, 2, '#40475a');
+  rect(x + 15, y - 20, 2, 2, '#40475a');
+  rect(x + 13, y - 17, 7, 2, '#d88352');
+  rect(x + 6, y - 14, 14, 3, '#9d3653');
+  rect(x + 16, y - 12, 4, 6, '#b64761');
+  rect(x + 12, y - 8, 2, 2, '#6b6a78');
+  rect(x + 12, y - 4, 2, 2, '#6b6a78');
+  rect(x, y - 12, 4, 2, '#76605a');
+  rect(x + 21, y - 12, 5, 2, '#76605a');
+}
+
+function campusProps(rect, season) {
+  if (season === 'winter') {
+    snowman(rect, 222, 148);
+  } else if (season === 'spring') {
+    // Flower bed along the path in front of the main building.
+    rect(197, 131, 34, 7, '#8b615d');
+    rect(196, 130, 36, 2, '#b57e72');
+    for (let i = 0; i < 7; i++) {
+      const x = 199 + i * 5;
+      const y = 125 - (i * 3) % 5;
+      rect(x, y + 2, 1, 130 - y, '#4c7352');
+      rect(x - 1, y, 3, 2, i % 2 ? '#f8c1d1' : '#e78eaf');
+      rect(x, y + 1, 1, 1, '#f9dbad');
+    }
+  } else if (season === 'autumn') {
+    for (const [x, y, width] of [[63, 140, 28], [225, 142, 28], [270, 148, 24]]) {
+      rect(x, y, width, 3, '#945047');
+      rect(x + 3, y - 2, width - 7, 4, '#c27446');
+      rect(x + 7, y - 4, width - 17, 3, '#efad58');
+      rect(x + width - 6, y - 1, 3, 1, '#e69a57');
+    }
+  }
+}
+
 function campus(rect, season) {
-  rect(0, 0, 320, 132, '#9ebdc0');
-  rect(0, 54, 320, 78, '#c1cec1');
-  rect(0, 87, 320, 45, '#a3b79f');
-  rect(245, 16, 15, 15, '#f8dda6');
+  const palette = CAMPUS_SEASONS[season];
+  rect(0, 0, 320, 132, palette.sky[0]);
+  rect(0, 54, 320, 78, palette.sky[1]);
+  rect(0, 87, 320, 45, palette.sky[2]);
+  if (season === 'summer') summerSun(rect);
+  else if (season !== 'winter') rect(245, 16, 12, 12, '#f1d7a5');
   for (const [x, y, width] of [[26, 23, 41], [103, 11, 31], [220, 38, 51], [282, 22, 28]]) {
     rect(x, y + 3, width, 3, '#d9d8bc');
     rect(x + 9, y, width - 18, 4, '#e9dfc6');
   }
-  rect(0, 115, 320, 26, '#748571');
+  rect(0, 115, 320, 26, palette.ground[0]);
   // Collegiate Gothic wings, buttresses and crenellated central tower.
   stonework(rect, 31, 68, 258, 57);
   for (const wing of [31, 193]) {
@@ -85,10 +171,23 @@ function campus(rect, season) {
     rect(140 - i * 4, 124 + i * 3, 40 + i * 8, 3, i % 2 ? '#a59480' : '#d4c3a3');
   }
   for (const [x, ground] of [[16, 133], [67, 129], [263, 130], [303, 136]]) {
-    tree(rect, x, ground, TREES[season]);
+    tree(rect, x, ground, palette.tree);
   }
-  rect(0, 136, 320, 4, '#a0a07c');
-  paving(rect, 140, ['#b2a48b', '#968774', '#cfc1a0', '#7c6f65']);
+  rect(0, 136, 320, 4, palette.ground[1]);
+  paving(rect, 140, palette.paving);
+  if (season === 'winter') {
+    for (const [x, y, width] of [[31, 58, 96], [193, 58, 96], [126, 33, 68], [132, 130, 56]]) {
+      rect(x, y, width, 2, palette.scatter);
+    }
+  }
+  for (let i = 0; i < 31; i++) {
+    const x = (16 + 53 * i) % 316;
+    const y = 134 + (11 * i) % 36;
+    rect(x, y, season === 'winter' ? 4 + i % 5 : 2, 1, palette.scatter);
+    if (season === 'spring' || season === 'winter') {
+      rect((x + 32) % 318, 17 + (23 * i) % 105, 1, 1, palette.scatter);
+    }
+  }
   for (const x of [104, 216]) {
     rect(x, 111, 2, 27, '#594a47');
     rect(x - 2, 109, 6, 5, '#654c3e');
@@ -96,6 +195,7 @@ function campus(rect, season) {
     rect(x + 2, 116, 10, 9, '#812d43');
     rect(x + 4, 117, 6, 1, '#eac087');
   }
+  campusProps(rect, season);
 }
 
 function paving(rect, top, colors) {
@@ -211,7 +311,84 @@ function cafe(rect) {
   desk(rect, 13, 129, 61, false);
 }
 
-export function drawPixelBackground(ctx, scene, semester) {
+function stadium(rect) {
+  rect(0, 0, 320, 180, '#8eacb9');
+  rect(0, 33, 320, 43, '#c5c5af');
+  for (const x of [28, 274]) {
+    rect(x, 25, 3, 53, '#566575');
+    rect(x - 8, 20, 20, 7, '#505c6c');
+    for (let offset = -6; offset <= 8; offset += 4) rect(x + offset, 22, 3, 3, '#f3e3b2');
+  }
+  rect(0, 54, 320, 44, '#626573');
+  for (let row = 0; row < 6; row++) {
+    const y = 55 + row * 7;
+    rect(0, y + 4, 320, 2, '#9d9791');
+    for (let x = 2 + row % 2 * 3; x < 318; x += 5) {
+      const team = x < 160 ? ['#97334d', '#d25c68', '#e6a182'] : ['#3f5c92', '#657eae', '#9db4c7'];
+      rect(x, y, 3, 4, team[(x + row) % 3]);
+    }
+  }
+  rect(131, 18, 58, 29, '#3d4356');
+  rect(134, 21, 52, 22, '#252d42');
+  rect(137, 25, 13, 14, '#a83d57');
+  rect(170, 25, 13, 14, '#557cac');
+  rect(155, 30, 10, 2, '#f4d69b');
+  rect(0, 98, 320, 13, '#8a5057');
+  rect(0, 101, 320, 1, '#eab38b');
+  rect(0, 108, 320, 1, '#eab38b');
+  rect(0, 111, 320, 69, '#5c875a');
+  for (let x = 0; x < 320; x += 44) rect(x, 112, 22, 68, '#6a985f');
+  rect(0, 120, 320, 1, '#e4e6c1');
+  rect(0, 167, 320, 1, '#e4e6c1');
+  rect(160, 120, 1, 48, '#e4e6c1');
+  for (const [x, w] of [[144, 33], [140, 41]]) {
+    const y = x === 144 ? 135 : 138;
+    rect(x, y, w, 1, '#e4e6c1');
+    rect(x, 282 - y, w, 1, '#e4e6c1');
+  }
+  rect(139, 141, 1, 5, '#e4e6c1');
+  rect(181, 141, 1, 5, '#e4e6c1');
+}
+
+function festivalField(rect) {
+  rect(0, 0, 320, 180, '#353953');
+  rect(0, 44, 320, 70, '#554963');
+  rect(251, 15, 12, 12, '#f9d7a4');
+  for (let i = 0; i < 22; i++) rect((i * 53 + 11) % 318, 5 + i * 13 % 39, 1, 1, '#e9bac1');
+  const trees = ['#273f49', '#34584d', '#47725a', '#63876a'];
+  for (const x of [9, 33, 59, 267, 291, 313]) tree(rect, x, 112, trees);
+  rect(0, 108, 320, 72, '#406d57');
+  for (let y = 117; y < 180; y += 12) rect(0, y, 320, 5, '#4b7c5d');
+  for (let i = 0; i < 45; i++) rect((i * 47) % 320, 112 + i * 19 % 66, 3, 1, '#67926c');
+
+  // Open-air stage with light towers, LED panels, and a crowd at the edge of the field.
+  rect(77, 53, 166, 44, '#242638');
+  rect(68, 49, 184, 5, '#d3a1ac');
+  rect(86, 60, 148, 34, '#74374f');
+  rect(103, 64, 114, 26, '#a64c70');
+  for (let i = 0; i < 15; i++) {
+    const height = 4 + i * 7 % 16;
+    rect(108 + i * 7, 87 - height, 4, height, i % 2 ? '#f19c9d' : '#f0c28e');
+  }
+  for (const x of [68, 246]) {
+    rect(x, 53, 5, 50, '#c098a7');
+    rect(x - 3, 72, 11, 28, '#302a40');
+    rect(x, 75, 5, 5, '#6f5e75');
+    rect(x, 86, 5, 6, '#6f5e75');
+  }
+  for (let x = 82; x <= 232; x += 15) rect(x, 54, 6, 3, x % 2 ? '#e99abd' : '#f7d78f');
+  rect(65, 96, 190, 6, '#b38182');
+  rect(65, 102, 190, 4, '#4d364e');
+  for (let i = 0; i < 38; i++) {
+    const x = 45 + i * 6;
+    const y = 109 + i * 13 % 14;
+    rect(x, y, 4, 7, ['#6c374c', '#a54d66', '#d28e8d', '#493e53'][i % 4]);
+    rect(x + 1, y - 2, 2, 2, '#daa58b');
+    if (i % 3 === 0) rect(x + 3, y - 4, 1, 3, '#fff1b5');
+  }
+}
+
+export function drawPixelBackground(ctx, scene, semester, season = getSeasonFromSemester(semester)) {
   const rect = (x, y, width, height, color) => {
     ctx.fillStyle = color;
     ctx.fillRect(x, y, width, height);
@@ -221,6 +398,8 @@ export function drawPixelBackground(ctx, scene, semester) {
     case 'exam': lectureHall(rect); break;
     case 'club': clubRoom(rect); break;
     case 'parttime': cafe(rect); break;
-    default: campus(rect, Math.floor((Math.max(1, semester) - 1) / 2) % TREES.length);
+    case 'koyeonjeon': stadium(rect); break;
+    case 'ipselenti': festivalField(rect); break;
+    default: campus(rect, season);
   }
 }

@@ -1,3 +1,5 @@
+import { CampusWeather } from './campus-weather.js';
+import { getSeasonFromSemester } from '../voxel/particles.js';
 import { drawPixelBackground } from './pixel-backgrounds.js';
 
 export function drawPixelStudent(ctx, state, x, y, scale = 1, pose = null) {
@@ -87,6 +89,14 @@ export class PixelScene {
     this.canvas.className = 'pixel-layer';
     container.appendChild(this.canvas); this.ctx=this.canvas.getContext('2d'); this.ctx.scale(2,2);
 
+    const weatherCanvas = this.canvas.cloneNode();
+    weatherCanvas.id = 'campus-weather';
+    weatherCanvas.removeAttribute('aria-label');
+    weatherCanvas.setAttribute('aria-hidden', 'true');
+    weatherCanvas.style.pointerEvents = 'none';
+    container.appendChild(weatherCanvas);
+    this.weather = new CampusWeather(weatherCanvas);
+
     this.playerCanvas = this.canvas.cloneNode();
     this.playerCanvas.id = 'pixel-player';
     this.playerCanvas.removeAttribute('aria-label');
@@ -109,6 +119,7 @@ export class PixelScene {
   }
 
   updatePlayer(deltaTime, direction) {
+    this.weather.update(deltaTime);
     const nextX = Math.max(16, Math.min(304, this.playerX + direction * 75 * deltaTime));
     const walking = nextX !== this.playerX;
     this.playerX = nextX;
@@ -148,8 +159,10 @@ export class PixelScene {
     ctx.restore();
   }
 
-  draw(scene = 'campus', semester = 1, gameState = null) {
+  draw(scene = 'campus', semester = 1, gameState = null, season = getSeasonFromSemester(semester)) {
     this.gameState = gameState;
-    drawPixelBackground(this.ctx, scene, semester);
+    this.canvas.dataset.scene = scene;
+    drawPixelBackground(this.ctx, scene, semester, season);
+    this.weather.setSeason(scene === 'campus' ? season : null);
   }
 }

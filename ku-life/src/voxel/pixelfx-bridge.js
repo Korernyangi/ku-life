@@ -4,10 +4,6 @@ const COLORS = {
   money: '#f3bd4e', relation: '#ed83ad', career: '#79a8ef',
 };
 
-export function getSeasonFromSemester(semester) {
-  return SEASONS[Math.floor(((semester - 1) % 8) / 2)] || 'spring';
-}
-
 export async function createPixelfxManager(_sourceCanvas, host) {
   const canvas = document.createElement('canvas');
   canvas.className = 'pixel-fx-layer';

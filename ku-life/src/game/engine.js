@@ -205,7 +205,7 @@ export class GameEngine {
   }
 
   /**
-   * 학기별 이벤트 3개 선택
+   * 학기별 이벤트 선택
    */
   selectEventsForSemester(semester) {
     const forSemester = eventsData.events.filter(event => event.semester.includes(semester));
@@ -225,8 +225,9 @@ export class GameEngine {
     const unplayed = forSemester.filter(event =>
       (event.repeatable || !this.gameState.eventsCompleted.includes(event.id)) && meetsConditions(event));
     const schedule = unplayed.find(event => event.challenge === 'schedule');
-    const campusActivity = shuffle(unplayed.filter(event => event.category === 'campus_life'))[0];
-    const priorities = [schedule, campusActivity].filter((event, index, list) => event && list.indexOf(event) === index);
+    const festival = unplayed.find(event => event.background);
+    const campusActivity = shuffle(unplayed.filter(event => event.category === 'campus_life' && event !== festival))[0];
+    const priorities = [schedule, festival, campusActivity].filter(Boolean);
     const available = [...priorities, ...shuffle(unplayed.filter(event => !priorities.includes(event)))];
 
     // 매 학기 네 이벤트를 보장한다. 조건을 만족하는 새 이벤트가 적으면

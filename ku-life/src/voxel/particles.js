@@ -251,11 +251,11 @@ export class SeasonalParticles {
  * 5,6학기: 가을 (9,10월)
  * 7,8학기: 겨울 (12,1월)
  */
-export function getSeasonFromSemester(semester) {
-  if (semester <= 2) return 'spring';
-  if (semester <= 4) return 'summer';
-  if (semester <= 6) return 'autumn';
-  return 'winter';
+export function getSeasonFromSemester(semester, lateTerm = false) {
+  const springTerm = semester % 2 !== 0;
+  return springTerm
+    ? (lateTerm ? 'summer' : 'spring')
+    : (lateTerm ? 'winter' : 'autumn');
 }
 
 /**

@@ -9,7 +9,8 @@ import { UIOverlay } from './ui/overlay.js';
 import { randomizeCharacter } from './voxel/models/character.js';
 import { createAnimator } from './voxel/animator.js';
 import { PixelScene } from './ui/pixel-scene.js';
-import { createPixelfxManager, getSeasonFromSemester } from './voxel/pixelfx-bridge.js';
+import { createPixelfxManager } from './voxel/pixelfx-bridge.js';
+import { getSeasonFromSemester } from './voxel/particles.js';
 
 // ===== Three.js 초기화 =====
 
@@ -148,8 +149,20 @@ async function initGame() {
       },
     });
 
+    let lateTerm = false;
+    const drawScene = (sceneName) => {
+      const { semester } = gameEngine.gameState;
+      const season = getSeasonFromSemester(semester, lateTerm);
+      const previous = pixelScene.canvas.dataset.scene;
+      pixelScene.draw(sceneName, semester, gameEngine.gameState, season);
+      pixelfxManager?.setSeason(season);
+      if (previous && previous !== sceneName) pixelfxManager?.changeScene(previous, sceneName);
+    };
+
     // GameEngine 콜백 연결
     gameEngine.onEventStart = (event, remainingCount) => {
+      lateTerm ||= event.background === 'ipselenti' || remainingCount === 0;
+      drawScene(event.background || (remainingCount === 0 ? 'campus' : gameEngine.currentSceneName));
       uiOverlay.showEvent(event, remainingCount);
     };
     gameEngine.onStatChange = (stats, changes) => {
@@ -162,20 +175,18 @@ async function initGame() {
         });
       }
     };
-    gameEngine.onSemesterChange = async (semester) => {
-      pixelScene.draw(gameEngine.currentSceneName, semester, gameEngine.gameState);
+    gameEngine.onSemesterChange = (semester) => {
+      lateTerm = false;
+      drawScene(gameEngine.currentSceneName);
       uiOverlay.updateSemester(semester);
       uiOverlay.updateProfile(gameEngine.gameState);
-      if (pixelfxManager) {
-        const season = getSeasonFromSemester(semester);
-        await pixelfxManager.setSeason(season);
-      }
     };
     gameEngine.onGameEnd = (endingData) => {
       uiOverlay.showEnding(endingData);
     };
     gameEngine.onEventEnd = async (event, choice, changes, luckOutcome) => {
       uiOverlay.updateProfile(gameEngine.gameState);
+      if (event.background) drawScene(gameEngine.currentSceneName);
       uiOverlay.showChoiceResult(event, choice, changes, luckOutcome);
       if (pixelfxManager) {
         const cx = pixelfxManager.effectCanvas.width / 2;
@@ -194,13 +205,8 @@ async function initGame() {
     gameEngine.onSemesterGrade = (result, semester) => {
       uiOverlay.showSemesterGrade(result, semester, gameEngine.gameState);
     };
-    gameEngine.onSceneChange = async (sceneName, scene) => {
-      const prevScene = gameEngine.currentScene || 'campus';
-      pixelScene.draw(sceneName, gameEngine.gameState.semester, gameEngine.gameState);
-      if (pixelfxManager) {
-        await pixelfxManager.changeScene(prevScene, sceneName);
-      }
-      console.log(`Scene changed to: ${sceneName}`);
+    gameEngine.onSceneChange = (sceneName) => {
+      drawScene(gameEngine.waitingForChoice && gameEngine.currentEvent?.background || sceneName);
     };
 
     // 초기 스탯 표시
