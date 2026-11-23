@@ -184,23 +184,17 @@ async function initGame() {
     gameEngine.onGameEnd = (endingData) => {
       uiOverlay.showEnding(endingData);
     };
-    gameEngine.onEventEnd = async (event, choice, changes, luckOutcome) => {
+    gameEngine.onEventEnd = (event, choice, changes, luckOutcome, schedule, storyNotes) => {
       uiOverlay.updateProfile(gameEngine.gameState);
       if (event.background) drawScene(gameEngine.currentSceneName);
-      uiOverlay.showChoiceResult(event, choice, changes, luckOutcome);
       if (pixelfxManager) {
         const cx = pixelfxManager.effectCanvas.width / 2;
         const cy = pixelfxManager.effectCanvas.height / 2;
-        if (changes.money !== 0) {
-          await pixelfxManager.playMoneyChange(changes.money, cx, cy);
-        }
-        if (changes.hp > 0) {
-          await pixelfxManager.playHeal(cx, cy);
-        }
-        if (changes.hp < 0) {
-          await pixelfxManager.playBurn(cx, cy);
-        }
+        if (changes.money) pixelfxManager.playMoneyChange(changes.money, cx, cy);
+        if (changes.hp > 0) pixelfxManager.playHeal(cx, cy);
+        if (changes.hp < 0) pixelfxManager.playBurn(cx, cy);
       }
+      return uiOverlay.showChoiceResult(event, choice, changes, luckOutcome, schedule, storyNotes);
     };
     gameEngine.onSemesterGrade = (result, semester) => {
       uiOverlay.showSemesterGrade(result, semester, gameEngine.gameState);
@@ -260,6 +254,7 @@ const heldKeys = new Set();
 const canMove = () => gameEngine?.gameStarted && !gameEngine.gameEnded;
 
 window.addEventListener('keydown', (event) => {
+  if (event.target.closest?.('dialog')) return;
   if (movementKeys.has(event.key)) {
     if (!canMove() || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey ||
         event.target.closest?.('input, textarea, select, [contenteditable]')) return;

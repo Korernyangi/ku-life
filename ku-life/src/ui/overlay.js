@@ -6,9 +6,12 @@
  * - 엔딩 화면
  */
 
-import { GAME_DATA } from '../game/state.js';
+import { GAME_DATA, getScheduleOptions } from '../game/state.js';
 import { PanelLayout } from './panel-layout.js';
 import { drawPixelPortrait } from './pixel-scene.js';
+import { showEndingProfile } from './ending-profile.js';
+
+const STAT_LABELS = { grade: '학기 성적 영향', hp: '체력', intelligence: '지능', mental: '멘탈', money: '돈', relation: '인맥', career: '커리어' };
 
 export class UIOverlay {
   constructor(container, gameEngine) {
@@ -51,18 +54,20 @@ export class UIOverlay {
     this.elements.root.appendChild(this.elements.statBar);
 
     const statDefs = [
-      { key: 'intelligence', label: '지능', icon: '🧠', color: '#10B981' },
-      { key: 'hp', label: '체력', icon: '❤️', color: '#EF4444' },
-      { key: 'mental', label: '멘탈', icon: '🧠', color: '#8B5CF6' },
-      { key: 'money', label: '돈', icon: '💰', color: '#F59E0B' },
-      { key: 'relation', label: '인맥', icon: '🤝', color: '#EC4899' },
-      { key: 'career', label: '커리어', icon: '💼', color: '#3B82F6' },
+      { key: 'intelligence', label: '지능', icon: '🧠', color: '#10B981', detail: '과제와 시험 점수를 통해 학점에 영향을 줍니다.' },
+      { key: 'hp', label: '체력', icon: '❤️', color: '#EF4444', detail: '출석 점수에 영향을 줍니다. 0이 되면 중도 포기합니다.' },
+      { key: 'mental', label: '멘탈', icon: '🧠', color: '#8B5CF6', detail: '출석과 일부 과목 성적에 영향을 줍니다. 0이 되면 중도 포기합니다.' },
+      { key: 'money', label: '돈', icon: '💰', color: '#F59E0B', detail: '생활비와 활동에 쓰이며, 창업 등 일부 엔딩에 영향을 줍니다.' },
+      { key: 'relation', label: '인맥', icon: '🤝', color: '#EC4899', detail: '교류 선택지와 취업·공익 활동 등 일부 엔딩에 영향을 줍니다.' },
+      { key: 'career', label: '커리어', icon: '💼', color: '#3B82F6', detail: '취업과 창업 등 졸업 후 진로에 영향을 줍니다.' },
     ];
 
     this.statElements = {};
     statDefs.forEach(def => {
       const el = document.createElement('div');
       el.className = 'stat-item';
+      el.tabIndex = 0;
+      el.setAttribute('aria-describedby', `stat-help-${def.key}`);
       el.style.cssText = `
         display: flex;
         align-items: center;
@@ -87,6 +92,12 @@ export class UIOverlay {
           "></div>
         </div>
       `;
+      const tooltip = document.createElement('span');
+      tooltip.id = `stat-help-${def.key}`;
+      tooltip.className = 'stat-tooltip';
+      tooltip.setAttribute('role', 'tooltip');
+      tooltip.textContent = def.detail;
+      el.appendChild(tooltip);
       this.elements.statBar.appendChild(el);
       this.statElements[def.key] = {
         value: el.querySelector('.stat-value'),
@@ -142,7 +153,7 @@ export class UIOverlay {
     this.elements.eventPanel.id = 'event-panel';
     this.elements.eventPanel.style.cssText = `
       position: absolute;
-      z-index: 6;
+      z-index: 9;
       bottom: 16px; left: 16px; right: auto; width: min(560px, calc(100% - 32px));
       max-height: 48vh; overflow-y: auto;
       padding: 14px;
@@ -494,9 +505,38 @@ export class UIOverlay {
     if (event.challenge === 'schedule') {
       const challenge=document.createElement('div');challenge.className='schedule-challenge';challenge.style.cssText='padding:12px;margin:8px 0;background:#f5efe4;border-radius:12px';
       challenge.innerHTML='<strong>시간표 미니게임</strong><p style="margin:5px 0;font-size:12px">겹치지 않는 수업을 3개 골라 시간표를 완성하세요.</p><div class="schedule-options" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px"></div><button class="schedule-submit" disabled style="margin-top:8px;padding:8px 12px">시간표 확인</button>';
-      const options=challenge.querySelector('.schedule-options'),classes=[['전공 기초','월 09:00'],['교양 글쓰기','월 10:00'],['자료 구조','화 13:00'],['경제와 사회','수 11:00'],['팀 프로젝트','목 15:00'],['영어 회화','금 10:00']];
-      classes.forEach(([name,time],i)=>{const b=document.createElement('button');b.type='button';b.textContent=`${name} · ${time}`;b.dataset.slot=String(i);b.style.cssText='padding:8px;border:1px solid #c8b99f;border-radius:8px;background:white;text-align:left;font-size:12px';b.onclick=()=>{b.classList.toggle('selected');b.style.background=b.classList.contains('selected')?'#d9ead3':'white';challenge.querySelector('.schedule-submit').disabled=options.querySelectorAll('.selected').length!==3};options.appendChild(b)});
-      challenge.querySelector('.schedule-submit').onclick=()=>{const selected=[...options.querySelectorAll('.selected')].map(b=>+b.dataset.slot);const success=selected.length===3&&!(selected.includes(0)&&selected.includes(1));challenge.innerHTML=`<strong>${success?'시간표 완성! 수업 시간이 겹치지 않습니다.':'시간표가 겹치거나 비어 있습니다. 다시 확인해 보세요.'}</strong>`;if(success)setTimeout(()=>{this.hideEvent();const schedule=selected.map(i=>({day:['월','월','화','수','목','금'][i],name:classes[i][0]}));this.onChoiceSelect?.(0,schedule)},500);else{const retry=document.createElement('button');retry.textContent='다시 짜기';retry.onclick=()=>this.showEvent(event,remainingCount);challenge.appendChild(retry)}};
+      const options = challenge.querySelector('.schedule-options');
+      const submit = challenge.querySelector('.schedule-submit');
+      const feedback = document.createElement('p');
+      feedback.setAttribute('role', 'status');
+      challenge.appendChild(feedback);
+      const courses = getScheduleOptions(this.gameEngine.gameState.major);
+      const selected = new Set();
+      courses.forEach((course, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.slot = String(index);
+        button.setAttribute('aria-pressed', 'false');
+        button.textContent = `${course.name} · ${course.day} ${course.time}`;
+        button.onclick = () => {
+          if (selected.has(course)) selected.delete(course);
+          else selected.add(course);
+          button.setAttribute('aria-pressed', String(selected.has(course)));
+          submit.disabled = selected.size !== 3;
+          feedback.textContent = '';
+        };
+        options.appendChild(button);
+      });
+      submit.onclick = () => {
+        const schedule = courses.filter(course => selected.has(course));
+        const slots = new Set(schedule.map(({ day, time }) => `${day} ${time}`));
+        if (schedule.length !== 3 || slots.size !== schedule.length) {
+          feedback.textContent = '같은 시간에 열린 수업이 있습니다. 선택을 바꿔 주세요.';
+          return;
+        }
+        this.hideEvent();
+        this.onChoiceSelect?.(0, schedule);
+      };
       this.elements.choicesContainer.before(challenge);
     }
 
@@ -536,28 +576,63 @@ export class UIOverlay {
     this.elements.eventPanel.querySelectorAll('.schedule-challenge').forEach(el=>el.remove());
   }
 
-  showLuckResult(outcome) {
-    if (!outcome) return;
-    const toast=document.createElement('div');
-    toast.textContent=`🎲 ${outcome.text}`;
-    toast.style.cssText='position:absolute;left:16px;bottom:18px;z-index:30;padding:12px 16px;border-radius:12px;background:#fff2c9;color:#553c16;box-shadow:0 6px 20px #0003;font-weight:700;animation:fadeIn .2s ease-out';
-    this.elements.root.appendChild(toast);
-    setTimeout(()=>toast.remove(),2400);
-  }
+  showChoiceResult(event, choice, changes, luckOutcome, schedule, storyNotes = []) {
+    const personalize = text => text.replaceAll('{{gender}}', this.gameEngine.gameState.gender || '학생');
+    const title = personalize(event.title);
+    const selection = personalize(choice.text);
+    const entries = Object.entries(changes).filter(([, value]) => Number.isFinite(value) && value !== 0);
+    const parts = entries.map(([key, value]) => `${STAT_LABELS[key] || key} ${value > 0 ? '+' : ''}${value}`);
+    const summary = [parts.join(' · ') || '스탯 변화 없음', luckOutcome?.text].filter(Boolean).join(' · ');
+    this.choiceLog.unshift({ title, choice: selection, summary });
+    this.choiceLog = this.choiceLog.slice(0, 4);
+    this.elements.profileLog.replaceChildren(...this.choiceLog.map(item => {
+      const row = document.createElement('div');
+      row.className = 'choice-log-item';
+      row.textContent = `${item.title} · ${item.choice} · ${item.summary}`;
+      return row;
+    }));
 
-  showChoiceResult(event, choice, changes = {}, luckOutcome = null) {
-    const labels={grade:'학기 성적 영향',hp:'체력',intelligence:'지능',mental:'멘탈',money:'돈',relation:'인맥',career:'커리어'};
-    const entries=Object.entries(changes).filter(([,value])=>value!==0);
-    const parts=entries.map(([key,value])=>`${labels[key]||key} ${value>0?'+':''}${value}`);
-    const summary=[parts.length?parts.join(' · '):'스탯 변화 없음',luckOutcome?.text].filter(Boolean).join(' · ');
-    this.choiceLog.unshift({ title:event?.title||'선택', choice:choice?.text||'', summary });
-    this.choiceLog=this.choiceLog.slice(0,4);
-    this.elements.profileLog.innerHTML=this.choiceLog.map(item=>`<div style="padding:6px 7px;background:#f7f2e9;border-radius:7px;font-size:10px;line-height:1.4"><strong>${item.title}</strong><div>${item.choice}</div><div style="color:#67552f">${item.summary}</div></div>`).join('');
-    const pills=entries.map(([key,value])=>`<span style="display:inline-block;margin:3px;padding:5px 8px;border-radius:7px;background:${value>0?'#e1f2df':'#f8e2df'};color:${value>0?'#27613a':'#9b3930'};font-size:12px;font-weight:800">${labels[key]||key} ${value>0?'+':''}${value}</span>`).join('');
-    const toast=document.createElement('div');
-    toast.innerHTML=`<strong>${choice?.text||'선택 결과'}</strong><div style="margin-top:5px">${pills||'<span style="font-size:12px">스탯 변화 없음</span>'}</div>${luckOutcome?`<small>${luckOutcome.text}</small>`:''}`;
-    toast.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;width:max-content;max-width:min(640px,calc(100vw - 32px));padding:14px 18px;border-radius:14px;background:#fffaf0;color:#302720;box-shadow:0 8px 30px #0005;text-align:center;animation:fadeIn .2s ease-out;pointer-events:none';
-    this.elements.root.appendChild(toast);setTimeout(()=>toast.remove(),2800);
+    const dialog = document.createElement('dialog');
+    dialog.className = 'choice-result';
+    dialog.setAttribute('aria-labelledby', 'choice-result-title');
+    dialog.innerHTML = `
+      <button type="button" class="choice-result-close" aria-label="결과 닫기" autofocus>×</button>
+      <h2 id="choice-result-title"></h2>
+      <p class="choice-context"></p>
+      <p class="choice-story"></p>
+      <p class="choice-stats"></p>
+    `;
+    dialog.querySelector('h2').textContent = title;
+    dialog.querySelector('.choice-context').textContent = personalize(event.description);
+    const consequences = entries.map(([key, value]) => {
+      const positive = value > 0;
+      const stories = {
+        grade: positive ? '이번 학기 성적에 힘이 될 경험을 쌓았다.' : '이번 학기의 공부 계획에 차질이 생겼다.',
+        hp: positive ? '몸에 기운이 조금 돌아왔다.' : '하루를 마치고 나니 몸이 부쩍 무거웠다.',
+        mental: positive ? '한결 마음이 편해졌다.' : '마음 한편에 부담이 남았다.',
+        money: positive ? '생활비에 여유가 생겼다.' : '쓸 수 있는 생활비가 줄었다.',
+        relation: positive ? '캠퍼스에서 인사를 나눌 사람이 늘었다.' : '사람들과 조금 멀어졌다.',
+        career: positive ? '진로를 준비하는 데 도움이 되는 경험을 얻었다.' : '진로 준비는 한 걸음 미뤄졌다.',
+        intelligence: positive ? '새로운 것을 이해하는 힘이 붙었다.' : '평소보다 생각을 정리하기 어려웠다.',
+      };
+      return stories[key];
+    });
+    const decision = schedule
+      ? `${schedule.map(course => course.name).join(', ')}을 시간표에 담았다. 이번 학기에 들을 수업이 정해졌다.`
+      : `고민 끝에 ‘${selection}’ 쪽으로 마음을 정했다.`;
+    dialog.querySelector('.choice-story').textContent = [
+      decision, ...storyNotes, luckOutcome?.text, ...consequences,
+    ].filter(Boolean).join(' ');
+    dialog.querySelector('.choice-stats').textContent = parts.join(' · ') || '스탯 변화 없음';
+    dialog.querySelector('button').onclick = () => dialog.close();
+    this.elements.root.appendChild(dialog);
+    return new Promise(resolve => {
+      dialog.addEventListener('close', () => {
+        dialog.remove();
+        resolve();
+      }, { once: true });
+      dialog.showModal();
+    });
   }
 
   showSemesterGrade(result, semester, state) {
@@ -570,36 +645,7 @@ export class UIOverlay {
   showEnding(endingData) {
     this.hideAll();
     this.elements.endingScreen.style.display = 'flex';
-
-    const { ending, info, stats } = endingData;
-    const statDefs = [
-      { key: 'grade', label: '누적 평점 / 4.50', icon: '📚' },
-      { key: 'hp', label: '체력', icon: '❤️' },
-      { key: 'mental', label: '멘탈', icon: '🧠' },
-      { key: 'money', label: '돈', icon: '💰' },
-      { key: 'relation', label: '인맥', icon: '🤝' },
-      { key: 'career', label: '커리어', icon: '💼' },
-    ];
-
-    let statsHtml = '';
-    statDefs.forEach(def => {
-      const raw = stats[def.key] ?? 0;
-      const value = def.key === 'grade' ? `${Number(raw).toFixed(2)} / 4.50` : raw;
-      statsHtml += `
-        <div class="ending-stat">
-          <div class="ending-stat-value">${value}</div>
-          <div class="ending-stat-label">${def.icon} ${def.label}</div>
-        </div>
-      `;
-    });
-
-    this.elements.endingScreen.innerHTML = `
-      <div class="ending-icon">${info.icon}</div>
-      <h1 class="ending-title">${info.title}</h1>
-      <p class="ending-desc">${info.desc}</p>
-      <div class="ending-stats">${statsHtml}</div>
-      <button class="btn-restart">다시 시작하기</button>
-    `;
+    showEndingProfile(this.elements.endingScreen, endingData, this.gameEngine.gameState);
   }
 
   updateStats(stats, changes = {}) {

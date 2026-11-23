@@ -290,6 +290,7 @@ export class GameEngine {
     if (!choice) return;
     if (this.getChoiceLockReason(choice)) return;
 
+    const storyNotes = [];
     if (scheduleSelection?.length) {
       this.gameState.weeklySchedule = ['월', '화', '수', '목', '금', '토'].map(day => ({
         day,
@@ -302,7 +303,15 @@ export class GameEngine {
       if (change.add && !day.classes.includes(change.add)) day.classes.push(change.add);
       if (change.remove) day.classes = day.classes.filter(name => name !== change.remove);
     });
-    if (choice.relationshipStatus) this.gameState.relationshipStatus = choice.relationshipStatus;
+    if (choice.relationshipStatus && choice.relationshipStatus !== this.gameState.relationshipStatus) {
+      this.gameState.relationshipStatus = choice.relationshipStatus;
+      const relationshipNotes = {
+        dating: '서로의 마음을 확인하고 사귀기 시작했다.',
+        single: '이제는 각자의 일상으로 돌아가기로 했다.',
+        notInterested: '지금은 연애보다 내 일상에 집중하기로 했다.',
+      };
+      storyNotes.push(relationshipNotes[choice.relationshipStatus]);
+    }
 
     // 스탯 적용
     const statChanges = this.gameState.modifyStats(choice.stats || {});
@@ -332,21 +341,23 @@ export class GameEngine {
     if (this.onStatChange) {
       this.onStatChange(this.gameState.getAllStats(), statChanges);
     }
-    if (this.onEventEnd) {
-      this.onEventEnd(this.currentEvent, choice, statChanges, luckOutcome);
-    }
-
+    const event = this.currentEvent;
     this.currentEvent = null;
     this.waitingForChoice = false;
 
-    // 게임 오버 체크
-    if (this.gameState.checkGameOver()) {
-      this.endGame('dropout');
-      return;
+    const advance = () => {
+      if (this.gameState.checkGameOver()) {
+        this.endGame('dropout');
+      } else {
+        this.startNextEvent();
+      }
+    };
+    const result = this.onEventEnd?.(event, choice, statChanges, luckOutcome, scheduleSelection, storyNotes);
+    if (result instanceof Promise) {
+      result.then(advance);
+    } else {
+      setTimeout(advance, 500);
     }
-
-    // 다음 이벤트 자동 시작 (약간 딜레이)
-    setTimeout(() => this.startNextEvent(), 500);
   }
 
   getChoiceLockReason(choice) {

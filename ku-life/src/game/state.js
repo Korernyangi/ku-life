@@ -22,6 +22,14 @@ const MAJORS = [
   { id: 'eng', name: '영어영문학과', desc: '언어와 문학의 세계. 비교적 자유로운 분위기.', stats: { relation: 10, mental: 5, career: -5 } },
   { id: 'phil', name: '철학과', desc: '생각하고 질문하는 학문. 진로 고민이 깊다.', stats: { mental: 10, grade: 5, career: -10 } },
   { id: 'arch', name: '건축학과', desc: '설계와 모형의 연속. 밤샘이 일상.', stats: { hp: -15, mental: -10, career: 10, grade: -5 } },
+  { id: 'psy', name: '심리학과', desc: '사람의 마음과 행동을 실험과 관찰로 탐구한다.', stats: { relation: 5, mental: 5 } },
+  { id: 'soc', name: '사회학과', desc: '조사와 토론을 통해 사회 구조와 일상을 살펴본다.', stats: { relation: 8, grade: 3 } },
+  { id: 'stats', name: '통계학과', desc: '데이터 속 패턴을 찾고 불확실성을 다룬다.', stats: { career: 10, mental: -4 } },
+  { id: 'math', name: '수학과', desc: '정의와 증명을 바탕으로 문제의 구조를 파고든다.', stats: { grade: 6, mental: -5 } },
+  { id: 'physics', name: '물리학과', desc: '수식과 실험으로 자연의 법칙을 알아간다.', stats: { career: 7, hp: -5 } },
+  { id: 'chem', name: '화학과', desc: '실험실에서 물질의 성질과 변화를 관찰한다.', stats: { career: 8, hp: -6 } },
+  { id: 'history', name: '사학과', desc: '사료를 읽고 과거의 사건을 여러 관점에서 해석한다.', stats: { grade: 5, mental: 4 } },
+  { id: 'media', name: '미디어학부', desc: '기획과 제작을 통해 이야기와 정보를 전한다.', stats: { relation: 7, career: 6 } },
 ];
 
 // 집안 형편
@@ -82,16 +90,43 @@ function calculateStartingStats(selections) {
   return stats;
 }
 
-function createWeeklySchedule(major) {
-  const field = major?.name?.replace('학과', '') || '전공';
+const MAJOR_COURSES = {
+  cs: ['프로그래밍 기초', '이산수학', '자료구조', '컴퓨터 시스템'],
+  biz: ['경영학원론', '회계원리', '마케팅원론', '조직행동론'],
+  econ: ['경제학원론', '경제수학', '미시경제학', '경제통계학'],
+  law: ['법학개론', '법제사', '헌법', '민법총칙'],
+  med: ['의학개론', '기초화학', '인체생물학', '의료윤리'],
+  eng: ['영미문학개론', '영어학개론', '영미소설 읽기', '영어 작문'],
+  phil: ['철학개론', '논리학', '윤리학', '서양철학사'],
+  arch: ['기초설계', '건축학개론', '건축구조', '건축표현'],
+  psy: ['심리학개론', '심리통계', '인지심리학', '발달심리학'],
+  soc: ['사회학개론', '사회조사방법론', '문화사회학', '사회불평등'],
+  stats: ['통계학개론', '선형대수', '확률론', '통계프로그래밍'],
+  math: ['미적분학', '선형대수', '정수론', '이산수학'],
+  physics: ['일반물리학', '물리수학', '역학', '물리학실험'],
+  chem: ['일반화학', '화학수학', '유기화학', '화학실험'],
+  history: ['한국사입문', '동아시아사', '서양사개론', '역사 사료 읽기'],
+  media: ['미디어학개론', '미디어 글쓰기', '디지털 콘텐츠 제작', '미디어와 사회'],
+};
+
+export function getScheduleOptions(major) {
+  const courses = MAJOR_COURSES[major?.id] || ['전공 개론', '전공 기초', '전공 세미나', '전공 실습'];
   return [
-    { day: '월', classes: [`${field} 개론`, '교양 글쓰기'] },
-    { day: '화', classes: ['영어 회화', `${field} 세미나`] },
-    { day: '수', classes: ['자율 학습'] },
-    { day: '목', classes: ['팀 프로젝트', `${field} 선택`] },
-    { day: '금', classes: ['교양 수업'] },
-    { day: '토', classes: ['자율 / 휴식'] },
+    { day: '월', time: '09:00', name: courses[0] },
+    { day: '월', time: '09:00', name: '교양 글쓰기' },
+    { day: '화', time: '13:00', name: courses[1] },
+    { day: '수', time: '11:00', name: courses[2] },
+    { day: '목', time: '15:00', name: courses[3] },
+    { day: '금', time: '10:00', name: '영어 회화' },
   ];
+}
+
+function createWeeklySchedule(major) {
+  const courses = getScheduleOptions(major).filter(course => course.name !== '교양 글쓰기');
+  return ['월', '화', '수', '목', '금', '토'].map(day => ({
+    day,
+    classes: courses.filter(course => course.day === day).map(course => course.name),
+  }));
 }
 
 function createAppearance(gender, stats, personality) {
@@ -128,7 +163,7 @@ export function generateRandomStart() {
 
   // 스탯 계산
   const stats = { ...BASE_STATS };
-  stats.intelligence = 40 + Math.floor(Math.random() * 41);
+  stats.intelligence = 10 + Math.floor(Math.random() * 91);
   [admission, major, background, personality].forEach(item => {
     Object.entries(item.stats).forEach(([key, value]) => {
       if (key === 'grade') return;
@@ -246,9 +281,11 @@ export class GameState {
   finalizeSemesterGrade() {
     if (this.gradeHistory.length >= this.semester) return null;
     const classNames = [...new Set((this.weeklySchedule || []).flatMap(day => day.classes))].slice(0, 5);
-    const defaults = ['전공 기초', '교양 글쓰기', '전공 세미나', '영어 회화', '교양 선택'];
-    while (classNames.length < 5) classNames.push(defaults[classNames.length]);
-    const aptitude = this.stats.intelligence || 50;
+    for (const { name } of getScheduleOptions(this.major)) {
+      if (classNames.length === 5) break;
+      if (!classNames.includes(name)) classNames.push(name);
+    }
+    const aptitude = this.stats.intelligence ?? 50;
     const effort = this.semesterGradeDelta * 0.55 + (this.semester === 1 ? this.startingGradeBonus * 0.45 : 0);
     const clampScore = value => Math.max(0, Math.min(100, Math.round(value)));
     const toGrade = score => {
