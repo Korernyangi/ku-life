@@ -251,10 +251,12 @@ window.addEventListener('resize', onResize);
 // ===== 키보드 입력 =====
 const movementKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp']);
 const heldKeys = new Set();
-const canMove = () => gameEngine?.gameStarted && !gameEngine.gameEnded;
+const arcadeOpen = () => Boolean(document.querySelector('.arcade[open]'));
+const canMove = () => gameEngine?.gameStarted && !gameEngine.gameEnded && !arcadeOpen();
+document.addEventListener('arcade-open', () => heldKeys.clear());
 
 window.addEventListener('keydown', (event) => {
-  if (event.target.closest?.('dialog')) return;
+  if (arcadeOpen() || event.target.closest?.('dialog')) return;
   if (movementKeys.has(event.key)) {
     if (!canMove() || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey ||
         event.target.closest?.('input, textarea, select, [contenteditable]')) return;

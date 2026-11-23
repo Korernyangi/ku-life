@@ -7,6 +7,7 @@
  */
 
 import { GAME_DATA, getScheduleOptions } from '../game/state.js';
+import { MiniGames } from './mini-games.js';
 import { PanelLayout } from './panel-layout.js';
 import { drawPixelPortrait } from './pixel-scene.js';
 import { showEndingProfile } from './ending-profile.js';
@@ -21,6 +22,7 @@ export class UIOverlay {
 
     this.createUI();
     this.panelLayout = new PanelLayout(this.elements);
+    this.miniGames = new MiniGames(this.elements.root, () => this.gameEngine.gameState);
     this.bindEvents();
     this.hideAll();
     this.showStartScreen();
@@ -358,6 +360,7 @@ export class UIOverlay {
 
   hideAll() {
     this.panelLayout.setActive(false);
+    this.miniGames.setActive(false);
     this.elements.eventPanel.style.display = 'none';
     this.elements.startScreen.style.display = 'none';
     this.elements.endingScreen.style.display = 'none';
@@ -456,6 +459,7 @@ export class UIOverlay {
   showGameUI() {
     this.hideAll();
     this.panelLayout.setActive(true);
+    this.miniGames.setActive(true);
     this.elements.statBar.style.display = 'flex';
     this.elements.semesterInfo.style.display = 'block';
     this.elements.profilePanel.style.display = 'flex';

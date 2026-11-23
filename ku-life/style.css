@@ -700,3 +700,139 @@ a:focus-visible,
 .stat-item:is(:hover, :focus) .stat-tooltip {
   visibility: visible;
 }
+
+#game-ui .arcade-launch {
+  position: absolute;
+  top: 112px;
+  left: 16px;
+  z-index: 20;
+  padding: 7px 11px;
+  font-size: 13px;
+}
+
+.arcade-launch span { color: var(--crimson); margin-right: 4px; }
+
+.arcade {
+  width: min(672px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  overflow: auto;
+  background: var(--paper);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  box-shadow: 6px 6px 0 #2c2039;
+}
+
+.arcade::backdrop { background: #241a30cc; }
+
+.arcade-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  color: var(--paper);
+  background: var(--crimson);
+}
+
+.arcade-header h2 { font-size: clamp(16px, 4vw, 24px); }
+.arcade-body { padding: clamp(10px, 3vw, 22px); }
+
+.arcade button,
+.arcade-launch {
+  background: #f5dfb9;
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font: inherit;
+  font-weight: 800;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.arcade button:disabled { opacity: .55; cursor: default; }
+
+.arcade-list {
+  display: grid;
+  gap: 12px;
+}
+
+.arcade .arcade-card {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 12px;
+  text-align: left;
+}
+
+.arcade-card > span:last-child { font-size: 13px; font-weight: 500; }
+
+.arcade-icon {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  background: var(--crimson);
+  color: var(--paper);
+  font: bold 20px monospace;
+}
+
+.arcade-help { font-size: 14px; margin-bottom: 10px; }
+.arcade-status { min-height: 2.8em; font-size: 14px; font-weight: 700; }
+.arcade canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2;
+  max-height: 42dvh;
+  object-fit: contain;
+  background: #382d43;
+  border: 2px solid var(--ink);
+  image-rendering: pixelated;
+}
+
+.arcade-actions,
+.arcade-footer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.arcade-actions { justify-content: center; }
+.arcade-footer { justify-content: space-between; }
+.arcade-actions button { min-height: 40px; }
+.arcade-hold { touch-action: none; user-select: none; }
+.arcade-progress { display: flex; gap: 10px; align-items: center; margin-block: 8px; }
+.arcade-progress progress { flex: 1; accent-color: var(--crimson); }
+.arcade-upgrade-info { margin-top: 10px; font-size: 14px; }
+
+@media (max-width: 700px) {
+  #game-ui .arcade-launch { top: 116px; left: 10px; }
+}
+
+.arcade-timing { margin-top: 12px; }
+
+.arcade-timing-track {
+  position: relative;
+  height: 20px;
+  margin-inline: 4px;
+  border: 2px solid var(--ink);
+  background: #5d465e;
+}
+
+.arcade-timing-target,
+.arcade-timing-marker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+}
+
+.arcade-timing-target {
+  left: var(--target-start);
+  width: var(--target-width);
+  background: #93c78a;
+  border-inline: 2px solid #365842;
+}
+
+.arcade-timing-marker {
+  width: 6px;
+  transform: translateX(-50%);
+  background: #fff5c7;
+  border-inline: 1px solid var(--ink);
+}
