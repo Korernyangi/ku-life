@@ -163,6 +163,7 @@ async function initGame() {
       }
     };
     gameEngine.onSemesterChange = async (semester) => {
+      pixelScene.draw(gameEngine.currentSceneName, semester, gameEngine.gameState);
       uiOverlay.updateSemester(semester);
       uiOverlay.updateProfile(gameEngine.gameState);
       if (pixelfxManager) {
@@ -247,11 +248,27 @@ function onResize() {
 }
 window.addEventListener('resize', onResize);
 
-// ===== 키보드 입력 (테스트용) =====
-window.addEventListener('keydown', (e) => {
-  if (gameEngine) {
-    gameEngine.handleKeyDown(e.key.toLowerCase());
+// ===== 키보드 입력 =====
+const movementKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp']);
+const heldKeys = new Set();
+const canMove = () => gameEngine?.gameStarted && !gameEngine.gameEnded;
+
+window.addEventListener('keydown', (event) => {
+  if (movementKeys.has(event.key)) {
+    if (!canMove() || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey ||
+        event.target.closest?.('input, textarea, select, [contenteditable]')) return;
+
+    event.preventDefault();
+    heldKeys.add(event.key);
+    if (event.key === 'ArrowUp' && !event.repeat) pixelScene.jump();
+    return;
   }
+  gameEngine?.handleKeyDown(event.key.toLowerCase());
+});
+window.addEventListener('keyup', (event) => heldKeys.delete(event.key));
+window.addEventListener('blur', () => heldKeys.clear());
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) heldKeys.clear();
 });
 
 // ===== 애니메이션 루프 =====
@@ -267,6 +284,10 @@ function animate(time) {
   if (gameEngine) {
     gameEngine.update(deltaTime);
   }
+  const direction = canMove()
+    ? Number(heldKeys.has('ArrowRight')) - Number(heldKeys.has('ArrowLeft'))
+    : 0;
+  pixelScene.updatePlayer(deltaTime, direction);
 
   // 픽셀 이펙트 업데이트
   if (pixelfxManager) {

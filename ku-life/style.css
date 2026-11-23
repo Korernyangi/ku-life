@@ -263,3 +263,184 @@ a:focus-visible,
     display: none !important;
   }
 }
+:root {
+  --ink: #302331;
+  --crimson: #822841;
+  --paper: #fbefd8;
+  --gold: #d4a773;
+  --pixel-shadow: 4px 4px 0 #382839;
+}
+
+#canvas-container {
+  background: #302331;
+}
+
+#canvas-container .pixel-layer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+#start-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: clamp(20px, 6vw, 104px);
+  background: linear-gradient(90deg, #261d2a91, #261d2a1c 65%);
+  z-index: 100;
+  overflow: auto;
+}
+
+.title-panel {
+  width: min(100%, 432px);
+  padding: clamp(20px, 4vw, 48px);
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  box-shadow: inset 0 0 0 4px var(--gold), 8px 8px 0 #302331b8;
+  color: var(--ink);
+}
+
+.title-location {
+  color: var(--crimson);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.title-panel h1 {
+  margin: 8px 0;
+  color: var(--crimson);
+  font: 900 clamp(42px, 7vw, 76px)/.96 ui-monospace, monospace;
+  letter-spacing: -.10em;
+  text-shadow: 3px 3px 0 #e1b16f;
+}
+
+.title-description {
+  font-size: clamp(14px, 2vw, 19px);
+  font-weight: 700;
+  margin: 16px 0 26px;
+}
+
+#btn-start,
+#game-ui .btn-confirm,
+#game-ui .btn-reroll,
+#game-ui .btn-restart,
+#game-ui .grade-continue,
+#game-ui .schedule-submit {
+  background: var(--crimson) !important;
+  border: 2px solid var(--ink) !important;
+  border-radius: 0 !important;
+  color: var(--paper) !important;
+  box-shadow: var(--pixel-shadow);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1.3;
+  font-family: inherit;
+  font-weight: 800;
+  padding: 12px 18px;
+}
+
+#btn-start {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 17px;
+}
+
+#btn-start:hover,
+#game-ui button:not(:disabled):hover {
+  filter: brightness(1.09);
+}
+
+#game-ui button:disabled {
+  cursor: default;
+}
+
+.title-controls {
+  margin-top: 18px;
+  font-size: 13px;
+}
+
+.title-controls kbd {
+  padding: 1px 4px;
+  background: #e9d7ba;
+  border: 1px solid #947257;
+  box-shadow: 1px 1px #947257;
+}
+
+.title-credit {
+  margin-top: 16px;
+  color: #69535a;
+  font-size: 11px;
+}
+
+#game-ui #profile-panel,
+#game-ui #event-panel,
+#game-ui #semester-info,
+#game-ui .stat-item {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--pixel-shadow);
+  color: var(--ink);
+}
+
+#game-ui #profile-panel,
+#game-ui #event-panel {
+  box-shadow: inset 0 0 0 3px var(--gold), var(--pixel-shadow);
+}
+
+#event-panel h3 {
+  color: var(--crimson) !important;
+}
+
+#game-ui #event-panel .choice-btn {
+  background: #eddcc0;
+  border: 2px solid #bc9b76;
+  border-radius: 0;
+  color: var(--ink);
+}
+
+#game-ui #event-panel .choice-btn.primary {
+  background: var(--crimson);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+#game-ui #char-screen section,
+#game-ui #grade-screen section,
+#game-ui .roll-fields > div,
+#game-ui .schedule-challenge {
+  border-radius: 0 !important;
+}
+
+@media (max-width: 700px) and (orientation: portrait) {
+  #canvas-container .pixel-layer {
+    top: 15%;
+    height: min(46%, 73vw);
+  }
+  #start-screen {
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .title-panel {
+    margin-bottom: 5vh;
+  }
+  #game-ui #semester-info {
+    top: 80px;
+    font-size: 12px;
+    padding: 6px 9px;
+  }
+  #game-ui #profile-panel {
+    max-height: 24vh;
+  }
+  #game-ui #event-panel {
+    max-height: 39vh;
+    width: calc(100% - 24px);
+    left: 10px !important;
+    bottom: 12px !important;
+  }
+}

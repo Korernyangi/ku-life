@@ -65,14 +65,9 @@ export class UIOverlay {
         display: flex;
         align-items: center;
         gap: 6px;
-        background: rgba(255,255,255,0.95);
-        border: 2px solid ${def.color};
-        border-radius: 20px;
         padding: 6px 12px;
         font-size: 13px;
         font-weight: 600;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        backdrop-filter: blur(4px);
         min-width: 90px;
         justify-content: center;
         transition: transform 0.2s, box-shadow 0.2s;
@@ -100,18 +95,15 @@ export class UIOverlay {
 
     // 학기 표시
     this.elements.semesterInfo = document.createElement('div');
+    this.elements.semesterInfo.id = 'semester-info';
     this.elements.semesterInfo.style.cssText = `
       position: absolute;
       top: 70px; left: 16px;
-      background: rgba(255,255,255,0.95);
-      border: 2px solid #6366F1;
-      border-radius: 16px;
       padding: 8px 16px;
       font-size: 14px;
       font-weight: 700;
       color: #312E81;
       pointer-events: auto;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     `;
     this.elements.semesterInfo.innerHTML = '1학기 / 8학기';
     this.elements.root.appendChild(this.elements.semesterInfo);
@@ -122,12 +114,10 @@ export class UIOverlay {
       position: absolute; top: 76px; right: 16px; z-index: 8;
       display: none; flex-direction: column; align-items: center; gap: 10px;
       width: 248px; max-height: calc(100vh - 100px); overflow-y: auto; padding: 14px; box-sizing: border-box;
-      background: rgba(255, 250, 242, 0.96); border: 1px solid #d7c6ad;
-      border-radius: 16px; box-shadow: 0 8px 24px rgba(35, 20, 16, 0.2);
       color: #302720; pointer-events: auto;
     `;
     this.elements.profilePanel.innerHTML = `
-      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:900;letter-spacing:.12em;color:#8b0000"><span>CAMPUS PROFILE</span><span style="padding:3px 6px;background:#8b0000;color:#fff3d5;letter-spacing:.05em;border-radius:4px">KU · ANAM</span></div>
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:900;letter-spacing:.12em;color:#8b0000"><span>학생 수첩</span></div>
       <canvas class="profile-avatar" width="180" height="160" aria-label="게임 배경 캐릭터와 같은 픽셀 초상"></canvas>
       <div style="width:100%;padding-bottom:8px;border-bottom:1px solid #ded2c1"><div style="font-size:16px;font-weight:900;color:#382a28">고려대 새내기</div><div class="profile-look" style="margin-top:3px;font-size:10px;color:#827467"></div></div>
       <div class="profile-details" style="width:100%;display:grid;gap:8px"></div>
@@ -151,11 +141,7 @@ export class UIOverlay {
       z-index: 6;
       bottom: 16px; left: 16px; right: auto; width: min(560px, calc(100% - 32px));
       max-height: 48vh; overflow-y: auto;
-      background: rgba(255,255,255,0.94);
-      border: 2px solid #374151;
-      border-radius: 20px;
       padding: 14px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
       pointer-events: auto;
       display: none;
       animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -194,55 +180,15 @@ export class UIOverlay {
     // ===== 시작 화면 =====
     this.elements.startScreen = document.createElement('div');
     this.elements.startScreen.id = 'start-screen';
-    this.elements.startScreen.style.cssText = `
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, #8B0000 0%, #4A1A1A 50%, #1A1A2E 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      z-index: 100;
-      overflow: hidden;
-    `;
     this.elements.root.appendChild(this.elements.startScreen);
-
     this.elements.startScreen.innerHTML = `
-      <div style="text-align: center; animation: fadeIn 1s ease-out;">
-        <h1 style="
-          font-size: clamp(32px, 8vw, 56px);
-          font-weight: 800;
-          margin: 0 0 16px;
-          background: linear-gradient(135deg, #FFD700, #FFA500, #FF6B6B);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          text-shadow: 0 4px 24px rgba(255,215,0,0.3);
-        ">KU LIFE</h1>
-        <p style="
-          font-size: clamp(16px, 3vw, 20px);
-          margin: 0 0 40px;
-          opacity: 0.9;
-          font-weight: 300;
-        ">고려대 학생 인생 시뮬레이션</p>
-        <button id="btn-start" style="
-          padding: 16px 48px;
-          font-size: 18px;
-          font-weight: 700;
-          background: linear-gradient(135deg, #FFD700, #FFA500);
-          color: #1A1A2E;
-          border: none;
-          border-radius: 50px;
-          cursor: pointer;
-          box-shadow: 0 8px 32px rgba(255,215,0,0.4);
-          transition: transform 0.2s, box-shadow 0.2s;
-        ">시작하기</button>
-        <p style="
-          margin-top: 24px;
-          font-size: 13px;
-          opacity: 0.6;
-        ">비공식 팬 프로젝트 · 원작 '80억분의 1'과 무관</p>
+      <div class="title-panel">
+        <p class="title-location">서울 · 안암캠퍼스</p>
+        <h1>KU LIFE</h1>
+        <p class="title-description">고려대 학생 인생 시뮬레이션</p>
+        <button id="btn-start" type="button">입학하기 <span aria-hidden="true">▸</span></button>
+        <p class="title-controls"><kbd>←</kbd> <kbd>→</kbd> 이동 <kbd>↑</kbd> 점프</p>
+        <p class="title-credit">비공식 팬 프로젝트 · 원작 '80억분의 1'과 무관</p>
       </div>
     `;
 
@@ -332,8 +278,6 @@ export class UIOverlay {
       .choice-btn .choice-icon { font-size: 20px; }
       .choice-btn.primary { background: linear-gradient(135deg, #8B0000, #A02020); border-color: #8B0000; color: white; }
       .choice-btn.primary:hover { background: linear-gradient(135deg, #A02020, #8B0000); }
-      #btn-start:hover { transform: scale(1.05); box-shadow: 0 12px 40px rgba(255,215,0,0.5); }
-      #btn-start:active { transform: scale(0.98); }
       .ending-icon { font-size: 80px; margin-bottom: 16px; animation: pulse 2s infinite; }
       .ending-title { font-size: clamp(28px, 6vw, 42px); font-weight: 800; margin: 0 0 16px; background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
       .ending-desc { font-size: clamp(16px, 3vw, 20px); text-align: center; max-width: 600px; margin: 0 0 32px; opacity: 0.9; line-height: 1.7; }
@@ -527,7 +471,7 @@ export class UIOverlay {
     this.elements.profileGrade.innerHTML = `<div style="display:flex;justify-content:space-between"><span>${state.gradeHistory?.length ? '최근 학기 평점' : '첫 학기 평점'}</span><strong>${previousGrade == null ? '—' : `${Number(previousGrade).toFixed(2)} / 4.50`}</strong></div><div style="display:flex;justify-content:space-between;margin-top:3px"><span>누적 평점</span><strong>${average == null ? '—' : `${Number(average).toFixed(2)} / 4.50`}</strong></div><div style="margin-top:4px;color:#786e62">지능 ${state.stats?.intelligence ?? 0} · ${state.semester}학기</div>`;
     this.elements.profileSchedule.innerHTML = `<div style="font-size:12px;font-weight:800;margin-bottom:5px">주간 시간표</div>${(state.weeklySchedule || []).map(day => `<div style="display:grid;grid-template-columns:24px 1fr;gap:5px;font-size:10px;line-height:1.45;padding:3px 5px;border-radius:6px;background:#f7f2e9;margin-top:2px"><strong>${day.day}</strong><span>${day.classes.join(' · ')}</span></div>`).join('')}`;
 
-    this.elements.profileAvatar.style.cssText='display:block;width:180px;max-width:100%;height:auto;image-rendering:pixelated;border:3px solid #702b37;border-radius:8px;box-shadow:0 4px 0 #d6b879,0 8px 16px #39282033';
+    this.elements.profileAvatar.style.cssText='display:block;width:180px;max-width:100%;height:auto;image-rendering:pixelated;border:3px solid #702b37;box-shadow:4px 4px 0 #d6b879';
     drawPixelPortrait(this.elements.profileAvatar, state);
   }
 
