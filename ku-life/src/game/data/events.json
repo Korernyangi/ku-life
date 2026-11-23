@@ -1,0 +1,1627 @@
+{
+  "events": [
+    {
+      "id": "event_01",
+      "title": "첫 수업, 자리 선택",
+      "description": "새 학기 첫 전공 수업. 어디에 앉을지 고민된다. 앞자리는 교수님 눈에 띄지만 집중이 잘 되고, 뒷자리는 편하지만 졸릴 수도 있다.",
+      "semester": [
+        1,
+        2
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "맨 앞자리에 앉는다 (집중!)",
+          "stats": {
+            "grade": 5,
+            "mental": -3,
+            "relation": -2
+          },
+          "scene": "study"
+        },
+        {
+          "text": "친구랑 뒷자리에 앉는다 (편하게)",
+          "stats": {
+            "grade": -3,
+            "mental": 3,
+            "relation": 8
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "중간쯤, 적당히 앉는다",
+          "stats": {
+            "grade": 1,
+            "mental": 1,
+            "relation": 2
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_02",
+      "title": "동아리 박람회",
+      "description": "중앙광장에서 동아리 박람회가 열렸다. 관심 있는 동아리가 몇 개 보인다. 가입하면 인맥도 생기고 경험도 쌓이지만 시간도 많이 든다.",
+      "semester": [
+        1,
+        2,
+        3
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "열정적으로 2개 동아리 가입",
+          "stats": {
+            "relation": 10,
+            "career": 5,
+            "hp": -5,
+            "mental": -3
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "수",
+              "add": "동아리 활동 (저녁)"
+            }
+          ]
+        },
+        {
+          "text": "관심 있는 1개만 가입",
+          "stats": {
+            "relation": 5,
+            "career": 3,
+            "hp": -2
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "목",
+              "add": "동아리 활동 (저녁)"
+            }
+          ]
+        },
+        {
+          "text": "구경만 하고 가입 안 함",
+          "stats": {
+            "hp": 3,
+            "mental": 2,
+            "grade": 2
+          },
+          "scene": "campus"
+        }
+      ],
+      "category": "campus_life"
+    },
+    {
+      "id": "event_03",
+      "title": "중간고사 기간",
+      "description": "중간고사가 코앞이다. 도서관에서 밤새 공부할지, 적당히 벼락치기할지, 아니면 과제에 집중할지 선택해야 한다.",
+      "semester": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "도서관에서 철야 공부 (올나이터)",
+          "stats": {
+            "grade": 12,
+            "hp": -15,
+            "mental": -8,
+            "money": -5
+          },
+          "scene": "exam"
+        },
+        {
+          "text": "효율적으로 벼락치기",
+          "stats": {
+            "grade": 5,
+            "hp": -5,
+            "mental": -3
+          },
+          "scene": "study"
+        },
+        {
+          "text": "과제에 집중하고 시험은 운에 맡김",
+          "stats": {
+            "grade": -3,
+            "hp": 3,
+            "mental": 2,
+            "career": 2
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_04",
+      "title": "알바 제안 - 카페",
+      "description": "학교 앞 카페에서 주말 알바를 구한다. 시급은 괜찮지만 주말 이틀을 써야 한다. 돈은 벌지만 체력과 시간이 든다.",
+      "semester": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {
+        "money": {
+          "max": 80
+        }
+      },
+      "choices": [
+        {
+          "text": "주말 알바 시작 (토일 8시간씩)",
+          "stats": {
+            "money": 25,
+            "hp": -8,
+            "mental": -3,
+            "career": 3
+          },
+          "scene": "parttime",
+          "scheduleChanges": [
+            {
+              "day": "토",
+              "add": "카페 아르바이트"
+            }
+          ]
+        },
+        {
+          "text": "평일 저녁만 짧게 (주 3일)",
+          "stats": {
+            "money": 12,
+            "hp": -4,
+            "mental": -2,
+            "grade": -2
+          },
+          "scene": "parttime",
+          "scheduleChanges": [
+            {
+              "day": "금",
+              "add": "카페 아르바이트"
+            }
+          ]
+        },
+        {
+          "text": "알바 안 하고 장학금/용돈으로 버팀",
+          "stats": {
+            "grade": 3,
+            "mental": 2,
+            "hp": 3
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_05",
+      "title": "팀플 조원 갈등",
+      "description": "전공 팀플에서 조원 한 명이 일을 안 한다. 마감은 다가오고, 누군가는 더 해야 한다. 어떻게 할까?",
+      "semester": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "내가 다 떠맡고 끝낸다 (책임감)",
+          "stats": {
+            "grade": 8,
+            "hp": -8,
+            "mental": -5,
+            "relation": -3,
+            "career": 3
+          },
+          "scene": "study"
+        },
+        {
+          "text": "교수님께 조원 문제 알린다",
+          "stats": {
+            "grade": 3,
+            "mental": -3,
+            "relation": -5
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "조원들과 대화로 해결 시도",
+          "stats": {
+            "grade": 2,
+            "relation": 5,
+            "mental": 2,
+            "career": 2
+          },
+          "scene": "club"
+        }
+      ]
+    },
+    {
+      "id": "event_06",
+      "title": "해외 교환학생 기회",
+      "description": "교환학생 프로그램이 열렸다. 한 학기 해외에서 공부할 수 있지만 비용이 많이 들고 졸업이 늦어질 수 있다.",
+      "semester": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "conditions": {
+        "grade": {
+          "min": 2.5
+        },
+        "money": {
+          "min": 50
+        }
+      },
+      "choices": [
+        {
+          "text": "교환학생 신청 (도전!)",
+          "stats": {
+            "career": 15,
+            "relation": 10,
+            "mental": 5,
+            "money": -30,
+            "grade": -5
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "단기 어학연수만 (4주)",
+          "stats": {
+            "career": 5,
+            "relation": 5,
+            "money": -15,
+            "mental": 3
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "국내에 남아 인턴/프로젝트 집중",
+          "stats": {
+            "career": 10,
+            "grade": 5,
+            "money": 10
+          },
+          "scene": "parttime"
+        }
+      ]
+    },
+    {
+      "id": "event_07",
+      "title": "연애/썸 상황",
+      "description": "동기/선후배와 좋은 감정이 생겼다. 연애를 시작하면 행복하지만 시간과 돈, 멘탈 관리가 필요해진다.",
+      "semester": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "conditions": {
+        "relation": {
+          "min": 40
+        },
+        "mental": {
+          "min": 40
+        }
+      },
+      "choices": [
+        {
+          "text": "적극적으로 고백/다가간다",
+          "stats": {
+            "relation": 15,
+            "mental": 5,
+            "hp": -3,
+            "money": -10,
+            "grade": -3
+          },
+          "scene": "club"
+        },
+        {
+          "text": "천천히 알아가며 시작",
+          "stats": {
+            "relation": 8,
+            "mental": 3,
+            "money": -5,
+            "hp": -1
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "공부에 집중하려 마음 접음",
+          "stats": {
+            "grade": 5,
+            "mental": -5,
+            "relation": -5,
+            "career": 3
+          },
+          "scene": "study"
+        }
+      ]
+    },
+    {
+      "id": "event_08",
+      "title": "대외활동/공모전",
+      "description": "전공 관련 공모전/대외활동 모집 공고를 봤다. 상금도 있고 스펙도 되지만 준비 기간이 꽤 길다.",
+      "semester": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "conditions": {
+        "grade": {
+          "min": 2
+        }
+      },
+      "choices": [
+        {
+          "text": "팀 꾸려서 풀타임 도전",
+          "stats": {
+            "career": 15,
+            "relation": 5,
+            "money": 20,
+            "hp": -10,
+            "mental": -5,
+            "grade": -5
+          },
+          "scene": "club"
+        },
+        {
+          "text": "가볍게 아이디어만 제출",
+          "stats": {
+            "career": 5,
+            "mental": 2,
+            "money": 5
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "이번엔 패스, 다음 기회에",
+          "stats": {
+            "grade": 3,
+            "hp": 3,
+            "mental": 3
+          },
+          "scene": "study"
+        }
+      ]
+    },
+    {
+      "id": "event_09",
+      "title": "기말고사 헬게이트",
+      "description": "모든 과목 기말고사가 겹쳤다. 잠을 줄여가며 공부해야 할 판. 체력과 멘탈이 동시에 시험받는다.",
+      "semester": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "밤샘 3일 버티며 전과목 공부",
+          "stats": {
+            "grade": 15,
+            "hp": -25,
+            "mental": -15,
+            "money": -10
+          },
+          "scene": "exam"
+        },
+        {
+          "text": "전략적으로 핵심만 공부",
+          "stats": {
+            "grade": 5,
+            "hp": -8,
+            "mental": -5
+          },
+          "scene": "study"
+        },
+        {
+          "text": "과제 비중 높은 과목만 집중",
+          "stats": {
+            "grade": -2,
+            "hp": -3,
+            "mental": 2,
+            "career": 3
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_10",
+      "title": "진로 고민 - 인턴십 vs 대학원",
+      "description": "3학년 여름, 진로를 정해야 할 시점이다. 인턴십으로 실무를 쌓을지, 대학원 준비로 학문을 이어갈지.",
+      "semester": [
+        5,
+        6
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "대기업 인턴십 지원 (실무 경험)",
+          "stats": {
+            "career": 20,
+            "money": 15,
+            "relation": 5,
+            "grade": -5,
+            "mental": -5
+          },
+          "scene": "parttime"
+        },
+        {
+          "text": "대학원 준비 (연구실 인턴 + GRE/영어)",
+          "stats": {
+            "grade": 10,
+            "career": 10,
+            "mental": -8,
+            "money": -10
+          },
+          "scene": "study"
+        },
+        {
+          "text": "창업 동아리/스타트업 인턴 (도전적)",
+          "stats": {
+            "career": 15,
+            "relation": 8,
+            "mental": -3,
+            "money": -5,
+            "hp": -5
+          },
+          "scene": "club"
+        }
+      ]
+    },
+    {
+      "id": "event_11",
+      "title": "졸업논문/캡스톤 프로젝트",
+      "description": "4학년 1학기, 졸업 필수 과제인 논문/캡스톤을 시작해야 한다. 지도교수님과의 관계, 주제 선정, 진행 방식이 중요하다.",
+      "semester": [
+        7
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "교수님 자주 찾아뵙며 밀착 지도 받음",
+          "stats": {
+            "grade": 10,
+            "career": 8,
+            "relation": 5,
+            "mental": -5,
+            "hp": -5
+          },
+          "scene": "study"
+        },
+        {
+          "text": "자주적으로 주제 정해 혼자 진행",
+          "stats": {
+            "career": 5,
+            "mental": 3,
+            "grade": 3,
+            "relation": -3
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "동기들과 팀으로 공동 연구",
+          "stats": {
+            "grade": 5,
+            "career": 5,
+            "relation": 10,
+            "mental": 2
+          },
+          "scene": "club"
+        }
+      ]
+    },
+    {
+      "id": "event_12",
+      "title": "취업 시즌 - 면접 준비",
+      "description": "하반기 공채 시즌이다. 자소서 쓰고 면접 준비하느라 바쁘다. 몇 군데 지원할지, 어떻게 준비할지 전략이 필요하다.",
+      "semester": [
+        7,
+        8
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "10곳 이상 지원, 스터디로 철저 준비",
+          "stats": {
+            "career": 20,
+            "relation": 5,
+            "hp": -10,
+            "mental": -10,
+            "money": -20
+          },
+          "scene": "exam"
+        },
+        {
+          "text": "원하는 3-4곳만 집중 공략",
+          "stats": {
+            "career": 12,
+            "mental": -3,
+            "hp": -5,
+            "money": -10
+          },
+          "scene": "study"
+        },
+        {
+          "text": "공기업/공무원 준비로 방향 전환",
+          "stats": {
+            "career": 8,
+            "grade": 5,
+            "mental": -5,
+            "relation": 3
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_13",
+      "title": "졸업여행/동기 모임",
+      "description": "졸업 전 마지막 학기, 동기들과 졸업여행을 가자고 한다. 추억도 만들고 인맥도 다지지만 비용과 시간이 든다.",
+      "semester": [
+        8
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "해외 졸업여행 (일주일)",
+          "stats": {
+            "relation": 15,
+            "mental": 10,
+            "money": -40,
+            "hp": -5
+          },
+          "scene": "club"
+        },
+        {
+          "text": "국내 2박 3일 여행",
+          "stats": {
+            "relation": 8,
+            "mental": 5,
+            "money": -15,
+            "hp": -2
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "술자리만 몇 번 하고 아껴둠",
+          "stats": {
+            "relation": 3,
+            "money": 10,
+            "mental": 2,
+            "grade": 2
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_14",
+      "title": "건강 위기 - 번아웃/아픔",
+      "description": "쌓인 피로와 스트레스로 몸이 안 좋아졌다. 병원 가니 쉬라고 한다. 학기 중이라 수업/과제/알바 모두 버겁다.",
+      "semester": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "conditions": {
+        "hp": {
+          "max": 50
+        },
+        "mental": {
+          "max": 50
+        }
+      },
+      "choices": [
+        {
+          "text": "휴학하고 제대로 치료/휴식 (1학기)",
+          "stats": {
+            "hp": 30,
+            "mental": 20,
+            "grade": -10,
+            "career": -5,
+            "money": -20
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "병원 다니며 학기 이어가기 (반휴학)",
+          "stats": {
+            "hp": 10,
+            "mental": 2,
+            "grade": -5,
+            "money": -10
+          },
+          "scene": "study"
+        },
+        {
+          "text": "버티며 그냥 다님 (악화 위험)",
+          "stats": {
+            "hp": -15,
+            "mental": -10,
+            "grade": 3,
+            "career": 2
+          },
+          "scene": "exam"
+        }
+      ]
+    },
+    {
+      "id": "event_15",
+      "title": "마지막 학기, 후회 없는 선택",
+      "description": "8학기 마지막 학기. 졸업까지 얼마 안 남았다. 마지막으로 해보고 싶었던 것, 미련 남은 것 하나를 선택해보자.",
+      "semester": [
+        8
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "좋아하던 수업 하나 더 청강/재수강",
+          "stats": {
+            "grade": 5,
+            "mental": 5,
+            "career": 3
+          },
+          "scene": "study"
+        },
+        {
+          "text": "캠퍼스 곳곳 돌며 사진 찍고 추억 남기기",
+          "stats": {
+            "relation": 5,
+            "mental": 8,
+            "hp": 3
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "동아리/알바 후배들 챙겨주며 마무리",
+          "stats": {
+            "relation": 10,
+            "career": 5,
+            "mental": 5
+          },
+          "scene": "club"
+        }
+      ]
+    },
+    {
+      "id": "event_16",
+      "title": "수강 신청 전쟁",
+      "description": "필수 과목과 듣고 싶은 수업이 겹칩니다. 시간표를 직접 짜 보세요.",
+      "semester": [
+        1,
+        3,
+        5,
+        7
+      ],
+      "conditions": {},
+      "repeatable": true,
+      "challenge": "schedule",
+      "choices": [
+        {
+          "text": "충돌 없는 시간표를 완성했다",
+          "stats": {
+            "grade": 4,
+            "mental": 3,
+            "career": 2
+          },
+          "scene": "study"
+        },
+        {
+          "text": "시간표가 겹쳐 재신청한다",
+          "stats": {
+            "mental": -4,
+            "hp": -2
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_17",
+      "title": "생성형 AI 과제 가이드라인",
+      "description": "과제에 AI 도구를 써도 될까요? 수업 규정을 확인하고 사용 범위를 정해야 합니다.",
+      "semester": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "출처를 밝히고 초안 검토에만 활용",
+          "stats": {
+            "career": 4,
+            "grade": 3,
+            "mental": 2
+          },
+          "scene": "study",
+          "luck": {
+            "chance": 0.2,
+            "success": {
+              "grade": 3
+            },
+            "failure": {
+              "mental": -4
+            }
+          }
+        },
+        {
+          "text": "통째로 맡기고 빠르게 제출",
+          "stats": {
+            "mental": 4,
+            "hp": 2
+          },
+          "scene": "study",
+          "luck": {
+            "chance": 0.3,
+            "success": {
+              "grade": 8
+            },
+            "failure": {
+              "grade": -8,
+              "career": -5
+            }
+          }
+        },
+        {
+          "text": "AI 없이 직접 조사하고 작성",
+          "stats": {
+            "grade": 5,
+            "hp": -4,
+            "mental": -2
+          },
+          "scene": "study"
+        }
+      ]
+    },
+    {
+      "id": "event_18",
+      "title": "월세와 생활비가 오른 학기",
+      "description": "월세와 식비가 함께 올라 생활비 계획을 다시 세워야 합니다.",
+      "semester": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "생활비 대출을 알아보고 학업 시간을 확보",
+          "stats": {
+            "money": 18,
+            "mental": -4,
+            "career": -2
+          },
+          "scene": "campus",
+          "luck": {
+            "chance": 0.25,
+            "success": {
+              "money": 8
+            },
+            "failure": {
+              "mental": -5
+            }
+          }
+        },
+        {
+          "text": "식비를 줄이고 지출 기록하기",
+          "stats": {
+            "money": 8,
+            "hp": -3,
+            "mental": -2
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "주말 근무를 늘려 현금 마련",
+          "stats": {
+            "money": 20,
+            "hp": -8,
+            "grade": -3,
+            "career": 2
+          },
+          "scene": "parttime"
+        }
+      ]
+    },
+    {
+      "id": "event_19",
+      "title": "새내기 개강 모임",
+      "description": "개강총회 뒤풀이 자리에 초대받았다. 술을 마시며 가까워질 수도 있지만 다음 날 수업과 컨디션도 생각해야 한다.",
+      "semester": [
+        1,
+        2,
+        3
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "술자리에 오래 남아 선배·동기와 친해진다",
+          "stats": {
+            "relation": 14,
+            "hp": -12,
+            "intelligence": -4,
+            "money": -8
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "금",
+              "add": "개강 모임 (저녁)"
+            }
+          ]
+        },
+        {
+          "text": "한 잔만 하고 먼저 귀가한다",
+          "stats": {
+            "relation": 7,
+            "hp": -4,
+            "intelligence": -1,
+            "money": -4
+          },
+          "scene": "club"
+        },
+        {
+          "text": "음료를 마시며 대화에 참여한다",
+          "stats": {
+            "relation": 5,
+            "hp": 2,
+            "intelligence": 2
+          },
+          "scene": "club"
+        }
+      ],
+      "category": "campus_life"
+    },
+    {
+      "id": "event_20",
+      "title": "동아리 개총 뒤풀이",
+      "description": "동아리 첫 모임이 끝나고 뒤풀이가 시작됐다. 친목을 다질 기회지만 내일 아침 수업이 있다.",
+      "semester": [
+        1,
+        2,
+        4,
+        6
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "끝까지 함께하며 동아리 사람들과 어울린다",
+          "stats": {
+            "relation": 16,
+            "hp": -14,
+            "intelligence": -5,
+            "money": -10
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "금",
+              "add": "동아리 뒤풀이 (저녁)"
+            }
+          ]
+        },
+        {
+          "text": "저녁만 함께하고 귀가한다",
+          "stats": {
+            "relation": 8,
+            "hp": -5,
+            "intelligence": -1,
+            "money": -5
+          },
+          "scene": "club"
+        },
+        {
+          "text": "뒤풀이 대신 다음 모임을 제안한다",
+          "stats": {
+            "relation": 4,
+            "hp": 3,
+            "intelligence": 1,
+            "career": 2
+          },
+          "scene": "campus"
+        }
+      ],
+      "category": "campus_life"
+    },
+    {
+      "id": "event_21",
+      "title": "생활비가 모자란 달",
+      "description": "등록금과 월세를 내고 나니 생활비가 빠듯하다. 집안 형편에 따라 선택할 수 있는 방법도 달라진다.",
+      "semester": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {},
+      "profileConditions": {
+        "background": [
+          "poor"
+        ]
+      },
+      "choices": [
+        {
+          "text": "근로 장학과 교내 식당을 알아본다",
+          "stats": {
+            "money": 12,
+            "career": 3,
+            "hp": -2
+          },
+          "scene": "campus",
+          "scheduleChanges": [
+            {
+              "day": "화",
+              "add": "교내 근로"
+            }
+          ]
+        },
+        {
+          "text": "주말 카페 근무를 시작한다",
+          "stats": {
+            "money": 20,
+            "hp": -7,
+            "mental": -3
+          },
+          "scene": "parttime",
+          "scheduleChanges": [
+            {
+              "day": "토",
+              "add": "카페 아르바이트"
+            }
+          ]
+        },
+        {
+          "text": "친구에게 사정을 말하고 지출을 줄인다",
+          "stats": {
+            "money": 5,
+            "relation": 4,
+            "mental": -2
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_22",
+      "title": "성적 장학금 유지 조건",
+      "description": "장학금을 계속 받으려면 성적을 관리해야 한다. 시험 준비 시간을 확보할지 활동을 이어갈지 정하자.",
+      "semester": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {},
+      "profileConditions": {
+        "background": [
+          "scholarship"
+        ]
+      },
+      "choices": [
+        {
+          "text": "스터디를 꾸려 시험을 준비한다",
+          "stats": {
+            "grade": 8,
+            "intelligence": 3,
+            "relation": 3,
+            "hp": -4
+          },
+          "scene": "study",
+          "scheduleChanges": [
+            {
+              "day": "수",
+              "add": "전공 스터디"
+            }
+          ]
+        },
+        {
+          "text": "동아리 활동을 계속하고 장학금은 다음에 노린다",
+          "stats": {
+            "relation": 7,
+            "career": 4,
+            "grade": -5
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "수",
+              "add": "동아리 활동 (저녁)"
+            }
+          ]
+        },
+        {
+          "text": "교수님 면담으로 학습 계획을 점검한다",
+          "stats": {
+            "grade": 5,
+            "mental": 3,
+            "career": 2
+          },
+          "scene": "study",
+          "requires": {
+            "min": {
+              "intelligence": 45
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_23",
+      "title": "발표 전날, 잠이 오지 않는다",
+      "description": "조별 발표를 앞두고 걱정이 커졌다. 성격이 걱정 많은 편이라면 부담을 낮추는 방식도 고려하자.",
+      "semester": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "conditions": {},
+      "profileConditions": {
+        "personality": [
+          "anxious"
+        ]
+      },
+      "choices": [
+        {
+          "text": "밤새 발표 자료를 혼자 다듬는다",
+          "stats": {
+            "grade": 8,
+            "hp": -12,
+            "mental": -10,
+            "intelligence": -2
+          },
+          "scene": "study",
+          "requires": {
+            "min": {
+              "mental": 35
+            }
+          }
+        },
+        {
+          "text": "팀원과 역할을 나누고 리허설한다",
+          "stats": {
+            "grade": 5,
+            "relation": 5,
+            "mental": 3
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "목",
+              "add": "팀 발표 리허설"
+            }
+          ]
+        },
+        {
+          "text": "상담센터에서 발표 불안을 상담한다",
+          "stats": {
+            "mental": 9,
+            "hp": 2,
+            "grade": -2
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_24",
+      "title": "편입생 멘토링 안내",
+      "description": "편입생을 위한 학과 멘토링이 열렸다. 익숙하지 않은 수강 시스템과 동아리 정보를 얻을 수 있다.",
+      "semester": [
+        1,
+        2,
+        3
+      ],
+      "conditions": {},
+      "profileConditions": {
+        "admission": [
+          "transfer"
+        ]
+      },
+      "choices": [
+        {
+          "text": "선배 멘토와 수강 계획을 세운다",
+          "stats": {
+            "intelligence": 3,
+            "relation": 8,
+            "mental": 5
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "전공 스터디에 들어가 수업 자료를 공유한다",
+          "stats": {
+            "grade": 5,
+            "intelligence": 4,
+            "relation": 5
+          },
+          "scene": "study",
+          "scheduleChanges": [
+            {
+              "day": "수",
+              "add": "전공 스터디"
+            }
+          ]
+        },
+        {
+          "text": "혼자 부딪혀 보며 적응한다",
+          "stats": {
+            "career": 3,
+            "mental": -3
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_25",
+      "title": "입실렌티, 붉은 응원 물결",
+      "description": "석탑대동제의 마지막 밤, 입실렌티 응원 무대가 열린다. 오래 응원하면 즐겁지만 체력과 다음 날 일정도 생각해야 한다.",
+      "semester": [
+        1,
+        3,
+        5,
+        7
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "응원단과 끝까지 뛰고 목청껏 응원한다",
+          "stats": {
+            "relation": 12,
+            "mental": 8,
+            "hp": -12,
+            "intelligence": -2,
+            "money": -5
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "금",
+              "add": "입실렌티 응원제"
+            }
+          ]
+        },
+        {
+          "text": "친구들과 공연을 보고 일찍 귀가한다",
+          "stats": {
+            "relation": 7,
+            "mental": 5,
+            "hp": -3,
+            "money": -3
+          },
+          "scene": "club"
+        },
+        {
+          "text": "도서관에서 공부하고 하이라이트만 본다",
+          "stats": {
+            "grade": 5,
+            "intelligence": 2,
+            "relation": -2,
+            "hp": -2
+          },
+          "scene": "study"
+        }
+      ],
+      "category": "campus_life"
+    },
+    {
+      "id": "event_26",
+      "title": "고연전 원정 응원",
+      "description": "가을 정기 고연전 날, 붉은 응원단과 함께 경기장을 찾았다. 경기 관람과 학업·생활 리듬 사이에서 선택한다.",
+      "semester": [
+        2,
+        4,
+        6,
+        8
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "야구부터 축구까지 종일 응원한다",
+          "stats": {
+            "relation": 14,
+            "mental": 7,
+            "hp": -14,
+            "intelligence": -2,
+            "money": -8
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "금",
+              "add": "고연전 응원"
+            }
+          ]
+        },
+        {
+          "text": "관심 종목만 보고 친구들과 합류한다",
+          "stats": {
+            "relation": 9,
+            "mental": 4,
+            "hp": -5,
+            "money": -4
+          },
+          "scene": "club"
+        },
+        {
+          "text": "시험 준비를 마치고 저녁에 응원에 간다",
+          "stats": {
+            "grade": 4,
+            "intelligence": 2,
+            "relation": 5,
+            "hp": -3
+          },
+          "scene": "study"
+        }
+      ],
+      "category": "campus_life"
+    },
+    {
+      "id": "event_27",
+      "title": "4·18 구국대장정",
+      "description": "선배들의 4·18 정신을 기리는 교내 행진에 참여한다. 긴 걷기 일정이지만 함께 걸으며 학우들과 연대할 수 있다.",
+      "semester": [
+        1,
+        3,
+        5,
+        7
+      ],
+      "conditions": {},
+      "choices": [
+        {
+          "text": "친구들과 끝까지 걷는다",
+          "stats": {
+            "relation": 8,
+            "mental": 5,
+            "hp": -10,
+            "intelligence": 1
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "중간 지점까지 참여하고 컨디션을 챙긴다",
+          "stats": {
+            "relation": 5,
+            "mental": 3,
+            "hp": -4
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "수업과 과제를 우선하고 응원 메시지를 보낸다",
+          "stats": {
+            "grade": 3,
+            "career": 2,
+            "relation": 1
+          },
+          "scene": "study"
+        }
+      ],
+      "category": "campus_life"
+    },
+    {
+      "id": "event_28",
+      "title": "이번 학기, 어떤 동아리에 들어갈까?",
+      "description": "동아리 박람회가 열렸다. 밴드·봉사·응원·학술 동아리 중 무엇을 골라도 다음 학기 시간표와 인맥이 달라진다.",
+      "semester": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {},
+      "category": "campus_life",
+      "repeatable": true,
+      "choices": [
+        {
+          "text": "밴드 동아리에서 공연을 준비한다",
+          "stats": {
+            "relation": 8,
+            "career": 3,
+            "hp": -3
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "수",
+              "add": "밴드 합주 (저녁)"
+            }
+          ]
+        },
+        {
+          "text": "봉사 동아리에 가입한다",
+          "stats": {
+            "relation": 6,
+            "mental": 4,
+            "career": 3
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "토",
+              "add": "봉사 동아리"
+            }
+          ]
+        },
+        {
+          "text": "응원 동아리 활동에 참여한다",
+          "stats": {
+            "relation": 10,
+            "hp": -5,
+            "mental": 4
+          },
+          "scene": "club",
+          "scheduleChanges": [
+            {
+              "day": "목",
+              "add": "응원단 연습 (저녁)"
+            }
+          ]
+        },
+        {
+          "text": "이번 학기는 가입하지 않고 수업에 집중한다",
+          "stats": {
+            "grade": 4,
+            "intelligence": 2,
+            "hp": 2
+          },
+          "scene": "study"
+        }
+      ]
+    },
+    {
+      "id": "event_29",
+      "title": "학과 교류 모임에서 생긴 호감",
+      "description": "{{gender}}인 당신이 학과 교류 모임에서 마음이 가는 사람을 만났다. 상대의 마음과 속도를 존중하면서 다음 만남을 정해 보자.",
+      "semester": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {},
+      "profileConditions": {
+        "relationshipStatus": [
+          "single"
+        ]
+      },
+      "category": "relationships",
+      "choices": [
+        {
+          "text": "상대에게 호감을 전하고 천천히 알아간다",
+          "stats": {
+            "relation": 8,
+            "mental": 4,
+            "money": -3
+          },
+          "relationshipStatus": "dating",
+          "scene": "club"
+        },
+        {
+          "text": "부담 없이 친구로 먼저 지낸다",
+          "stats": {
+            "relation": 6,
+            "mental": 2
+          },
+          "scene": "club"
+        },
+        {
+          "text": "지금은 연애보다 내 생활에 집중한다",
+          "stats": {
+            "grade": 3,
+            "mental": 3
+          },
+          "relationshipStatus": "notInterested",
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_30",
+      "title": "연인과 시험 기간 일정 조율",
+      "description": "시험과 과제가 겹치며 연인과 만날 시간이 줄었다. 대화로 서로의 일정을 맞춰야 한다.",
+      "semester": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {},
+      "profileConditions": {
+        "relationshipStatus": [
+          "dating"
+        ]
+      },
+      "category": "relationships",
+      "choices": [
+        {
+          "text": "함께 공부하는 시간을 정한다",
+          "stats": {
+            "grade": 4,
+            "relation": 5,
+            "intelligence": 2
+          },
+          "scene": "study",
+          "scheduleChanges": [
+            {
+              "day": "화",
+              "add": "함께 공부하기"
+            }
+          ]
+        },
+        {
+          "text": "시험이 끝난 뒤 데이트를 약속한다",
+          "stats": {
+            "relation": 7,
+            "mental": 4,
+            "grade": 2
+          },
+          "scene": "club"
+        },
+        {
+          "text": "일정 조율이 어려워 잠시 거리를 둔다",
+          "stats": {
+            "relation": -5,
+            "mental": -4,
+            "hp": 2
+          },
+          "relationshipStatus": "single",
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_31",
+      "title": "소개팅 권유에 대한 내 마음",
+      "description": "친구가 소개팅을 권하지만 {{gender}}로서의 정체성과 별개로, 연애를 원하는 시기는 사람마다 다르다. 내 마음을 솔직하게 말해 보자.",
+      "semester": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {},
+      "profileConditions": {
+        "relationshipStatus": [
+          "notInterested"
+        ]
+      },
+      "category": "relationships",
+      "choices": [
+        {
+          "text": "지금은 연애보다 친구 관계가 좋다고 말한다",
+          "stats": {
+            "relation": 4,
+            "mental": 5
+          },
+          "scene": "club"
+        },
+        {
+          "text": "부담 없는 모임이라면 참석해 본다",
+          "stats": {
+            "relation": 6,
+            "mental": 2,
+            "money": -2
+          },
+          "relationshipStatus": "single",
+          "scene": "club"
+        },
+        {
+          "text": "연애관과 경계에 관한 이야기를 나눈다",
+          "stats": {
+            "relation": 5,
+            "intelligence": 2,
+            "mental": 3
+          },
+          "scene": "campus"
+        }
+      ]
+    },
+    {
+      "id": "event_32",
+      "title": "{{gender}} 학생도 참여하는 관계 존중 포럼",
+      "description": "성별 정체성과 관계 형태가 다양한 학생들이 안전한 캠퍼스 문화를 주제로 이야기를 나눈다. 서로의 경험을 듣고 필요한 지원을 알아본다.",
+      "semester": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "conditions": {},
+      "category": "community",
+      "choices": [
+        {
+          "text": "소모임에서 내 경험과 생각을 나눈다",
+          "stats": {
+            "relation": 6,
+            "mental": 3,
+            "intelligence": 2
+          },
+          "scene": "club"
+        },
+        {
+          "text": "학생상담센터의 지원 정보를 확인한다",
+          "stats": {
+            "mental": 5,
+            "intelligence": 2
+          },
+          "scene": "campus"
+        },
+        {
+          "text": "자료를 읽고 다음 모임 일정을 확인한다",
+          "stats": {
+            "intelligence": 3,
+            "career": 2
+          },
+          "scene": "study"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - heading "KU LIFE" [level=1]
+          - paragraph: 고려대 학생 인생 시뮬레이션
+          - button "시작하기"
+          - paragraph: 비공식 팬 프로젝트 · 원작 '80억분의 1'과 무관
