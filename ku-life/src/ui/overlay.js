@@ -8,10 +8,12 @@
 
 import { GAME_DATA, getScheduleOptions } from '../game/state.js';
 import { MiniGames } from './mini-games.js';
+import { createPeekPanel } from './peek-panel.js';
 import { PanelLayout } from './panel-layout.js';
 import { drawPixelPortrait } from './pixel-scene.js';
 import { showEndingProfile } from './ending-profile.js';
 
+const EVENT_RESULT_DURATION = 8000;
 const STAT_LABELS = { grade: '학기 성적 영향', hp: '체력', intelligence: '지능', mental: '멘탈', money: '돈', relation: '인맥', career: '커리어' };
 
 export class UIOverlay {
@@ -21,6 +23,8 @@ export class UIOverlay {
     this.elements = {};
 
     this.createUI();
+    this.profilePeek = createPeekPanel(this.elements.profilePanel, '학생 수첩');
+    this.eventPeek = createPeekPanel(this.elements.eventPanel, '이벤트');
     this.panelLayout = new PanelLayout(this.elements);
     this.miniGames = new MiniGames(this.elements.root, () => this.gameEngine.gameState);
     this.bindEvents();
@@ -129,12 +133,11 @@ export class UIOverlay {
     this.elements.profilePanel.id = 'profile-panel';
     this.elements.profilePanel.style.cssText = `
       position: absolute; top: 76px; right: 16px; z-index: 8;
-      display: none; flex-direction: column; align-items: center; gap: 10px;
-      width: 248px; max-height: calc(100vh - 100px); overflow-y: auto; padding: 14px; box-sizing: border-box;
+      display: none;
+      width: 248px; box-sizing: border-box;
       color: #302720; pointer-events: auto;
     `;
     this.elements.profilePanel.innerHTML = `
-      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:900;letter-spacing:.12em;color:#8b0000"><span>학생 수첩</span></div>
       <canvas class="profile-avatar" width="180" height="160" aria-label="게임 배경 캐릭터와 같은 픽셀 초상"></canvas>
       <div style="width:100%;padding-bottom:8px;border-bottom:1px solid #ded2c1"><div style="font-size:16px;font-weight:900;color:#382a28">고려대 새내기</div><div class="profile-look" style="margin-top:3px;font-size:10px;color:#827467"></div></div>
       <div class="profile-details" style="width:100%;display:grid;gap:8px"></div>
@@ -157,11 +160,8 @@ export class UIOverlay {
       position: absolute;
       z-index: 9;
       bottom: 16px; left: 16px; right: auto; width: min(560px, calc(100% - 32px));
-      max-height: 48vh; overflow-y: auto;
-      padding: 14px;
       pointer-events: auto;
       display: none;
-      animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     `;
     this.elements.root.appendChild(this.elements.eventPanel);
 
@@ -360,6 +360,8 @@ export class UIOverlay {
 
   hideAll() {
     this.panelLayout.setActive(false);
+    this.profilePeek.reset();
+    this.eventPeek.reset();
     this.miniGames.setActive(false);
     this.elements.eventPanel.style.display = 'none';
     this.elements.startScreen.style.display = 'none';
@@ -462,7 +464,7 @@ export class UIOverlay {
     this.miniGames.setActive(true);
     this.elements.statBar.style.display = 'flex';
     this.elements.semesterInfo.style.display = 'block';
-    this.elements.profilePanel.style.display = 'flex';
+    this.elements.profilePanel.style.display = 'block';
   }
 
   updateProfile(state) {
@@ -495,11 +497,13 @@ export class UIOverlay {
   }
 
   showEvent(event, remainingCount) {
+    this.eventPeek.reset();
     this.elements.eventPanel.style.display = 'block';
     this.elements.eventPanel.querySelectorAll('.schedule-challenge').forEach(el=>el.remove());
     this.elements.eventPanel.querySelectorAll('.schedule-options').forEach(el=>el.parentElement.remove());
     const personalize = value => String(value).replaceAll('{{gender}}', this.gameEngine.gameState.gender || '학생');
 
+    this.eventPeek.setLabel(`이벤트 · ${personalize(event.title)}`);
     this.elements.eventTitle.innerHTML = `
       <span>📋</span> ${personalize(event.title)}
       <span style="margin-left: auto; font-size: 12px; color: #6B7280; font-weight: 500;">남은 이벤트: ${remainingCount + 1}개</span>
@@ -605,6 +609,7 @@ export class UIOverlay {
       <p class="choice-context"></p>
       <p class="choice-story"></p>
       <p class="choice-stats"></p>
+      <div class="choice-result-timer" aria-hidden="true"><span></span></div>
     `;
     dialog.querySelector('h2').textContent = title;
     dialog.querySelector('.choice-context').textContent = personalize(event.description);
@@ -631,11 +636,24 @@ export class UIOverlay {
     dialog.querySelector('button').onclick = () => dialog.close();
     this.elements.root.appendChild(dialog);
     return new Promise(resolve => {
+      dialog.showModal();
+      const countdown = dialog.querySelector('.choice-result-timer span').animate(
+        [{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }],
+        {
+          duration: EVENT_RESULT_DURATION,
+          fill: 'forwards',
+          easing: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'steps(8, end)' : 'linear',
+        },
+      );
+      const timeout = window.setTimeout(() => {
+        if (dialog.open) dialog.close();
+      }, EVENT_RESULT_DURATION);
       dialog.addEventListener('close', () => {
+        window.clearTimeout(timeout);
+        countdown.cancel();
         dialog.remove();
         resolve();
       }, { once: true });
-      dialog.showModal();
     });
   }
 

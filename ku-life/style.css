@@ -434,11 +434,7 @@ a:focus-visible,
     font-size: 12px;
     padding: 6px 9px;
   }
-  #game-ui #profile-panel {
-    max-height: 24vh;
-  }
   #game-ui #event-panel {
-    max-height: 39vh;
     width: calc(100% - 24px);
     left: 10px !important;
     bottom: 12px !important;
@@ -835,4 +831,106 @@ a:focus-visible,
   transform: translateX(-50%);
   background: #fff5c7;
   border-inline: 1px solid var(--ink);
+}
+
+#game-ui .peek-panel {
+  padding: 0 !important;
+  border-radius: 0 !important;
+  max-height: none;
+  max-width: var(--peek-compact-width);
+  transition: max-width 190ms ease;
+}
+
+#game-ui #profile-panel.peek-panel { --peek-compact-width: 132px; }
+#game-ui #event-panel.peek-panel { --peek-compact-width: 290px; }
+
+#game-ui .peek-panel.peek-open,
+#game-ui.editing-panels .peek-panel { max-width: 100%; }
+
+.peek-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 39px;
+  padding: 6px 11px;
+  border: 0;
+  background: transparent;
+  color: var(--crimson);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.peek-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.peek-caret { transition: transform 190ms ease; }
+.peek-open .peek-caret { transform: rotate(180deg); }
+
+.peek-clip {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 190ms ease, opacity 150ms ease;
+}
+
+.peek-open .peek-clip {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.peek-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.peek-content > :first-child { margin-top: 12px; }
+.peek-content > :last-child { margin-bottom: 14px; }
+
+#profile-panel .peek-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 14px;
+  max-height: max(88px, calc(100dvh - 150px));
+}
+
+#event-panel .peek-content {
+  padding-inline: 14px;
+  max-height: 43dvh;
+}
+
+#game-ui .choice-result {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+}
+
+.choice-result-timer {
+  height: 6px;
+  margin-top: 15px;
+  overflow: hidden;
+  background: #ead8ca;
+}
+
+.choice-result-timer span {
+  display: block;
+  height: 100%;
+  background: var(--crimson);
+  transform-origin: left;
+}
+
+@media (max-width: 700px) and (orientation: portrait) {
+  #profile-panel .peek-content { max-height: 23dvh; }
+  #event-panel .peek-content { max-height: 35dvh; }
 }
