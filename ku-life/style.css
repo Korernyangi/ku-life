@@ -356,12 +356,6 @@ a:focus-visible,
   box-shadow: 1px 1px #947257;
 }
 
-.title-credit {
-  margin-top: 16px;
-  color: #69535a;
-  font-size: 11px;
-}
-
 #game-ui #profile-panel,
 #game-ui #event-panel,
 #game-ui #semester-info,

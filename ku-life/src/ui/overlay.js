@@ -221,7 +221,6 @@ export class UIOverlay {
         <button id="btn-start" type="button">입학하기 <span aria-hidden="true">▸</span></button>
         <button class="open-ending-archive" type="button">엔딩 도감 <span></span></button>
         <p class="title-controls"><kbd>←</kbd> <kbd>→</kbd> 이동 <kbd>↑</kbd> 점프</p>
-        <p class="title-credit">비공식 팬 프로젝트 · 원작 '80억분의 1'과 무관</p>
       </div>
     `;
 
