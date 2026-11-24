@@ -22,7 +22,7 @@ function newState() {
     version: 1, id: globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
     semester: 1, phase: 'event', stats: { ...RULES.startingStats }, cash: RULES.startingCash,
     streak: { mental: 0, critical: 0, both: 0 }, flags: [], inventory: {}, scheduled: [], history: [],
-    grades: [], termEvents: [], eventId: null, receipt: null, gradeImpact: 0, gradeNotes: null,
+    grades: [], termEvents: [], eventId: null, receipt: null, gradeNotes: null,
     boosts: { currentGpa: 0, nextGpa: 0, chance: 0 }, ending: null, minigame: null, minigameCount: 0,
   };
 }
@@ -235,7 +235,7 @@ export class AtlasGame {
     const oldStatuses = this.statuses;
     const oldCash = s.cash;
     const receipt = { semester: s.semester, eventId: event.id, title: event.title, choice: choice.text,
-      message: choice.message, stats: {}, cash: 0, grade: 0, items: {}, flags: [], gained: [], cleared: [], chance: null };
+      message: choice.message, stats: {}, cash: 0, items: {}, flags: [], gained: [], cleared: [], chance: null };
     s.receipt = receipt;
     s.history.push(receipt);
 
@@ -252,8 +252,6 @@ export class AtlasGame {
 
     this.changeCash((choice.cash ?? 0) + (effect.cash ?? 0));
     receipt.cash = s.cash - oldCash;
-    receipt.grade = (choice.grade ?? 0) + (effect.grade ?? 0);
-    s.gradeImpact += receipt.grade;
     receipt.items = Object.fromEntries(Object.entries(sumChanges(choice.items, effect.items))
       .map(([id, amount]) => [id, this.updateInventory(id, amount)]).filter(([, amount]) => amount));
     receipt.flags = [...new Set([...(choice.grant ?? []), ...(effect.grant ?? [])])].filter(id => !s.flags.includes(id));
@@ -276,19 +274,23 @@ export class AtlasGame {
 
   finishTerm() {
     const s = this.state;
+    if (s.grades.length >= s.semester) return false;
+
     const { hp, intelligence, mental } = s.stats;
-    const statuses = this.statuses;
-    const conditionPenalty = (hp <= RULES.lowHealth ? .20 : 0) + (mental <= RULES.lowMental ? .24 : 0)
-      + (statuses.includes('burnout') ? .24 : 0);
-    const gpa = roundGpa(1.15 + 2.8 * intelligence / RULES.statMax + .35 * hp / RULES.statMax
-      + .30 * mental / RULES.statMax + s.gradeImpact + s.boosts.currentGpa - conditionPenalty + (this.random() - .5) * .2);
+    const grading = RULES.semesterGrade;
+    const conditionPenalty = (hp <= RULES.lowHealth ? grading.lowHealthPenalty : 0)
+      + (mental <= RULES.lowMental ? grading.lowMentalPenalty : 0)
+      + (this.statuses.includes('burnout') ? grading.burnoutPenalty : 0);
+    const aptitude = (intelligence * grading.intelligence + hp * grading.hp + mental * grading.mental) / RULES.statMax;
+    const roll = (this.random() - .5) * grading.variation;
+    const gpa = roundGpa(grading.base + aptitude + roll + s.boosts.currentGpa - conditionPenalty);
     s.grades.push(gpa);
     const oldStats = { ...s.stats };
     for (const [id, count] of Object.entries(s.inventory)) {
       if (count && ITEMS[id].termStats) this.changeStats(ITEMS[id].termStats);
     }
     this.updateStreak(false);
-    s.gradeNotes = { stats: changesOf(oldStats, s.stats), study: s.gradeImpact, bonus: s.boosts.currentGpa, penalty: conditionPenalty };
+    s.gradeNotes = { stats: changesOf(oldStats, s.stats), intelligence, bonus: s.boosts.currentGpa, penalty: conditionPenalty };
     s.phase = 'term';
     s.eventId = null;
     return true;
@@ -300,7 +302,6 @@ export class AtlasGame {
     if (s.semester === termCount) return this.finish();
     s.semester++;
     s.termEvents = [];
-    s.gradeImpact = 0;
     s.boosts.currentGpa = s.boosts.nextGpa;
     s.boosts.nextGpa = 0;
     return this.advanceEvent();

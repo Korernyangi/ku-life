@@ -200,3 +200,37 @@ test('eight terms offer their configured events, GPA, a shop and exactly one end
   assert.ok(finale.state.ending.achievements.includes('valedictorian'));
   assert.ok(finale.state.ending.achievements.includes('researcher'));
 });
+
+test('semester grades are rolled once, with higher intelligence improving the odds', () => {
+  const rolls = Array.from({ length: 40 }, (_, index) => (index + .5) / 40);
+  const results = intelligence => rolls.map(roll => {
+    const game = fixture('night_review', { stats: { intelligence } }, () => roll);
+    play(game, 0);
+    assert.equal(game.state.grades.length, 0);
+    assert.equal(Object.hasOwn(game.state.receipt, 'grade'), false);
+    assert.equal(game.finishTerm(), true);
+    assert.equal(game.finishTerm(), false);
+    assert.equal(game.state.grades.length, 1);
+    assert.equal(game.state.gradeNotes.intelligence, intelligence + 3);
+    return game.state.grades[0];
+  });
+  const lower = results(10);
+  const higher = results(15);
+  assert.ok(higher.every((gpa, index) => gpa >= lower[index] && gpa <= RULES.maxGpa));
+  assert.ok(lower.some(gpa => gpa >= 4) && lower.some(gpa => gpa < 4));
+  assert.ok(higher.filter(gpa => gpa >= 4).length > lower.filter(gpa => gpa >= 4).length);
+});
+
+test('older choice grade adjustments are ignored and semester items still apply', () => {
+  const reference = fixture('walk', { stats: { intelligence: 10 } });
+  const oldSave = fixture('walk', {
+    stats: { intelligence: 10 }, gradeImpact: 3,
+    receipt: { grade: .18 },
+  });
+  const withNotes = fixture('walk', {
+    stats: { intelligence: 10 }, boosts: { currentGpa: .5, nextGpa: 0, chance: 0 },
+  });
+  [reference, oldSave, withNotes].forEach(game => game.finishTerm());
+  assert.deepEqual(oldSave.state.grades, reference.state.grades);
+  assert.equal(withNotes.state.grades[0], reference.state.grades[0] + .5);
+});

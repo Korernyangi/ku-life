@@ -208,7 +208,7 @@ button:disabled { cursor: default; }
 .changes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .changes li { padding: 4px 8px; border: 1px solid currentColor; font-size: .84rem; font-weight: 760; }
 .changes .stat-chip { display: inline-flex; align-items: center; gap: 5px; font-size: .95rem; font-variant-numeric: tabular-nums; }
-.stat-chip > [aria-hidden] { font-size: 1.15rem; }
+.stat-chip canvas { display: block; width: 16px; height: 16px; image-rendering: pixelated; }
 .gain { color: #285638; background: #e9f0dc; }
 .loss { color: #842f3b; background: #fde7dd; }
 .notice { padding: 8px 12px; border-left: 3px solid var(--crimson); color: #682641; background: #fff0da; font-weight: 680; }
@@ -218,10 +218,21 @@ button:disabled { cursor: default; }
 .term-grades, .summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-bottom: 10px; }
 .term-grades > div, .summary { padding: 12px; border: 1px solid var(--line); background: #f5ead4; }
 .term-grades dd { font-size: 1.23rem; font-weight: 850; }
+.grade-factors { margin-top: 4px; }
 .shop { margin-top: 24px; }
 .items { margin-top: 10px; }
 .items li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(88px, auto); align-items: start; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
 .items li > div:last-child:not(:first-child) { max-width: 130px; text-align: right; }
+.item-info { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.item-sprite {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  background: #f2e4cb;
+  image-rendering: pixelated;
+}
 .items h3 > span { color: var(--muted); font-size: .8rem; }
 .items p { margin-top: 3px; color: #614852; font-size: .84rem; }
 table { width: 100%; margin-top: 14px; border-collapse: collapse; }
@@ -254,6 +265,8 @@ thead, tfoot { background: #f4e5cb; }
 @media (max-width: 460px) {
   .summary-grid { grid-template-columns: 1fr; }
   .term-grades { gap: 5px; }
+  .item-info { gap: 7px; }
+  .item-sprite { width: 32px; height: 32px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; }

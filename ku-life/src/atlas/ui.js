@@ -2,6 +2,7 @@ import { drawPixelBackground } from '../ui/pixel-backgrounds.js';
 import { drawPixelStudent } from '../ui/pixel-scene.js';
 import { AtlasGame } from './game.js';
 import { ENDINGS, EXPERIENCES, ITEMS, RULES, STATS, STATUSES, cashText } from './config.js';
+import { itemSprite, paintSprites, statSprite } from './sprites.js';
 import './atlas.css';
 
 const root = document.querySelector('#atlas');
@@ -15,13 +16,6 @@ const signedCash = value => `${value > 0 ? '+' : '−'}${cashText(Math.abs(value
 const gpaText = value => value == null ? '미산출' : `${value.toFixed(2)} / 4.50`;
 const typeName = { consumable: '소모형', permanent: '영구형', conditional: '조건형' };
 const eventType = { fixed: '학기 일정', campus: '학교 행사', random: '일상', conditional: '조건부', chain: '후속 사건', crisis: '위기', academic: '학업', fallback: '일상' };
-const icons = {
-  hp: ['01100110', '11111111', '11111111', '11111111', '01111110', '00111100', '00011000', '00000000'],
-  intelligence: ['00111100', '01111110', '11011011', '11111111', '11011011', '01111110', '00111100', '00000000'],
-  social: ['01111110', '11111111', '11111111', '11010111', '11111111', '01111110', '00110000', '00100000'],
-  mental: ['00011000', '00011000', '10011001', '11111111', '01111110', '00111100', '01100110', '01000010'],
-};
-
 let game;
 let screen = 'title';
 let notice = '';
@@ -58,20 +52,8 @@ function termLabel(semester) {
 function statIcons(key, value) {
   return Array.from({ length: 10 }, (_, index) => {
     const fill = Math.min(2, Math.max(0, value - index * 2));
-    return `<canvas width="8" height="8" aria-hidden="true" data-stat="${key}" data-fill="${['empty', 'half', 'full'][fill]}"></canvas>`;
+    return statSprite(key, ['empty', 'half', 'full'][fill]);
   }).join('');
-}
-
-function paintStats() {
-  for (const canvas of root.querySelectorAll('.sprite-meter canvas')) {
-    const { stat, fill } = canvas.dataset;
-    const context = canvas.getContext('2d');
-    icons[stat].forEach((row, y) => [...row].forEach((pixel, x) => {
-      if (pixel === '0') return;
-      context.fillStyle = fill === 'full' || (fill === 'half' && x < 4) ? STATS[stat].color : '#593949';
-      context.fillRect(x, y, 1, 1);
-    }));
-  }
 }
 
 function paintProfile() {
@@ -192,7 +174,7 @@ function changeChips(changes) {
     const stat = STATS[key];
     const color = value > 0 ? 'gain' : 'loss';
     if (stat) {
-      return `<li class="${color} stat-chip" title="${stat.name}"><span aria-hidden="true">${stat.icon}</span><span class="sr-only">${stat.name} </span>${signed(value)}</li>`;
+      return `<li class="${color} stat-chip" title="${stat.name}">${statSprite(key)}<span class="sr-only">${stat.name} </span>${signed(value)}</li>`;
     }
     return `<li class="${color}">${escape(ITEMS[key]?.name ?? key)} ${signed(value)}</li>`;
   }).join('');
@@ -201,11 +183,10 @@ function changeChips(changes) {
 function receiptList(receipt) {
   const changes = changeChips(receipt.stats) + changeChips(receipt.items);
   const cash = receipt.cash ? `<li class="${receipt.cash > 0 ? 'gain' : 'loss'}">자금 ${signedCash(receipt.cash)}</li>` : '';
-  const grades = receipt.grade ? `<li class="${receipt.grade > 0 ? 'gain' : 'loss'}">학기 평점에 ${receipt.grade > 0 ? '+' : '−'}${Math.abs(receipt.grade).toFixed(2)}</li>` : '';
   const flags = receipt.flags.map(id => `<li class="gain">경험 · ${escape(EXPERIENCES[id])}</li>`).join('');
   const status = receipt.gained.map(id => `<li class="loss">발생 · ${escape(STATUSES[id].name)}</li>`).join('')
     + receipt.cleared.map(id => `<li class="gain">해제 · ${escape(STATUSES[id].name)}</li>`).join('');
-  const content = changes + cash + grades + flags + status;
+  const content = changes + cash + flags + status;
   return content ? `<ul class="changes">${content}</ul>` : '<p class="muted">기록에 남는 수치 변화가 없어요.</p>';
 }
 
@@ -236,11 +217,18 @@ function showTerm() {
   const stock = game.stock().map(id => {
     const item = ITEMS[id];
     const reason = game.buyReason(id);
-    return `<li><div><h3>${escape(item.name)}</h3><p class="subline">${typeName[item.type]} · ${cashText(item.price)}</p><p>${escape(item.detail)}</p></div>
+    return `<li><div class="item-info">${itemSprite(id)}
+        <div><h3>${escape(item.name)}</h3><p class="subline">${typeName[item.type]} · ${cashText(item.price)}</p><p>${escape(item.detail)}</p></div>
+      </div>
       <div><button class="secondary" data-action="buy" data-value="${id}" ${reason ? 'disabled' : ''}>구매<span class="sr-only"> ${escape(item.name)}</span></button>
       ${reason ? `<small class="lock-reason">${escape(reason)}</small>` : ''}</div></li>`;
   }).join('');
   const effects = changeChips(gradeNotes.stats);
+  const gradeFactors = [
+    gradeNotes.intelligence != null && `학기 말 지능 ${gradeNotes.intelligence} / ${RULES.statMax}`,
+    gradeNotes.bonus > 0 && `아이템 가산 +${gradeNotes.bonus.toFixed(2)}`,
+    gradeNotes.penalty > 0 && `컨디션 감점 −${gradeNotes.penalty.toFixed(2)}`,
+  ].filter(Boolean);
   return `
     <article class="panel">
       <p class="context-label">${termLabel(semester)} 종료</p>
@@ -249,7 +237,8 @@ function showTerm() {
         <div><dt>학기 평점</dt><dd>${gpaText(grades.at(-1))}</dd></div>
         <div><dt>누적 평점</dt><dd>${gpaText(game.gpa)}</dd></div>
       </dl>
-      <p class="muted">학업 기록 ${gradeNotes.study.toFixed(2)} · 아이템 가산 ${gradeNotes.bonus.toFixed(2)} · 컨디션 감점 ${gradeNotes.penalty.toFixed(2)}</p>
+      <p class="muted">지능이 높을수록 높은 평점이 나올 확률이 커집니다.</p>
+      ${gradeFactors.length ? `<p class="muted grade-factors">${gradeFactors.join(' · ')}</p>` : ''}
       ${effects ? `<ul class="changes">${effects}</ul>` : ''}
       <div class="term-actions actions"><button class="primary" data-action="next-term">${semester === termCount ? '최종 결과 보기' : '다음 학기'}</button><button class="secondary" data-action="minigame">미니게임</button></div>
       <section class="shop" aria-labelledby="shop-title">
@@ -263,7 +252,9 @@ function showInventory() {
   const list = Object.entries(game.state.inventory).map(([id, count]) => {
     const item = ITEMS[id];
     const reason = game.useReason(id);
-    return `<li><div><h3>${escape(item.name)} <span>×${count}</span></h3><p class="subline">${typeName[item.type]}</p><p>${escape(item.detail)}</p></div>
+    return `<li><div class="item-info">${itemSprite(id)}
+      <div><h3>${escape(item.name)} <span>×${count}</span></h3><p class="subline">${typeName[item.type]}</p><p>${escape(item.detail)}</p></div>
+    </div>
       ${item.type === 'consumable' ? `<div><button class="secondary" data-action="use" data-value="${id}" ${reason ? 'disabled' : ''}>사용<span class="sr-only"> ${escape(item.name)}</span></button>${reason ? `<small class="lock-reason">${escape(reason)}</small>` : ''}</div>` : ''}</li>`;
   }).join('');
   return `<article class="panel"><h1 tabindex="-1">인벤토리</h1>
@@ -314,7 +305,7 @@ function render(focus = false) {
       ${body}
     </div></main>`;
     paintProfile();
-    paintStats();
+    paintSprites(root);
   }
   const canvas = root.querySelector('.scene-canvas');
   if (canvas) {

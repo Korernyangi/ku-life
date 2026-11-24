@@ -18,15 +18,15 @@ export const EVENTS = [
     study: true,
     choices: [
       pick('밤을 새워 전 범위를 훑는다', '컨디션만큼 진도가 나갔다. 아침에 도서관을 나와 잠시 눈을 붙였다.', {}, {
-        intensity: 'high', requires: { min: { hp: 6 } }, grade: .18,
+        intensity: 'high', requires: { min: { hp: 6 } },
         brackets: [
           { min: { hp: 16 }, stats: { intelligence: 3, hp: -4 } },
           { min: { hp: 10 }, stats: { intelligence: 2, hp: -5 } },
           { min: { hp: 6 }, stats: { intelligence: 1, hp: -5 } },
         ],
       }),
-      pick('동기와 전공 스터디를 연다', '서로 헷갈리는 부분을 짚고 시험 범위를 정리했다.', { intelligence: 2, social: 1, hp: -2 }, { requires: { min: { hp: 3 } }, grade: .12 }),
-      pick('핵심 한 단원만 보고 일찍 잔다', '빈칸은 남았지만 시험장까지 가는 발걸음이 가벼웠다.', { hp: 3, mental: 1 }, { grade: .03 }),
+      pick('동기와 전공 스터디를 연다', '서로 헷갈리는 부분을 짚고 시험 범위를 정리했다.', { intelligence: 2, social: 1, hp: -2 }, { requires: { min: { hp: 3 } } }),
+      pick('핵심 한 단원만 보고 일찍 잔다', '빈칸은 남았지만 시험장까지 가는 발걸음이 가벼웠다.', { hp: 3, mental: 1 }),
     ],
   },
   {
@@ -55,9 +55,9 @@ export const EVENTS = [
     description: '졸업 프로젝트가 초안 수준에 머물러 있다. 도구와 체력을 어떻게 쓸지 결정해야 한다.',
     study: true,
     choices: [
-      pick('내 노트북으로 데이터와 초안을 함께 정리한다', '자료를 재현할 수 있도록 정리했다. 교수님이 마지막 발표를 기대한다고 했다.', { intelligence: 2, hp: -1 }, { requires: { items: ['laptop'], min: { hp: 2 } }, grade: .24 }),
-      pick('직접 추가 실험까지 진행한다', '추가 실험을 발표에 넣었다. 마감 직후는 조금 벅찼다.', { intelligence: 3, hp: -3, mental: -1 }, { grade: .22, intensity: 'high', requires: { min: { hp: 5, intelligence: RULES.advancedStudy } } }),
-      pick('범위를 줄여 제출 준비를 끝낸다', '한 가지 결과를 확실히 설명할 수 있게 됐다.', { intelligence: 1, mental: 1 }, { grade: .12 }),
+      pick('내 노트북으로 데이터와 초안을 함께 정리한다', '자료를 재현할 수 있도록 정리했다. 교수님이 마지막 발표를 기대한다고 했다.', { intelligence: 2, hp: -1 }, { requires: { items: ['laptop'], min: { hp: 2 } } }),
+      pick('직접 추가 실험까지 진행한다', '추가 실험을 발표에 넣었다. 마감 직후는 조금 벅찼다.', { intelligence: 3, hp: -3, mental: -1 }, { intensity: 'high', requires: { min: { hp: 5, intelligence: RULES.advancedStudy } } }),
+      pick('범위를 줄여 제출 준비를 끝낸다', '한 가지 결과를 확실히 설명할 수 있게 됐다.', { intelligence: 1, mental: 1 }),
     ],
   },
   {
@@ -68,9 +68,9 @@ export const EVENTS = [
         intensity: 'high', requires: { min: { hp: 4, intelligence: 11, social: 8 } },
         chance: { base: .3, weights: { intelligence: .018, social: .022, mental: .008 }, success: { message: '최종 면접에 합격했다. 동기에게 먼저 소식을 전했다.', grant: ['job'] }, failure: { message: '면접 결과는 아쉬웠다. 질문을 정리해 다음 기회에 쓰기로 했다.', stats: { mental: -1 } } },
       }),
-      pick('졸업생 연구 제안을 검토한다', '연구 주제를 조금 더 구체화해 후배에게 자료를 건넸다.', { intelligence: 2, mental: 1 }, { requires: { flags: ['lab'] }, grade: .16 }),
+      pick('졸업생 연구 제안을 검토한다', '연구 주제를 조금 더 구체화해 후배에게 자료를 건넸다.', { intelligence: 2, mental: 1 }, { requires: { flags: ['lab'] } }),
       pick('동기들과 졸업사진을 찍는다', '중앙광장에서 같은 표정을 짓느라 웃음이 터졌다.', { social: 2, mental: 2 }, { cash: -80_000, grant: ['photos'] }),
-      pick('졸업 요건과 서류부터 확인한다', '빠뜨린 제출일을 체크한 뒤 가볍게 한 바퀴 걸었다.', { hp: 3, mental: 2 }, { grade: .09 }),
+      pick('졸업 요건과 서류부터 확인한다', '빠뜨린 제출일을 체크한 뒤 가볍게 한 바퀴 걸었다.', { hp: 3, mental: 2 }),
     ],
   },
   {
@@ -78,7 +78,7 @@ export const EVENTS = [
     description: '정각에 열렸던 전공 수업이 이미 마감됐다. 다른 시간대를 찾거나 주변에 도움을 청할 수 있다.',
     study: true,
     choices: [
-      pick('선배에게 대체 수업을 추천받는다', '필수 학점을 채울 수 있는 다른 수업을 찾았다.', { social: 1, intelligence: 1 }, { requires: { flags: ['senior'] }, grade: .15 }),
+      pick('선배에게 대체 수업을 추천받는다', '필수 학점을 채울 수 있는 다른 수업을 찾았다.', { social: 1, intelligence: 1 }, { requires: { flags: ['senior'] } }),
       pick('정정 기간에 맞춰 다시 접속한다', '한 자리를 확보했지만 여러 번 시간표를 바꿔야 했다.', { hp: -1, intelligence: 1 }, { requires: { min: { hp: 2 } } }),
       pick('여유 있는 교양으로 시간표를 채운다', '학업 계획은 유연해졌고 공강도 한 칸 생겼다.', { hp: 2, mental: 1 }),
     ],
@@ -130,8 +130,8 @@ export const EVENTS = [
     id: 'reading_room', title: '중앙광장 열람실 자리 경쟁', scene: 'study', kind: 'academic', terms: [1, 2, 3, 4, 5, 6, 7, 8], repeat: true, study: true,
     description: '시험 기간 열람실은 만석이다. 빈자리를 기다리거나 공부할 방식을 바꿔야 한다.',
     choices: [
-      pick('선배가 비운 자리를 이어받는다', '대기 시간을 아껴 계획했던 분량을 끝냈다.', { intelligence: 2, hp: -1 }, { requires: { min: { hp: 3, social: RULES.strongNetwork } }, grade: .12 }),
-      pick('빈 강의실에서 공부한다', '소음은 조금 있었지만 기출을 두 문제 풀었다.', { intelligence: 1, hp: -1 }, { requires: { min: { hp: 2 } }, grade: .06 }),
+      pick('선배가 비운 자리를 이어받는다', '대기 시간을 아껴 계획했던 분량을 끝냈다.', { intelligence: 2, hp: -1 }, { requires: { min: { hp: 3, social: RULES.strongNetwork } } }),
+      pick('빈 강의실에서 공부한다', '소음은 조금 있었지만 기출을 두 문제 풀었다.', { intelligence: 1, hp: -1 }, { requires: { min: { hp: 2 } } }),
       pick('과제를 챙겨 집에 돌아간다', '오늘은 잠을 먼저 챙겨 내일 집중하기로 했다.', { hp: 3, mental: 2 }),
     ],
   },
@@ -149,7 +149,7 @@ export const EVENTS = [
     choices: [
       pick('공기가 좋을 때 산책한다', '짧은 오르막을 걷고 돌아오자 잠이 잘 왔다.', { hp: 4, mental: 2 }),
       pick('동기에게 같이 걷자고 연락한다', '수업에서 못 물어봤던 이야기를 나눴다.', { hp: 2, mental: 2, social: 1 }),
-      pick('산책 대신 과제에 집중한다', '숨 돌릴 시간을 조금 써서 과제 초안을 마쳤다.', { intelligence: 2, hp: -1 }, { requires: { min: { hp: 2 } }, grade: .10 }),
+      pick('산책 대신 과제에 집중한다', '숨 돌릴 시간을 조금 써서 과제 초안을 마쳤다.', { intelligence: 2, hp: -1 }, { requires: { min: { hp: 2 } } }),
     ],
   },
   {
@@ -207,7 +207,7 @@ export const EVENTS = [
     choices: [
       pick('연구실 면담에 들어간다', '준비한 실험 질문을 교수님에게 꺼냈다.', { hp: -2 }, {
         requires: { min: { hp: 4, intelligence: RULES.advancedStudy } },
-        chance: { base: .36, weights: { intelligence: .032, mental: .009 }, itemBonus: { laptop: .06 }, success: { message: '연구실에서 실험 하나를 맡겨 줬다.', grant: ['lab'], stats: { intelligence: 2 }, grade: .15 }, failure: { message: '이번 학기는 자리 대신 참고 자료를 받았다.', stats: { intelligence: 1 } } },
+        chance: { base: .36, weights: { intelligence: .032, mental: .009 }, itemBonus: { laptop: .06 }, success: { message: '연구실에서 실험 하나를 맡겨 줬다.', grant: ['lab'], stats: { intelligence: 2 } }, failure: { message: '이번 학기는 자리 대신 참고 자료를 받았다.', stats: { intelligence: 1 } } },
       }),
       pick('공개 연구 세미나부터 들어 본다', '한 주제를 머릿속에 남기고 돌아왔다.', { intelligence: 1, mental: 1 }),
     ],
@@ -227,7 +227,7 @@ export const EVENTS = [
       pick('20만원을 내고 수리한다', '파일을 복구해 과제를 정상 제출했다.', {}, { cash: -200_000 }),
       pick('친구에게 노트북을 빌린다', '친구 덕분에 마감을 지키고 충전기까지 돌려줬다.', { social: -1 }, { requires: { min: { social: 10 } } }),
       pick('PC방에서 과제를 완성한다', '밤에 과제를 끝냈다. 집에 돌아가니 잠이 밀려왔다.', { hp: -3, mental: -1 }, { requires: { min: { hp: 4 } }, cash: -20_000 }),
-      pick('이번 과제를 포기한다', '제출은 못 했고 다음 과제부터 일정을 새로 짜기로 했다.', { intelligence: -2, mental: -2 }, { grade: -.30 }),
+      pick('이번 과제를 포기한다', '제출은 못 했고 다음 과제부터 일정을 새로 짜기로 했다.', { intelligence: -2, mental: -2 }),
     ],
   },
   {
@@ -235,9 +235,9 @@ export const EVENTS = [
     requires: { flags: ['senior'] },
     description: '친한 선배가 작년에 정리한 시험 자료를 공유해 주겠다고 한다.',
     choices: [
-      pick('자료를 받아 공부한다', '헷갈리던 문제를 풀 수 있게 됐다.', { intelligence: 2, hp: -1 }, { requires: { min: { hp: 2 } }, grade: .12 }),
+      pick('자료를 받아 공부한다', '헷갈리던 문제를 풀 수 있게 됐다.', { intelligence: 2, hp: -1 }, { requires: { min: { hp: 2 } } }),
       pick('고마운 마음에 식사를 대접한다', '공부 이야기를 나누다 인턴 공고 정보까지 들었다.', { social: 2, intelligence: 2 }, { cash: -30_000, grant: ['seniorBond'], items: { notes: 1 }, schedule: { id: 'intern_interview', after: 1 } }),
-      pick('범위를 직접 정리해 본다', '시간은 들었지만 자료를 스스로 정리했다.', { intelligence: 2, hp: -3 }, { requires: { min: { hp: 4 } }, grade: .10 }),
+      pick('범위를 직접 정리해 본다', '시간은 들었지만 자료를 스스로 정리했다.', { intelligence: 2, hp: -3 }, { requires: { min: { hp: 4 } } }),
       pick('자료를 받아 두고 지금은 쉰다', '시험 범위만 확인하고 체력을 먼저 챙겼다.', { hp: 3, mental: 1 }),
     ],
   },
@@ -350,7 +350,7 @@ export const EVENTS = [
     description: '지난번 팀플을 도와준 친구가 이번에는 당신의 마감을 함께 준비하자고 한다.',
     choices: [
       pick('부담을 나누고 일찍 귀가한다', '역할을 나눠 맡고 예정했던 시간에 돌아왔다.', { hp: 4, mental: 2, social: 1 }),
-      pick('함께 다음 주까지 진도를 낸다', '과제 요구 사항을 먼저 확인해 다음 작업을 줄였다.', { intelligence: 2, social: 1 }, { grade: .13 }),
+      pick('함께 다음 주까지 진도를 낸다', '과제 요구 사항을 먼저 확인해 다음 작업을 줄였다.', { intelligence: 2, social: 1 }),
     ],
   },
   {
@@ -394,8 +394,8 @@ export const EVENTS = [
     requires: { any: [{ anyStatuses: ['academic'] }, { max: { intelligence: RULES.lowIntelligence } }] },
     description: '과목을 따라가기 어려워졌다. 시간을 더 늘리기보다 지원을 활용해 본다.',
     choices: [
-      pick('학습지원을 받고 진도를 다시 잡는다', '표준 문제부터 풀며 이번 학기 계획을 정리했다.', { intelligence: 2, mental: 2 }, { grade: .20 }),
-      pick('동기와 기초 과제부터 확인한다', '한 과목부터 부담을 줄였다.', { intelligence: 1, social: 1, hp: 1 }, { grade: .14 }),
+      pick('학습지원을 받고 진도를 다시 잡는다', '표준 문제부터 풀며 이번 학기 계획을 정리했다.', { intelligence: 2, mental: 2 }),
+      pick('동기와 기초 과제부터 확인한다', '한 과목부터 부담을 줄였다.', { intelligence: 1, social: 1, hp: 1 }),
     ],
   },
   {
@@ -413,7 +413,7 @@ export const EVENTS = [
     choices: [
       pick('충분히 자고 산책한다', '숨을 돌릴 시간이 생겼다.', { hp: 4, mental: 2 }),
       pick('동기를 만나 수업 이야기를 한다', '모르는 공지를 함께 확인했다.', { social: 2, intelligence: 1 }),
-      pick('노트 정리를 조금 더 한다', '다음 시험 때 펼쳐 볼 노트를 만들었다.', { intelligence: 2, hp: -1 }, { requires: { min: { hp: 2 } }, grade: .09 }),
+      pick('노트 정리를 조금 더 한다', '다음 시험 때 펼쳐 볼 노트를 만들었다.', { intelligence: 2, hp: -1 }, { requires: { min: { hp: 2 } } }),
     ],
   },
 ];

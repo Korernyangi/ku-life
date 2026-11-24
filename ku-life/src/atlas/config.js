@@ -16,16 +16,26 @@ export const RULES = {
   advancedStudy: 14,
   strongNetwork: 12,
   maxGpa: 4.5,
+  semesterGrade: {
+    base: 1.2,
+    intelligence: 3.1,
+    hp: .35,
+    mental: .30,
+    variation: 1.2,
+    lowHealthPenalty: .20,
+    lowMentalPenalty: .24,
+    burnoutPenalty: .24,
+  },
   staminaPenalty: 1,
   slumpPenalty: 1,
   burnoutPenalty: 1,
 };
 
 export const STATS = {
-  hp: { name: '체력', icon: '❤️', color: '#f06a73' },
-  intelligence: { name: '지능', icon: '🧠', color: '#83c5ff' },
-  social: { name: '사회성', icon: '💬', color: '#f9cb72' },
-  mental: { name: '멘탈', icon: '⭐', color: '#c59af2' },
+  hp: { name: '체력', color: '#f06a73' },
+  intelligence: { name: '지능', color: '#83c5ff' },
+  social: { name: '사회성', color: '#f9cb72' },
+  mental: { name: '멘탈', color: '#c59af2' },
 };
 
 export const STATUSES = {
