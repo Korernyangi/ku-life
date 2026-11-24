@@ -112,6 +112,15 @@ button:disabled { cursor: default; }
 }
 .player-panel, .panel, .event-art { border: 2px solid var(--ink); box-shadow: 4px 4px 0 #bc9b79; }
 .player-panel { padding: 18px; color: #fff2da; background: var(--dark); }
+.student-photo {
+  display: block;
+  width: 85px;
+  height: auto;
+  margin: 0 auto 15px;
+  border: 4px solid #f6e8ce;
+  box-shadow: 0 0 0 1px #cba67d, 3px 3px 0 #291721;
+  image-rendering: pixelated;
+}
 .player-panel h2 { margin-bottom: 12px; }
 .stat-list { display: grid; gap: 4px; }
 .stat-row { padding: 5px 4px 6px; }
@@ -127,12 +136,51 @@ button:disabled { cursor: default; }
 @keyframes stat-down { from { background: #8c3f4b; } }
 .balances { display: grid; gap: 6px; padding: 12px 0; margin-top: 8px; border-block: 1px solid #735363; font-size: .88rem; }
 .balances dd { text-align: right; }
-.status-list { margin-top: 12px; }
-.status-list ul { display: grid; gap: 5px; margin-top: 7px; padding: 0; list-style: none; }
-.status-list summary { cursor: pointer; font-weight: 750; }
-.status-list p, .status-list small, .active-item { margin-top: 4px; color: #ecd5be; font-size: .80rem; }
-.status-list details { padding: 4px 7px; border-left: 2px solid #dc9d65; background: #4e303c; }
-.active-item { margin-top: 10px; }
+.active-item { margin-top: 10px; color: #ecd5be; font-size: .80rem; }
+.status-icons {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 0;
+  list-style: none;
+}
+.status-toggle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #a57785;
+  border-radius: 6px;
+  background: #513240;
+  font-size: 1.3rem;
+}
+.status-toggle:focus-visible { outline-color: #ffda8b; }
+.status-tooltip {
+  display: none;
+  position: absolute;
+  top: 100%;
+  inset-inline: 0;
+  z-index: 2;
+  padding: 8px 10px;
+  border: 2px solid #a67455;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 3px 3px 0 #29172199;
+  font-size: .83rem;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.status-tooltip strong, .status-tooltip small { display: block; }
+.status-tooltip small { margin-top: 4px; }
+.status-toggle[aria-expanded="true"]:not([data-dismissed]) + .status-tooltip,
+.status-toggle:focus-visible:not([data-dismissed]) + .status-tooltip { display: block; }
+@media (hover: hover) {
+  .status-icons:has(.status-marker:hover) .status-tooltip { display: none; }
+  .status-icons .status-marker:hover > .status-toggle:not([data-dismissed]) + .status-tooltip { display: block; }
+}
 
 .workspace { display: grid; gap: 14px; min-width: 0; }
 .event-art { height: clamp(132px, 23vw, 265px); overflow: hidden; background: #573945; }
@@ -159,6 +207,8 @@ button:disabled { cursor: default; }
 .choices small, .lock-reason { display: block; margin-top: 2px; color: #7a3b3e; font-size: .78rem; font-weight: 700; }
 .changes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .changes li { padding: 4px 8px; border: 1px solid currentColor; font-size: .84rem; font-weight: 760; }
+.changes .stat-chip { display: inline-flex; align-items: center; gap: 5px; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.stat-chip > [aria-hidden] { font-size: 1.15rem; }
 .gain { color: #285638; background: #e9f0dc; }
 .loss { color: #842f3b; background: #fde7dd; }
 .notice { padding: 8px 12px; border-left: 3px solid var(--crimson); color: #682641; background: #fff0da; font-weight: 680; }
@@ -194,6 +244,7 @@ thead, tfoot { background: #f4e5cb; }
   .game-header nav { width: 100%; }
   .stat-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; }
   .player-panel { padding: 12px; }
+  .student-photo { width: 70px; margin-bottom: 11px; }
   .player-panel h2 { margin-bottom: 5px; }
   .balances { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .balances > div { display: block; }

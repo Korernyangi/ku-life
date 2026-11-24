@@ -1,4 +1,5 @@
 import { drawPixelBackground } from '../ui/pixel-backgrounds.js';
+import { drawPixelStudent } from '../ui/pixel-scene.js';
 import { AtlasGame } from './game.js';
 import { ENDINGS, EXPERIENCES, ITEMS, RULES, STATS, STATUSES, cashText } from './config.js';
 import './atlas.css';
@@ -73,9 +74,38 @@ function paintStats() {
   }
 }
 
+function paintProfile() {
+  const canvas = root.querySelector('.student-photo');
+  const context = canvas.getContext('2d');
+  const seed = Array.from(game.state.id ?? '').reduce((value, character) => (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
+  const appearance = {
+    hairStyle: ['short', 'bob', 'medium', 'long'][seed & 3],
+    hairColor: ['#241b20', '#46302a', '#332637', '#44352e'][(seed >>> 2) & 3],
+    skinTone: ['#f2c49f', '#e9b995', '#c89771', '#a77655'][(seed >>> 4) & 3],
+    outfitColor: ['#8b1e2d', '#78364c', '#315061', '#39455f'][(seed >>> 6) & 3],
+    accessory: ['none', 'glasses', 'hairclip', 'earrings'][(seed >>> 8) & 3],
+  };
+  context.fillStyle = '#d9e5e8';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  drawPixelStudent(context, { appearance }, 4, 12, 4);
+}
+
+function statusIcons(ids) {
+  if (!ids.length) return '';
+  return `<ul class="status-icons" aria-label="현재 상태이상">${ids.map(id => {
+    const { name, detail, icon } = STATUSES[id];
+    const descriptionId = `status-description-${id}`;
+    return `<li class="status-marker">
+      <button type="button" class="status-toggle" aria-label="${escape(name)}" aria-describedby="${descriptionId}" aria-expanded="false"><span aria-hidden="true">${icon}</span></button>
+      <span class="status-tooltip" id="${descriptionId}" role="tooltip"><strong>${escape(name)}</strong>
+        ${escape(detail)}${id === 'depression' ? '<small>이 설명은 게임 규칙이며 의학적 진단에 해당하지 않습니다.</small>' : ''}
+      </span>
+    </li>`;
+  }).join('')}</ul>`;
+}
+
 function statPanel() {
   const { stats, cash, boosts, phase, receipt } = game.state;
-  const statuses = game.statuses;
   const rows = Object.entries(STATS).map(([key, { name }]) => {
     const delta = ['result', 'ended'].includes(phase) ? receipt?.stats[key] : 0;
     const motion = delta > 0 ? ' increased' : delta < 0 ? ' decreased' : '';
@@ -87,19 +117,16 @@ function statPanel() {
   }).join('');
   return `
     <aside class="player-panel" aria-labelledby="player-title">
+      <canvas class="student-photo" width="96" height="112" role="img" aria-label="플레이어 증명사진"></canvas>
       <h2 id="player-title">학생 상태</h2>
       <dl class="stat-list">${rows}</dl>
       <dl class="balances">
         <div><dt>보유 자금</dt><dd>${cashText(cash)}</dd></div>
         <div><dt>누적 평점</dt><dd>${gpaText(game.gpa)}</dd></div>
       </dl>
-      <section class="status-list">
-        <h3>상태이상</h3>
-        ${statuses.length ? `<ul>${statuses.map(id => `<li><details><summary>${STATUSES[id].name}</summary><p>${STATUSES[id].detail}</p></details></li>`).join('')}</ul>` : '<p>현재 상태이상 없음</p>'}
-        ${statuses.includes('depression') ? '<small>상태이상은 게임 규칙이며 의학적 진단에 해당하지 않습니다.</small>' : ''}
-      </section>
       ${boosts.nextGpa ? '<p class="active-item">다음 학기 평점에 전공 족보 적용 예정</p>' : ''}
       ${boosts.chance ? '<p class="active-item">다음 확률형 선택에 행운의 부적 적용 예정</p>' : ''}
+      ${statusIcons(game.statuses)}
     </aside>`;
 }
 
@@ -160,8 +187,15 @@ function showEvent() {
     </article>`;
 }
 
-function changeChips(changes, format = signed) {
-  return Object.entries(changes).map(([key, value]) => `<li class="${value > 0 ? 'gain' : 'loss'}">${escape(STATS[key]?.name ?? ITEMS[key]?.name ?? key)} ${format(value)}</li>`).join('');
+function changeChips(changes) {
+  return Object.entries(changes).map(([key, value]) => {
+    const stat = STATS[key];
+    const color = value > 0 ? 'gain' : 'loss';
+    if (stat) {
+      return `<li class="${color} stat-chip" title="${stat.name}"><span aria-hidden="true">${stat.icon}</span><span class="sr-only">${stat.name} </span>${signed(value)}</li>`;
+    }
+    return `<li class="${color}">${escape(ITEMS[key]?.name ?? key)} ${signed(value)}</li>`;
+  }).join('');
 }
 
 function receiptList(receipt) {
@@ -279,6 +313,7 @@ function render(focus = false) {
       <p class="notice" role="status" ${notice || storageNotice ? '' : 'hidden'}>${[notice, storageNotice].filter(Boolean).map(escape).join(' ')}</p>
       ${body}
     </div></main>`;
+    paintProfile();
     paintStats();
   }
   const canvas = root.querySelector('.scene-canvas');
@@ -310,7 +345,29 @@ function openMinigame() {
   } }));
 }
 
+function restoreStatusTooltip(event) {
+  event.target.closest('.status-toggle')?.removeAttribute('data-dismissed');
+}
+
+root.addEventListener('focusin', restoreStatusTooltip);
+root.addEventListener('pointerover', restoreStatusTooltip);
+root.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  for (const button of root.querySelectorAll('.status-toggle:is([aria-expanded="true"], :focus-visible, .status-marker:hover > *)')) {
+    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('data-dismissed', '');
+  }
+});
+
 root.addEventListener('click', event => {
+  const status = event.target.closest('.status-toggle');
+  const openStatus = root.querySelector('.status-toggle[aria-expanded="true"]');
+  openStatus?.setAttribute('aria-expanded', 'false');
+  if (status) {
+    status.removeAttribute('data-dismissed');
+    status.setAttribute('aria-expanded', String(status !== openStatus));
+    return;
+  }
   const button = event.target.closest('button[data-action]');
   if (!button || button.disabled) return;
   const { action, value, token } = button.dataset;

@@ -22,22 +22,22 @@ export const RULES = {
 };
 
 export const STATS = {
-  hp: { name: '체력', color: '#f06a73' },
-  intelligence: { name: '지능', color: '#83c5ff' },
-  social: { name: '사회성', color: '#f9cb72' },
-  mental: { name: '멘탈', color: '#c59af2' },
+  hp: { name: '체력', icon: '❤️', color: '#f06a73' },
+  intelligence: { name: '지능', icon: '🧠', color: '#83c5ff' },
+  social: { name: '사회성', icon: '💬', color: '#f9cb72' },
+  mental: { name: '멘탈', icon: '⭐', color: '#c59af2' },
 };
 
 export const STATUSES = {
-  overwork: { name: '과로', detail: '체력 5 이하. 활동으로 체력이 줄 때 1 더 소모합니다.', active: s => s.stats.hp <= RULES.lowHealth },
-  exhaustion: { name: '탈진', detail: '체력 2 이하. 고강도 활동이 제한됩니다.', active: s => s.stats.hp <= RULES.exhaustion },
-  slump: { name: '슬럼프', detail: '멘탈 5 이하. 활동에서 얻는 지능이 1 줄어듭니다.', active: s => s.stats.mental <= RULES.lowMental },
-  lethargy: { name: '무기력', detail: '낮은 멘탈이 두 번 연속 유지되면 고강도 활동이 제한됩니다.', active: s => s.stats.mental <= RULES.lowMental && s.streak.mental >= 2 },
-  burnout: { name: '번아웃', detail: '낮은 체력과 멘탈이 연속으로 유지되면 학업 효율과 평점이 낮아집니다.', active: s => s.stats.hp <= RULES.lowHealth && s.stats.mental <= RULES.lowMental && s.streak.both >= 2 },
-  depression: { name: '우울증', detail: '멘탈 2 이하가 두 번 연속 유지되면 일부 활동이 제한되고 회복 이벤트가 열립니다.', active: s => s.stats.mental <= RULES.criticalMental && s.streak.critical >= 2 },
-  isolation: { name: '고립', detail: '사회성 3 이하. 인맥 이벤트가 덜 등장합니다.', active: s => s.stats.social <= RULES.isolation },
-  financial: { name: '경제적 위기', detail: '자금 10만원 미만. 긴급 생활비를 마련할 기회가 열립니다.', active: s => s.cash < RULES.lowCash },
-  academic: { name: '학사 위기', detail: '직전 학기 평점 1.75 미만. 학업 지원 이벤트가 열립니다.', active: s => (s.grades.at(-1) ?? RULES.maxGpa) < RULES.warningGpa },
+  overwork: { name: '과로', icon: '🥵', detail: '체력 5 이하. 활동으로 체력이 줄 때 1 더 소모합니다.', active: s => s.stats.hp <= RULES.lowHealth },
+  exhaustion: { name: '탈진', icon: '🪫', detail: '체력 2 이하. 고강도 활동이 제한됩니다.', active: s => s.stats.hp <= RULES.exhaustion },
+  slump: { name: '슬럼프', icon: '📉', detail: '멘탈 5 이하. 활동에서 얻는 지능이 1 줄어듭니다.', active: s => s.stats.mental <= RULES.lowMental },
+  lethargy: { name: '무기력', icon: '💤', detail: '낮은 멘탈이 두 번 연속 유지되면 고강도 활동이 제한됩니다.', active: s => s.stats.mental <= RULES.lowMental && s.streak.mental >= 2 },
+  burnout: { name: '번아웃', icon: '🔥', detail: '낮은 체력과 멘탈이 연속으로 유지되면 학업 효율과 평점이 낮아집니다.', active: s => s.stats.hp <= RULES.lowHealth && s.stats.mental <= RULES.lowMental && s.streak.both >= 2 },
+  depression: { name: '우울증', icon: '🌧️', detail: '멘탈 2 이하가 두 번 연속 유지되면 일부 활동이 제한되고 회복 이벤트가 열립니다.', active: s => s.stats.mental <= RULES.criticalMental && s.streak.critical >= 2 },
+  isolation: { name: '고립', icon: '🫥', detail: '사회성 3 이하. 인맥 이벤트가 덜 등장합니다.', active: s => s.stats.social <= RULES.isolation },
+  financial: { name: '경제적 위기', icon: '💸', detail: '자금 10만원 미만. 긴급 생활비를 마련할 기회가 열립니다.', active: s => s.cash < RULES.lowCash },
+  academic: { name: '학사 위기', icon: '📚', detail: '직전 학기 평점 1.75 미만. 학업 지원 이벤트가 열립니다.', active: s => (s.grades.at(-1) ?? RULES.maxGpa) < RULES.warningGpa },
 };
 
 export const EXPERIENCES = {
