@@ -490,6 +490,7 @@ a:focus-visible,
 
 .panel-layout-reset,
 .panel-layout-edit,
+.panel-layout-hide-all,
 .panel-move-handle {
   font: inherit;
   font-weight: 700;
@@ -500,7 +501,8 @@ a:focus-visible,
 }
 
 .panel-layout-reset,
-.panel-layout-edit { cursor: pointer; }
+.panel-layout-edit,
+.panel-layout-hide-all { cursor: pointer; }
 
 .panel-layout-edit[aria-pressed="true"] {
   background: var(--crimson);
@@ -522,7 +524,7 @@ a:focus-visible,
 #game-ui.editing-panels .panel-move-handle { display: inline-block; }
 #game-ui .panel-move-handle:active { cursor: grabbing; }
 
-#game-ui > :is(#event-panel, #profile-panel, #semester-info, #stat-bar).panel-positioned {
+#game-ui > :is(#event-panel, #profile-panel, #semester-info, #stat-bar, #arcade-launcher).panel-positioned {
   left: var(--panel-x) !important;
   top: var(--panel-y) !important;
   right: auto !important;
@@ -697,11 +699,15 @@ a:focus-visible,
   visibility: visible;
 }
 
-#game-ui .arcade-launch {
+#game-ui #arcade-launcher {
   position: absolute;
   top: 112px;
   left: 16px;
   z-index: 20;
+  width: max-content;
+}
+
+#game-ui .arcade-launch {
   padding: 7px 11px;
   font-size: 13px;
 }
@@ -799,7 +805,7 @@ a:focus-visible,
 .arcade-upgrade-info { margin-top: 10px; font-size: 14px; }
 
 @media (max-width: 700px) {
-  #game-ui .arcade-launch { top: 116px; left: 10px; }
+  #game-ui #arcade-launcher { top: 116px; left: 10px; }
 }
 
 .arcade-timing { margin-top: 12px; }
@@ -933,4 +939,34 @@ a:focus-visible,
 @media (max-width: 700px) and (orientation: portrait) {
   #profile-panel .peek-content { max-height: 23dvh; }
   #event-panel .peek-content { max-height: 35dvh; }
+}
+
+
+.panel-layout-hide-all { margin-top: 8px; }
+#panel-restore-help { margin-top: 7px; }
+
+#game-ui.all-panels-hidden > :not(.panel-layout-restore) {
+  display: none !important;
+}
+
+.panel-layout-restore {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+}
+
+.panel-layout-restore:focus-visible {
+  width: max-content;
+  padding: 0 12px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
 }

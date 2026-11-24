@@ -25,8 +25,9 @@ export class UIOverlay {
     this.createUI();
     this.profilePeek = createPeekPanel(this.elements.profilePanel, '학생 수첩');
     this.eventPeek = createPeekPanel(this.elements.eventPanel, '이벤트');
-    this.panelLayout = new PanelLayout(this.elements);
     this.miniGames = new MiniGames(this.elements.root, () => this.gameEngine.gameState);
+    this.elements.arcadeLauncher = this.miniGames.launcher;
+    this.panelLayout = new PanelLayout(this.elements);
     this.bindEvents();
     this.hideAll();
     this.showStartScreen();

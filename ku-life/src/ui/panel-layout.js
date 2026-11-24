@@ -3,6 +3,7 @@ const PANEL_LABELS = {
   semesterInfo: '학기',
   profilePanel: '학생 수첩',
   eventPanel: '이벤트',
+  arcadeLauncher: '미니게임',
 };
 
 export class PanelLayout {
@@ -17,11 +18,30 @@ export class PanelLayout {
         <button type="button" class="panel-layout-edit" aria-pressed="false">패널 이동 모드</button>
         <fieldset><legend>표시할 패널</legend></fieldset>
         <button type="button" class="panel-layout-reset">기본 배치로 복원</button>
+        <button type="button" class="panel-layout-hide-all" aria-describedby="panel-restore-help">모든 UI 숨기기</button>
+        <p id="panel-restore-help">U 키 또는 화면 왼쪽 위 모서리를 누르면 다시 표시됩니다.</p>
       </div>
     `;
     this.menu = menu;
     elements.root.appendChild(menu);
     this.root = elements.root;
+    this.restoreButton = document.createElement('button');
+    this.restoreButton.type = 'button';
+    this.restoreButton.className = 'panel-layout-restore';
+    this.restoreButton.textContent = 'UI 다시 표시';
+    this.restoreButton.setAttribute('aria-keyshortcuts', 'U');
+    this.restoreButton.hidden = true;
+    this.root.appendChild(this.restoreButton);
+    menu.querySelector('.panel-layout-hide-all').addEventListener('click', () => this.setHidden(true));
+    this.restoreButton.addEventListener('click', () => this.setHidden(false));
+
+    window.addEventListener('keydown', event => {
+      if (this.menu.hidden || event.repeat || event.defaultPrevented || event.altKey || event.ctrlKey ||
+          event.metaKey || event.key.toLowerCase() !== 'u' ||
+          event.target.closest?.('dialog, textarea, [contenteditable], input:not([type="checkbox"])')) return;
+      event.preventDefault();
+      this.setHidden(this.restoreButton.hidden);
+    });
     this.editButton = menu.querySelector('.panel-layout-edit');
     this.editButton.addEventListener('click', () => {
       this.setEditing(!this.root.classList.contains('editing-panels'));
@@ -71,6 +91,16 @@ export class PanelLayout {
   setActive(active) {
     this.menu.hidden = !active;
     if (!active) {
+      this.setHidden(false);
+      this.menu.open = false;
+      this.setEditing(false);
+    }
+  }
+
+  setHidden(hidden) {
+    this.root.classList.toggle('all-panels-hidden', hidden);
+    this.restoreButton.hidden = !hidden;
+    if (hidden) {
       this.menu.open = false;
       this.setEditing(false);
     }

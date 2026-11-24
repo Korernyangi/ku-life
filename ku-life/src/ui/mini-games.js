@@ -19,7 +19,10 @@ export class MiniGames {
     this.button.type = 'button';
     this.button.className = 'arcade-launch';
     this.button.innerHTML = '<span aria-hidden="true">🎮</span> 미니게임';
-    root.append(this.button);
+    this.launcher = document.createElement('div');
+    this.launcher.id = 'arcade-launcher';
+    this.launcher.append(this.button);
+    root.append(this.launcher);
 
     this.dialog = document.createElement('dialog');
     this.dialog.className = 'arcade';
@@ -45,7 +48,7 @@ export class MiniGames {
   }
 
   setActive(active) {
-    this.button.hidden = !active;
+    this.launcher.hidden = !active;
     if (!active && this.dialog.open) this.dialog.close();
   }
 
