@@ -1,7 +1,9 @@
 import { drawPixelBackground } from '../ui/pixel-backgrounds.js';
 import { drawPixelStudent } from '../ui/pixel-student.js';
 import { AtlasGame } from './game.js';
-import { ENDINGS, EXPERIENCES, ITEMS, RULES, STATS, STATUSES, cashText } from './config.js';
+import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, cashText } from './config.js';
+import { CAREER_ROUTES, ENDINGS, endingScore } from './endings.js';
+import { showEndingProfile } from './ending-profile.js';
 import { itemSprite, paintSprites, statSprite } from './sprites.js';
 import './atlas.css';
 
@@ -16,6 +18,10 @@ const signedCash = value => `${value > 0 ? '+' : '−'}${cashText(Math.abs(value
 const gpaText = value => value == null ? '미산출' : `${value.toFixed(2)} / 4.50`;
 const typeName = { consumable: '소모형', permanent: '영구형', conditional: '조건형' };
 const eventType = { fixed: '학기 일정', campus: '학교 행사', random: '일상', conditional: '조건부', chain: '후속 사건', crisis: '위기', academic: '학업', fallback: '일상' };
+const savedPhase = { event: '이벤트 진행 중', result: '선택 결과', term: '학기 결산', career: '졸업 진로 선택', ended: '플레이 완료' };
+const endingEntries = Object.entries(ENDINGS);
+const endingStorageKey = 'ku-life:ending:';
+const unlockedEndings = new Set();
 let game;
 let screen = 'title';
 let notice = '';
@@ -24,7 +30,7 @@ let saved;
 
 try {
   const data = JSON.parse(localStorage.getItem(storageKey) || 'null');
-  if (data?.version === 1 && ['event', 'result', 'term', 'ended'].includes(data.phase) && data.stats && data.inventory && Array.isArray(data.history)) saved = data;
+  if (data?.version === 1 && Object.hasOwn(savedPhase, data.phase) && data.stats && data.inventory && Array.isArray(data.history)) saved = data;
 } catch {
   storageNotice = '이 브라우저에서 저장 기록을 읽을 수 없습니다.';
 }
@@ -56,10 +62,9 @@ function statIcons(key, value) {
   }).join('');
 }
 
-function paintProfile() {
-  const canvas = root.querySelector('.student-photo');
+function paintProfile(canvas, id) {
   const context = canvas.getContext('2d');
-  const seed = Array.from(game.state.id ?? '').reduce((value, character) => (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
+  const seed = Array.from(id ?? '').reduce((value, character) => (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
   const appearance = {
     hairStyle: ['short', 'bob', 'medium', 'long'][seed & 3],
     hairColor: ['#241b20', '#46302a', '#332637', '#44352e'][(seed >>> 2) & 3],
@@ -113,24 +118,36 @@ function statPanel() {
 }
 
 function titleScreen() {
+  loadEndings();
+  if (saved?.phase === 'ended') unlockEnding(saved.ending?.id);
   return `
     <header class="atlas-header"><a class="wordmark" href="./">ATLAS</a></header>
     <main class="landing">
       <div class="landing-art"><canvas class="scene-canvas" width="640" height="360" aria-hidden="true"></canvas></div>
+      <div class="landing-layout">
       <section class="landing-card">
         <p class="context-label">고려대학교 대학생활 전략 시뮬레이션</p>
         <h1 tabindex="-1">안암의<br>여덟 학기</h1>
-        <p>새터에서 만난 선배가 나중에 시험 자료를 건넬 수도 있습니다. 공부, 사람, 생활비 사이에서 무엇을 우선할지 정하며 졸업까지 걸어가세요.</p>
-        <div class="actions">
-          ${saved ? `<button class="primary" data-action="resume">${saved.phase === 'ended' ? '지난 결과 보기' : '이어하기'}</button>` : ''}
-          <button class="${saved ? 'secondary' : 'primary'}" data-action="new">입학하기</button>
-        </div>
+        <p>공부, 사람, 생활비 사이에서 무엇을 우선할지 정하며 졸업까지 걸어가세요.</p>
+      </section>
+      <section class="entry-panel" aria-label="게임 시작">
+        ${saved ? `<button type="button" class="entry-button entry-primary" data-action="resume" aria-labelledby="resume-label" aria-describedby="resume-details">
+          <canvas class="save-portrait" width="96" height="112" aria-hidden="true"></canvas>
+          <span><strong id="resume-label">${saved.phase === 'ended' ? '지난 결과 보기' : '이어하기'}</strong><small id="resume-details">${termLabel(saved.semester)} · ${savedPhase[saved.phase]}</small></span><span aria-hidden="true">→</span>
+        </button>` : ''}
+        <button type="button" class="entry-button ${saved ? '' : 'entry-primary'}" data-action="new" aria-labelledby="new-label" aria-describedby="new-details">
+          <span><strong id="new-label">입학하기</strong><small id="new-details">1학년 1학기부터 시작</small></span><span aria-hidden="true">→</span>
+        </button>
+        <button type="button" class="entry-button entry-archive" data-action="archive" aria-labelledby="archive-label" aria-describedby="archive-count">
+          <span><strong id="archive-label">엔딩 도감</strong><small>기본 9개 · 스페셜 3개</small></span><span id="archive-count">${unlockedEndings.size} / ${endingEntries.length}</span>
+        </button>
         ${storageNotice ? `<p class="notice" role="status">${escape(storageNotice)}</p>` : ''}
       </section>
+      </div>
     </main>
-    ${saved ? `<dialog class="admission-dialog" aria-labelledby="admission-title" aria-describedby="admission-warning">
+    ${saved ? `<dialog class="atlas-dialog admission-dialog" aria-labelledby="admission-title" aria-describedby="admission-warning">
       <h2 id="admission-title">새로 입학할까요?</h2>
-      <p id="admission-warning">새로 입학하면 이 브라우저에 저장된 진행 기록을 덮어씁니다.</p>
+      <p id="admission-warning">${termLabel(saved.semester)}에 저장한 기록을 덮어씁니다. 발견한 엔딩은 도감에 남습니다.</p>
       <div class="actions">
         <button type="button" class="secondary" data-action="cancel-admission" autofocus>취소</button>
         <button type="button" class="primary" data-action="confirm-admission">새로 입학하기</button>
@@ -248,7 +265,7 @@ function showTerm() {
       <p class="muted">지능이 높을수록 높은 평점이 나올 확률이 커집니다.</p>
       ${gradeFactors.length ? `<p class="muted grade-factors">${gradeFactors.join(' · ')}</p>` : ''}
       ${effects ? `<ul class="changes">${effects}</ul>` : ''}
-      <div class="term-actions actions"><button class="primary" data-action="next-term">${semester === termCount ? '최종 결과 보기' : '다음 학기'}</button><button class="secondary" data-action="minigame">미니게임</button></div>
+      <div class="term-actions actions"><button class="primary" data-action="next-term">${semester !== termCount ? '다음 학기' : game.gpa < RULES.graduationGpa ? '최종 결과 보기' : '졸업 후 진로 선택'}</button><button class="secondary" data-action="minigame">미니게임</button></div>
       <section class="shop" aria-labelledby="shop-title">
         <h2 id="shop-title">학기 말 상점</h2>
         <ul class="items">${stock}</ul>
@@ -281,16 +298,83 @@ function summaryList(title, values) {
   return `<section class="summary"><h2>${title}</h2>${values.length ? `<ul>${values.map(value => `<li>${escape(value)}</li>`).join('')}</ul>` : '<p class="muted">기록 없음</p>'}</section>`;
 }
 
+function showCareer() {
+  const routes = Object.entries(CAREER_ROUTES).map(([id, label]) => `<li><button type="button" data-action="career" data-value="${id}">${label}</button></li>`).join('');
+  return `${sceneMarkup()}<article class="panel">
+    <h1 tabindex="-1">졸업 후 어디로 갈까요?</h1>
+    <p class="event-description">여덟 학기 동안 쌓은 경험과 최종 스탯에 따라 선택의 결과가 달라집니다.</p>
+    <ul class="choices career-choices">${routes}</ul>
+  </article>`;
+}
+
+function loadEndings() {
+  try {
+    for (const [id] of endingEntries) {
+      if (localStorage.getItem(endingStorageKey + id) === '1') unlockedEndings.add(id);
+    }
+  } catch {
+    // Discovered endings are still available for the current session.
+  }
+}
+
+function unlockEnding(id) {
+  if (!Object.hasOwn(ENDINGS, id) || unlockedEndings.has(id)) return;
+  unlockedEndings.add(id);
+  try {
+    localStorage.setItem(endingStorageKey + id, '1');
+  } catch {
+    // The main save path reports unavailable browser storage.
+  }
+}
+
+function openArchive() {
+  loadEndings();
+  const dialog = document.createElement('dialog');
+  dialog.className = 'atlas-dialog ending-archive';
+  dialog.setAttribute('aria-labelledby', 'archive-title');
+  dialog.innerHTML = `<button type="button" class="secondary dialog-close" data-action="close-dialog" aria-label="엔딩 도감 닫기" autofocus>×</button>
+    <h2 id="archive-title">엔딩 도감</h2>
+    <p class="muted">${endingEntries.length}개 중 ${unlockedEndings.size}개 발견</p>
+    ${[false, true].map(special => {
+      const group = endingEntries.filter(([, ending]) => Boolean(ending.special) === special);
+      const count = group.filter(([id]) => unlockedEndings.has(id)).length;
+      return `<section><h3>${special ? '스페셜' : '기본'} 엔딩 <span>${count} / ${group.length}</span></h3><ul>${group.map(([id, ending]) => {
+        const unlocked = unlockedEndings.has(id);
+        return `<li class="${unlocked ? '' : 'locked'}"><span aria-hidden="true">${unlocked ? ending.icon : '🔒'}</span><div><strong>${unlocked ? escape(ending.title) : '미발견 엔딩'}</strong><p>${escape(unlocked ? ending.description : ending.hint)}</p></div></li>`;
+      }).join('')}</ul></section>`;
+    }).join('')}`;
+  dialog.addEventListener('close', () => dialog.remove(), { once: true });
+  root.append(dialog);
+  dialog.showModal();
+}
+
+function currentEnding() {
+  const { ending } = game.state;
+  const legacy = !Object.hasOwn(ending, 'route');
+  const info = (legacy ? LEGACY_ENDINGS.find(item => item.id === ending.id) : ENDINGS[ending.id]) ?? ENDINGS.ordinary;
+  return { ...info, id: ending.id, legacy };
+}
+
 function showEnding() {
   const { ending, history, inventory, flags, receipt } = game.state;
-  const main = ENDINGS.find(outcome => outcome.id === ending.id);
-  const achievements = ending.achievements.map(id => ENDINGS.find(outcome => outcome.id === id).title);
+  const main = currentEnding();
+  const score = endingScore(game.state, game.gpa, main.id);
+  const missedGraduation = !main.legacy && !ending.route && main.id === 'ordinary';
+  unlockEnding(main.id);
+  const achievements = ending.achievements.map(id => LEGACY_ENDINGS.find(outcome => outcome.id === id)?.title).filter(Boolean);
   const record = history.map(entry => `<li><strong>${termLabel(entry.semester)} · ${escape(entry.title)}</strong><p>${escape(entry.choice)}</p></li>`).join('');
   return `${sceneMarkup()}
     <article class="panel ending">
-      <p class="context-label">${main.id === 'dropout' ? '게임오버' : '최종 결과'}</p>
+      <p class="context-label">${main.legacy ? '지난 플레이 결과' : main.special ? '스페셜 엔딩' : '기본 엔딩'}</p>
       <h1 tabindex="-1">${escape(main.title)}</h1>
-      <p class="event-description">${escape(main.description)}</p>
+      <p class="event-description">${escape(missedGraduation ? '졸업 사정표에 아직 채워야 할 칸이 남았다. 학사지원팀과 다음 계획을 세운다.' : main.description)}</p>
+      ${ending.route ? `<p class="subline">진로 선택 · ${escape(CAREER_ROUTES[ending.route])}</p>` : ''}
+      ${missedGraduation ? `<p class="subline">누적 평점이 ${RULES.graduationGpa.toFixed(2)} 미만이라 졸업 요건을 채우지 못했습니다.</p>` : ''}
+      <section class="ending-score" aria-labelledby="score-title">
+        <div><h2 id="score-title">토탈 스코어</h2><p><strong>${score.total.toLocaleString('ko-KR')}</strong> / ${score.max.toLocaleString('ko-KR')}</p></div>
+        <dl><div><dt>스탯 · 평점 · 자금</dt><dd>${score.base} / ${score.statsMax}</dd></div><div><dt>엔딩 보너스</dt><dd>${score.bonus} / ${score.bonusMax}</dd></div></dl>
+      </section>
+      <div class="actions ending-actions"><button class="primary" data-action="profile">프로필 보기</button><button class="secondary" data-action="archive">엔딩 도감</button><button class="secondary" data-action="title">시작 화면</button></div>
       ${main.id === 'dropout' && receipt ? `<section class="last-choice"><h2>마지막 선택</h2><p>${escape(receipt.choice)}</p>${receiptList(receipt)}</section>` : ''}
       <div class="summary-grid">
         ${summaryList('획득 업적', achievements)}
@@ -298,21 +382,22 @@ function showEnding() {
         ${summaryList('보유 아이템', Object.entries(inventory).map(([id, count]) => `${ITEMS[id].name} ×${count}`))}
       </div>
       <details class="history"><summary>선택 기록 ${history.length}개</summary><ol>${record}</ol></details>
-      <div class="actions"><button class="primary" data-action="title">시작 화면</button></div>
     </article>`;
 }
 
 function render(focus = false) {
   if (screen === 'title') {
     root.innerHTML = titleScreen();
+    const portrait = root.querySelector('.save-portrait');
+    if (portrait) paintProfile(portrait, saved.id);
   } else {
-    const views = { event: showEvent, result: showReceipt, term: showTerm, ended: showEnding };
+    const views = { event: showEvent, result: showReceipt, term: showTerm, career: showCareer, ended: showEnding };
     const body = screen === 'inventory' ? showInventory() : screen === 'grades' ? showGrades() : views[game.state.phase]();
     root.innerHTML = `${gameHeader()}<main class="dashboard">${statPanel()}<div class="workspace">
       <p class="notice" role="status" ${notice || storageNotice ? '' : 'hidden'}>${[notice, storageNotice].filter(Boolean).map(escape).join(' ')}</p>
       ${body}
     </div></main>`;
-    paintProfile();
+    paintProfile(root.querySelector('.student-photo'), game.state.id);
     paintSprites(root);
   }
   const canvas = root.querySelector('.scene-canvas');
@@ -377,6 +462,17 @@ root.addEventListener('click', event => {
   if (!button || button.disabled) return;
   const { action, value, token } = button.dataset;
   switch (action) {
+    case 'archive':
+      openArchive();
+      break;
+    case 'profile': {
+      const ending = currentEnding();
+      showEndingProfile(root, game.state, game.gpa, ending, endingScore(game.state, game.gpa, ending.id), root.querySelector('.student-photo'));
+      break;
+    }
+    case 'close-dialog':
+      button.closest('dialog').close();
+      break;
     case 'new':
       if (saved) root.querySelector('.admission-dialog').showModal();
       else startNewGame();
@@ -409,6 +505,9 @@ root.addEventListener('click', event => {
       break;
     case 'next-term':
       actionResult(game.nextTerm());
+      break;
+    case 'career':
+      actionResult(game.chooseCareer(value));
       break;
     case 'buy':
       actionResult(game.buy(value), `${ITEMS[value].name}을 구매했습니다.`);

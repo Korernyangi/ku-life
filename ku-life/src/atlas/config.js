@@ -56,6 +56,7 @@ export const EXPERIENCES = {
   doubleMajor: '이중전공 합격', lab: '학부연구생', internship: '인턴', competition: '공모전 수상',
   startup: '창업 팀 결성', launched: '서비스 출시', reporter: '고대신문 취재', published: '고대신문 특집 발행',
   chair: '동아리 회장', friendHelp: '친구와 나눈 도움', job: '취업 면접 합격', photos: '졸업사진 촬영',
+  researchProposal: '졸업생 연구 제안 검토',
 };
 
 export const ITEMS = {
@@ -71,7 +72,7 @@ export const ITEMS = {
   equipment: { name: '운동기구', price: 400_000, type: 'permanent', detail: '구매한 뒤부터 학기 종료 시 체력 +1.', future: true, termStats: { hp: 1 }, first: 3 },
 };
 
-export const ENDINGS = [
+export const LEGACY_ENDINGS = [
   { id: 'dropout', title: '중도 탈락', description: '학업을 멈추고 회복을 시작했다. 다시 돌아올 때는 일정을 조금 비워 두기로 했다.', max: { hp: 0 } },
   { id: 'no_graduation', title: '졸업 실패', description: '졸업 사정표에 아직 채워야 할 칸이 남았다. 학사지원팀과 다음 계획을 세운다.', maxGpa: RULES.graduationGpa - .01 },
   { id: 'editor', title: '안암에 남긴 첫 지면', description: '당신의 마지막 특집호가 신입생의 가방에 들어갔다. 이야기는 이제 다음 학번의 손으로 넘어간다.', flags: ['reporter', 'published', 'seniorBond'] },

@@ -68,7 +68,7 @@ export const EVENTS = [
         intensity: 'high', requires: { min: { hp: 4, intelligence: 11, social: 8 } },
         chance: { base: .3, weights: { intelligence: .018, social: .022, mental: .008 }, success: { message: '최종 면접에 합격했다. 동기에게 먼저 소식을 전했다.', grant: ['job'] }, failure: { message: '면접 결과는 아쉬웠다. 질문을 정리해 다음 기회에 쓰기로 했다.', stats: { mental: -1 } } },
       }),
-      pick('졸업생 연구 제안을 검토한다', '연구 주제를 조금 더 구체화해 후배에게 자료를 건넸다.', { intelligence: 2, mental: 1 }, { requires: { flags: ['lab'] } }),
+      pick('졸업생 연구 제안을 검토한다', '연구 주제를 조금 더 구체화해 후배에게 자료를 건넸다.', { intelligence: 2, mental: 1 }, { requires: { flags: ['lab'] }, grant: ['researchProposal'] }),
       pick('동기들과 졸업사진을 찍는다', '중앙광장에서 같은 표정을 짓느라 웃음이 터졌다.', { social: 2, mental: 2 }, { cash: -80_000, grant: ['photos'] }),
       pick('졸업 요건과 서류부터 확인한다', '빠뜨린 제출일을 체크한 뒤 가볍게 한 바퀴 걸었다.', { hp: 3, mental: 2 }),
     ],

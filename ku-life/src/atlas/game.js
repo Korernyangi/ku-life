@@ -1,4 +1,5 @@
-import { ENDINGS, EXPERIENCES, ITEMS, RULES, STATS, STATUSES, cashText } from './config.js';
+import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, cashText } from './config.js';
+import { CAREER_ROUTES, resolveEnding } from './endings.js';
 import { EVENTS } from './events.js';
 
 const eventById = Object.fromEntries(EVENTS.map(event => [event.id, event]));
@@ -299,7 +300,11 @@ export class AtlasGame {
   nextTerm() {
     const s = this.state;
     if (s.phase !== 'term' || s.minigame) return false;
-    if (s.semester === termCount) return this.finish();
+    if (s.semester === termCount) {
+      if (this.gpa < RULES.graduationGpa) return this.finish();
+      s.phase = 'career';
+      return true;
+    }
     s.semester++;
     s.termEvents = [];
     s.boosts.currentGpa = s.boosts.nextGpa;
@@ -366,13 +371,19 @@ export class AtlasGame {
     return true;
   }
 
-  finish() {
+  chooseCareer(route) {
+    if (this.state.phase !== 'career' || !Object.hasOwn(CAREER_ROUTES, route)) return false;
+    return this.finish(route);
+  }
+
+  finish(route = null) {
     const s = this.state;
     if (s.phase === 'ended') return false;
-    const matching = s.stats.hp === 0 ? [ENDINGS[0]] : ENDINGS.filter(ending => !this.conditionReasons(ending).length);
-    const primary = matching[0];
-    const excluded = ['no_graduation', 'isolated', 'job_seeker'];
-    s.ending = { id: primary.id, achievements: matching.slice(1).filter(ending => !excluded.includes(ending.id)).map(ending => ending.id) };
+    const id = resolveEnding(s, this.gpa, route);
+    const achievements = id === 'dropout' ? [] : LEGACY_ENDINGS
+      .filter(ending => !['dropout', 'no_graduation', 'isolated', 'job_seeker'].includes(ending.id) && !this.conditionReasons(ending).length)
+      .map(ending => ending.id);
+    s.ending = { id, route, achievements };
     s.phase = 'ended';
     return true;
   }

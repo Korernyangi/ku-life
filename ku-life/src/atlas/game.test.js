@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ENDINGS, EXPERIENCES, ITEMS, RULES } from './config.js';
+import { EXPERIENCES, ITEMS, RULES } from './config.js';
+import { ENDINGS, endingScore, resolveEnding } from './endings.js';
 import { EVENTS } from './events.js';
 import { AtlasGame } from './game.js';
 
@@ -178,6 +179,8 @@ test('eight terms offer their configured events, GPA, a shop and exactly one end
       play(game, choices[0].index);
     } else if (game.state.phase === 'result') {
       game.nextEvent();
+    } else if (game.state.phase === 'career') {
+      assert.equal(game.chooseCareer('ordinary'), true);
     } else {
       counts.push(game.state.termEvents.length);
       assert.ok(game.stock().includes('vitamins'));
@@ -188,17 +191,52 @@ test('eight terms offer their configured events, GPA, a shop and exactly one end
   assert.deepEqual(counts, RULES.termEvents);
   assert.equal(game.state.history.length, counts.reduce((sum, count) => sum + count, 0));
   assert.ok(game.gpa >= 0 && game.gpa <= 4.5);
-  assert.ok(ENDINGS.some(ending => ending.id === game.state.ending.id));
+  assert.ok(Object.hasOwn(ENDINGS, game.state.ending.id));
   assert.equal(game.finish(), false);
 
   const finale = fixture('graduation', {
     phase: 'term', semester: 8, grades: Array(8).fill(4.35),
     stats: { hp: 17, intelligence: 19, social: 16, mental: 18 }, flags: ['reporter', 'published', 'seniorBond', 'lab', 'job'],
   });
-  finale.nextTerm();
-  assert.equal(finale.state.ending.id, 'editor');
-  assert.ok(finale.state.ending.achievements.includes('valedictorian'));
-  assert.ok(finale.state.ending.achievements.includes('researcher'));
+  assert.equal(finale.nextTerm(), true);
+  assert.equal(finale.state.phase, 'career');
+  const restored = new AtlasGame(JSON.parse(JSON.stringify(finale.state)));
+  assert.equal(restored.chooseCareer('toString'), false);
+  assert.equal(restored.chooseCareer('corporate'), true);
+  assert.equal(restored.state.ending.id, 'corporate');
+  assert.equal(restored.chooseCareer('ordinary'), false);
+  assert.ok(restored.state.ending.achievements.includes('editor'));
+  assert.ok(restored.state.ending.achievements.includes('valedictorian'));
+  assert.ok(restored.state.ending.achievements.includes('researcher'));
+});
+
+test('graduation choices can reach each basic and special ending and award the corresponding score', () => {
+  const stats = { hp: 20, intelligence: 20, social: 20, mental: 20 };
+  const base = { stats, cash: 3_000_000, flags: [], history: [] };
+  const cases = [
+    ['corporate', 'corporate', ['job']],
+    ['grad_school', 'grad_school', []],
+    ['startup', 'startup', []],
+    ['ngo', 'ngo', []],
+    ['traveler', 'traveler', []],
+    ['employee', 'employee', []],
+    ['rich_life', 'rich_life', []],
+    ['ordinary', 'ordinary', []],
+    ['grad_school', 'professor', ['lab', 'researchProposal']],
+    ['corporate', 'top_graduate', ['job', 'internship']],
+    ['campus_legend', 'campus_legend', ['cheerOt', 'koyeonjeon', 'ipselenti']],
+  ];
+  for (const [route, id, flags] of cases) {
+    assert.equal(resolveEnding({ ...base, flags }, 4.5, route), id);
+    assert.equal(endingScore(base, 4.5, id).total, ENDINGS[id].special ? 1000 : 970);
+  }
+  assert.equal(new Set([...cases.map(([, id]) => id), 'dropout']).size, Object.keys(ENDINGS).length);
+  assert.equal(resolveEnding({ ...base, stats: { ...stats, hp: 0 } }, null, 'corporate'), 'dropout');
+  assert.equal(endingScore({ ...base, cash: 0 }, null, 'dropout').total, 600);
+  assert.equal(resolveEnding(base, 1.99, 'corporate'), 'ordinary');
+  assert.equal(resolveEnding(base, 4.5, 'corporate'), 'employee');
+  assert.equal(resolveEnding(base, 4.5, 'campus_legend'), 'ordinary');
+  assert.equal(resolveEnding({ ...base, flags: ['lab'], history: [{ eventId: 'graduation', choice: '졸업생 연구 제안을 검토한다' }] }, 3.75, 'grad_school'), 'professor');
 });
 
 test('semester grades are rolled once, with higher intelligence improving the odds', () => {
