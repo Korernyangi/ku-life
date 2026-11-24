@@ -1,6 +1,6 @@
 import { drawPixelPortrait } from './pixel-scene.js';
 
-function drawCard(canvas, profile, stats, info, state) {
+function drawCard(canvas, profile, stats, info, score, state) {
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#fff9ed';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -13,13 +13,22 @@ function drawCard(canvas, profile, stats, info, state) {
     ctx.fillText(value, x, y, width);
   }
 
-  text('KU LIFE · 플레이 기록증', 28, 53, 32, '#fff9ed', 800);
+  text('KU LIFE', 28, 52, 34, '#fff9ed', 900);
+  text('플레이 기록증', 207, 52, 24, '#f3d9a9', 700);
+  ctx.textAlign = 'right';
+  text(info.special ? '스페셜 엔딩' : '기본 엔딩', 612, 52, 21, '#fff9ed', 700);
+  ctx.textAlign = 'left';
 
   const portrait = document.createElement('canvas');
   portrait.width = 164;
   portrait.height = 204;
   drawPixelPortrait(portrait, state);
   ctx.drawImage(portrait, 28, 108);
+  ctx.strokeStyle = '#b69162';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(28, 108, 164, 204);
+  text('토탈 스코어', 28, 347, 18, '#765648', 700);
+  text(`${score.total.toLocaleString('ko-KR')} / ${score.max.toLocaleString('ko-KR')}`, 28, 376, 24, '#70243a', 900, 165);
 
   text(info.title, 218, 139, 30, '#70243a', 800, 390);
   profile.forEach(([label, value], index) => {
@@ -38,7 +47,19 @@ function drawCard(canvas, profile, stats, info, state) {
   });
 }
 
-export function showEndingProfile(screen, { ending, info, stats, semester }, state) {
+export function getEndingStatRows(stats) {
+  return [
+    ['누적 평점', stats.grade == null ? '미산출' : `${stats.grade.toFixed(2)} / 4.50`],
+    ['지능', stats.intelligence],
+    ['체력', stats.hp],
+    ['멘탈', stats.mental],
+    ['돈', stats.money],
+    ['인맥', stats.relation],
+    ['커리어', stats.career],
+  ];
+}
+
+export function showEndingProfile(screen, { ending, info, stats, score, semester }, state) {
   const profile = [
     ['학과', state.major?.name],
     ['입학 전형', state.admission?.name],
@@ -48,42 +69,36 @@ export function showEndingProfile(screen, { ending, info, stats, semester }, sta
     ['연애 상태', ({ single: '솔로', dating: '연애 중', notInterested: '현재 관심 없음' })[state.relationshipStatus]],
     ['진행 기록', `${semester}학기 · ${state.eventsCompleted.length}개 선택`],
   ].map(([label, value]) => [label, value || '미정']);
-  const finalStats = [
-    ['누적 평점', stats.grade == null ? '미산출' : `${stats.grade.toFixed(2)} / 4.50`],
-    ['지능', stats.intelligence],
-    ['체력', stats.hp],
-    ['멘탈', stats.mental],
-    ['돈', stats.money],
-    ['인맥', stats.relation],
-    ['커리어', stats.career],
-  ];
-
-  screen.innerHTML = `
-    <section class="ending-profile">
-      <h1 class="ending-profile-title"></h1>
-      <canvas width="640" height="560" role="img"></canvas>
-      <p class="ending-profile-description"></p>
-      <div class="ending-profile-actions">
-        <button type="button" class="save-profile">PNG 저장</button>
-        <button type="button" class="share-profile">공유</button>
-        <button type="button" class="btn-restart">다시 시작</button>
-      </div>
-      <p class="profile-status" role="status"></p>
-    </section>
+  const finalStats = getEndingStatRows(stats);
+  const dialog = document.createElement('dialog');
+  dialog.className = 'ending-dialog ending-profile';
+  dialog.setAttribute('aria-labelledby', 'ending-profile-title');
+  dialog.innerHTML = `
+    <form method="dialog" class="ending-dialog-close">
+      <button type="submit" aria-label="프로필 닫기" autofocus>×</button>
+    </form>
+    <h2 id="ending-profile-title">플레이 기록증</h2>
+    <canvas width="640" height="560" role="img"></canvas>
+    <div class="ending-actions">
+      <button type="button" class="save-profile ending-primary" disabled>PNG 저장</button>
+      <button type="button" class="share-profile" disabled>공유</button>
+    </div>
+    <p class="profile-status" role="status"></p>
   `;
 
-  const canvas = screen.querySelector('canvas');
-  const status = screen.querySelector('.profile-status');
-  const title = screen.querySelector('h1');
-  title.textContent = info.title;
-  screen.querySelector('.ending-profile-description').textContent = info.desc;
-  const summary = [`KU LIFE · ${info.title}`, ...[...profile, ...finalStats].map(([label, value]) => `${label} ${value}`)].join('\n');
+  const canvas = dialog.querySelector('canvas');
+  const status = dialog.querySelector('.profile-status');
+  const summaryRows = [['토탈 스코어', `${score.total} / ${score.max}`], ...profile, ...finalStats];
+  const summary = [`KU LIFE · ${info.title}`, ...summaryRows.map(([label, value]) => `${label} ${value}`)].join('\n');
   canvas.setAttribute('aria-label', summary);
-  drawCard(canvas, profile, finalStats, info, state);
+  drawCard(canvas, profile, finalStats, info, score, state);
 
-  const save = screen.querySelector('.save-profile');
-  const share = screen.querySelector('.share-profile');
-  save.disabled = share.disabled = true;
+  dialog.addEventListener('close', () => dialog.remove(), { once: true });
+  screen.appendChild(dialog);
+  dialog.showModal();
+
+  const save = dialog.querySelector('.save-profile');
+  const share = dialog.querySelector('.share-profile');
   canvas.toBlob(blob => {
     if (!blob) {
       status.textContent = '프로필 이미지를 만들 수 없습니다.';
@@ -105,7 +120,9 @@ export function showEndingProfile(screen, { ending, info, stats, semester }, sta
       try {
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
           await navigator.share({ title: `KU LIFE · ${info.title}`, files: [file] });
-        } else if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+          return;
+        }
+        if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
           await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
           status.textContent = '프로필 이미지를 복사했습니다.';
         } else {

@@ -140,7 +140,7 @@ export class GameEngine {
 
     // 안개
     this.threeScene.fog = new THREE.Fog(config.fogColor, 15, 50);
-    this.renderer.setClearColor(config.skyColor);
+    this.renderer?.setClearColor(config.skyColor);
   }
 
   /**
@@ -172,7 +172,7 @@ export class GameEngine {
     // 카메라 이동
     const meta = this.currentScene.userData;
     if (meta) {
-      this.cameraController.moveTo(meta.cameraTarget, {
+      this.cameraController?.moveTo(meta.cameraTarget, {
         distance: meta.cameraDistance,
         angle: meta.cameraAngle,
         height: meta.cameraHeight,
@@ -228,15 +228,19 @@ export class GameEngine {
     const festival = unplayed.find(event => event.background);
     const campusActivity = shuffle(unplayed.filter(event => event.category === 'campus_life' && event !== festival))[0];
     const priorities = [schedule, festival, campusActivity].filter(Boolean);
-    const available = [...priorities, ...shuffle(unplayed.filter(event => !priorities.includes(event)))];
+    // 진로 준비, 논문 지도, 졸업 진로 선택은 해당 학기의 마지막에 배치한다.
+    const endingEvent = unplayed.find(event => event.endingEvent);
+    const regularSlots = this.eventsPerSemester - Number(Boolean(endingEvent));
+    const available = [...priorities, ...shuffle(unplayed.filter(event => !priorities.includes(event) && event !== endingEvent))];
 
     // 매 학기 네 이벤트를 보장한다. 조건을 만족하는 새 이벤트가 적으면
     // 그 학기 이벤트 중 아직 이번 학기에 쓰지 않은 항목으로 채운다.
     for (const event of shuffle(forSemester.filter(meetsConditions))) {
-      if (available.length >= this.eventsPerSemester) break;
-      if (!available.some(candidate => candidate.id === event.id)) available.push(event);
+      if (available.length >= regularSlots) break;
+      if (!event.endingEvent && !available.some(candidate => candidate.id === event.id)) available.push(event);
     }
-    this.eventChoices = available.slice(0, this.eventsPerSemester);
+    this.eventChoices = available.slice(0, regularSlots);
+    if (endingEvent) this.eventChoices.push(endingEvent);
     return this.eventChoices;
   }
 
@@ -326,6 +330,7 @@ export class GameEngine {
 
     // 이벤트 완료 기록
     this.gameState.eventsCompleted.push(this.currentEvent.id);
+    this.gameState.recordEndingChoice(choice);
 
     // 씬 전환 (선택지에 scene 지정되어 있으면)
     if (choice.scene) {
@@ -420,7 +425,7 @@ export class GameEngine {
    * 게임 종료 (졸업 또는 중도 포기)
    */
   endGame(reason = 'graduation') {
-    if (this.gameState.isGameOver && this.gameEnded) return;
+    if (this.gameEnded) return;
     this.gameEnded = true;
     this.gameState.isGameOver = true;
 
@@ -430,20 +435,20 @@ export class GameEngine {
       this.gameState.ending = this.gameState.determineEnding();
     }
 
-    const endingInfo = this.gameState.getEndingInfo(this.gameState.ending);
+    const { ending, endings, endingRoute, semester } = this.gameState;
+    if (!endings.includes(ending)) endings.push(ending);
 
-    // 엔딩 씬으로 (캠퍼스에서 졸업식 느낌)
     this.switchScene('campus');
-    this.animator.play('cheer');
+    this.animator.play(ending === 'dropout' ? 'sad' : 'cheer');
 
-    if (this.onGameEnd) {
-      this.onGameEnd({
-        ending: this.gameState.ending,
-        info: endingInfo,
-        stats: this.gameState.getAllStats(),
-        semester: this.gameState.semester,
-      });
-    }
+    this.onGameEnd?.({
+      ending,
+      info: this.gameState.getEndingInfo(ending),
+      stats: this.gameState.getAllStats(),
+      score: this.gameState.getEndingScore(ending),
+      route: endingRoute,
+      semester,
+    });
   }
 
   /**

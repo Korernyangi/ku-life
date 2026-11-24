@@ -20,21 +20,29 @@ if (!canvasContainer) {
   console.error('Canvas container not found!');
 }
 
-// 렌더러
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  alpha: true,
-  powerPreference: 'high-performance',
-});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
-canvasContainer.appendChild(renderer.domElement);
-// 장면 배경은 장면별 픽셀 아트 캔버스가 담당한다.
-renderer.domElement.style.display = 'none';
+function createWebGLRenderer() {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('webgl2', {
+    antialias: true,
+    alpha: true,
+    powerPreference: 'high-performance',
+  });
+  if (!context) return null;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, context });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  canvas.style.display = 'none';
+  canvasContainer.appendChild(canvas);
+  return renderer;
+}
+
+// 화면은 2D 픽셀 캔버스로 그리므로 WebGL이 없어도 플레이할 수 있다.
+const renderer = createWebGLRenderer();
 const pixelScene = new PixelScene(canvasContainer);
 pixelScene.draw('campus', 1);
 
@@ -57,7 +65,7 @@ camera.position.set(10, 10, 10);
 camera.lookAt(0, 0, 0);
 
 // 카메라 컨트롤러
-const cameraController = new CameraController(camera, renderer, {
+const cameraController = renderer ? new CameraController(camera, renderer, {
   initialDistance: 15,
   initialAngle: -Math.PI / 4,
   initialHeight: 8,
@@ -68,7 +76,7 @@ const cameraController = new CameraController(camera, renderer, {
   rotationSpeed: 0.5,
   zoomSpeed: 1.2,
   lerpSpeed: 0.08,
-});
+}) : null;
 
 // 기본 조명 설정
 function setupDefaultLights() {
@@ -118,7 +126,7 @@ async function initGame() {
 
     // Pixelfx Manager 생성 및 초기화
     try {
-      pixelfxManager = await createPixelfxManager(renderer.domElement, uiOverlay.elements.root);
+      pixelfxManager = await createPixelfxManager(pixelScene.canvas, uiOverlay.elements.root);
       // 초기 시즌 설정
       const initialSeason = getSeasonFromSemester(gameEngine.gameState.semester);
       await pixelfxManager.setSeason(initialSeason);
@@ -229,8 +237,8 @@ function onResize() {
   const width = window.innerWidth;
   const height = window.innerHeight;
 
-  renderer.setSize(width, height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer?.setSize(width, height);
+  renderer?.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   const aspect = width / height;
   const frustumSize = 10;
@@ -240,7 +248,7 @@ function onResize() {
   camera.bottom = -frustumSize / 2;
   camera.updateProjectionMatrix();
 
-  cameraController.onResize();
+  cameraController?.onResize();
 
   if (pixelfxManager) {
     pixelfxManager.resize(width, height);
@@ -281,7 +289,7 @@ function animate(time) {
   lastTime = time;
 
   // 카메라 업데이트
-  cameraController.update(deltaTime);
+  cameraController?.update(deltaTime);
 
   // 게임 엔진 업데이트
   if (gameEngine) {
@@ -298,7 +306,7 @@ function animate(time) {
   }
 
   // 렌더링
-  renderer.render(scene, camera);
+  renderer?.render(scene, camera);
 
   // 픽셀 이펙트 그리기 (Three.js 렌더링 후)
   if (pixelfxManager) {

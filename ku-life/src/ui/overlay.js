@@ -11,7 +11,8 @@ import { MiniGames } from './mini-games.js';
 import { createPeekPanel } from './peek-panel.js';
 import { PanelLayout } from './panel-layout.js';
 import { drawPixelPortrait } from './pixel-scene.js';
-import { showEndingProfile } from './ending-profile.js';
+import { EndingArchive } from './ending-archive.js';
+import { showEndingScreen } from './ending-screen.js';
 
 const EVENT_RESULT_DURATION = 8000;
 const STAT_LABELS = { grade: '학기 성적 영향', hp: '체력', intelligence: '지능', mental: '멘탈', money: '돈', relation: '인맥', career: '커리어' };
@@ -23,6 +24,7 @@ export class UIOverlay {
     this.elements = {};
 
     this.createUI();
+    this.endingArchive = new EndingArchive(this.elements.root, this.elements.startScreen.querySelector('.open-ending-archive'));
     this.profilePeek = createPeekPanel(this.elements.profilePanel, '학생 수첩');
     this.eventPeek = createPeekPanel(this.elements.eventPanel, '이벤트');
     this.miniGames = new MiniGames(this.elements.root, () => this.gameEngine.gameState);
@@ -205,6 +207,7 @@ export class UIOverlay {
         <h1>KU LIFE</h1>
         <p class="title-description">고려대 학생 인생 시뮬레이션</p>
         <button id="btn-start" type="button">입학하기 <span aria-hidden="true">▸</span></button>
+        <button class="open-ending-archive" type="button">엔딩 도감 <span></span></button>
         <p class="title-controls"><kbd>←</kbd> <kbd>→</kbd> 이동 <kbd>↑</kbd> 점프</p>
         <p class="title-credit">비공식 팬 프로젝트 · 원작 '80억분의 1'과 무관</p>
       </div>
@@ -213,19 +216,6 @@ export class UIOverlay {
     // ===== 엔딩 화면 =====
     this.elements.endingScreen = document.createElement('div');
     this.elements.endingScreen.id = 'ending-screen';
-    this.elements.endingScreen.style.cssText = `
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      z-index: 100;
-      display: none;
-      padding: 40px;
-    `;
     this.elements.root.appendChild(this.elements.endingScreen);
 
     this.elements.gradeScreen = document.createElement('div');
@@ -296,13 +286,6 @@ export class UIOverlay {
       .choice-btn .choice-icon { font-size: 20px; }
       .choice-btn.primary { background: linear-gradient(135deg, #8B0000, #A02020); border-color: #8B0000; color: white; }
       .choice-btn.primary:hover { background: linear-gradient(135deg, #A02020, #8B0000); }
-      .ending-icon { font-size: 80px; margin-bottom: 16px; animation: pulse 2s infinite; }
-      .ending-title { font-size: clamp(28px, 6vw, 42px); font-weight: 800; margin: 0 0 16px; background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-      .ending-desc { font-size: clamp(16px, 3vw, 20px); text-align: center; max-width: 600px; margin: 0 0 32px; opacity: 0.9; line-height: 1.7; }
-      .ending-stats { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-bottom: 32px; }
-      .ending-stat { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 12px 20px; text-align: center; min-width: 80px; }
-      .ending-stat-value { font-size: 24px; font-weight: 700; color: #FFD700; }
-      .ending-stat-label { font-size: 12px; opacity: 0.7; margin-top: 4px; }
       .btn-restart { padding: 14px 40px; font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #8B0000, #A02020); color: white; border: none; border-radius: 50px; cursor: pointer; transition: transform 0.2s; }
       .btn-restart:hover { transform: scale(1.05); }
       .char-section { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 20px; margin: 12px 0; width: 100%; max-width: 500px; }
@@ -668,7 +651,8 @@ export class UIOverlay {
   showEnding(endingData) {
     this.hideAll();
     this.elements.endingScreen.style.display = 'flex';
-    showEndingProfile(this.elements.endingScreen, endingData, this.gameEngine.gameState);
+    this.elements.endingScreen.scrollTop = 0;
+    showEndingScreen(this.elements.endingScreen, endingData, this.gameEngine.gameState, this.endingArchive);
   }
 
   updateStats(stats, changes = {}) {

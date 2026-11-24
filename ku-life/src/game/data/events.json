@@ -453,6 +453,7 @@
     },
     {
       "id": "event_10",
+      "endingEvent": true,
       "title": "진로 고민 - 인턴십 vs 대학원",
       "description": "3학년 여름, 진로를 정해야 할 시점이다. 인턴십으로 실무를 쌓을지, 대학원 준비로 학문을 이어갈지.",
       "semester": [
@@ -463,6 +464,7 @@
       "choices": [
         {
           "text": "대기업 인턴십 지원 (실무 경험)",
+          "endingMilestone": "internship",
           "stats": {
             "career": 20,
             "money": 15,
@@ -474,6 +476,7 @@
         },
         {
           "text": "대학원 준비 (연구실 인턴 + GRE/영어)",
+          "endingMilestone": "research",
           "stats": {
             "grade": 10,
             "career": 10,
@@ -484,6 +487,7 @@
         },
         {
           "text": "창업 동아리/스타트업 인턴 (도전적)",
+          "endingMilestone": "startup",
           "stats": {
             "career": 15,
             "relation": 8,
@@ -497,6 +501,7 @@
     },
     {
       "id": "event_11",
+      "endingEvent": true,
       "title": "졸업논문/캡스톤 프로젝트",
       "description": "4학년 1학기, 졸업 필수 과제인 논문/캡스톤을 시작해야 한다. 지도교수님과의 관계, 주제 선정, 진행 방식이 중요하다.",
       "semester": [
@@ -506,6 +511,7 @@
       "choices": [
         {
           "text": "교수님 자주 찾아뵙며 밀착 지도 받음",
+          "endingMilestone": "thesis",
           "stats": {
             "grade": 10,
             "career": 8,
@@ -1216,6 +1222,7 @@
       "choices": [
         {
           "text": "응원단과 끝까지 뛰고 목청껏 응원한다",
+          "endingMilestone": "cheer",
           "stats": {
             "relation": 12,
             "mental": 8,
@@ -1270,6 +1277,7 @@
       "choices": [
         {
           "text": "야구부터 축구까지 종일 응원한다",
+          "endingMilestone": "cheer",
           "stats": {
             "relation": 14,
             "mental": 7,
@@ -1386,6 +1394,7 @@
         },
         {
           "text": "봉사 동아리에 가입한다",
+          "endingMilestone": "volunteer",
           "stats": {
             "relation": 6,
             "mental": 4,
@@ -1401,6 +1410,7 @@
         },
         {
           "text": "응원 동아리 활동에 참여한다",
+          "endingMilestone": "cheer",
           "stats": {
             "relation": 10,
             "hp": -5,
@@ -1625,6 +1635,24 @@
           },
           "scene": "study"
         }
+      ]
+    },
+    {
+      "id": "career_sendoff",
+      "title": "졸업 이후의 첫걸음",
+      "description": "마지막 학기의 끝, 이제 졸업 뒤 처음 할 일을 정할 차례다. 지금까지의 경험과 마지막 학기 성적이 그 선택의 결말을 바꾼다.",
+      "semester": [8],
+      "endingEvent": true,
+      "choices": [
+        { "text": "안암테크 공채에 지원한다", "endingRoute": "corporate" },
+        { "text": "연구를 이어가기 위해 대학원에 지원한다", "endingRoute": "grad_school" },
+        { "text": "공강마다 만들던 서비스를 출시한다", "endingRoute": "startup" },
+        { "text": "지역단체의 새 프로젝트에 합류한다", "endingRoute": "ngo" },
+        { "text": "배낭여행을 떠날 편도 티켓을 끊는다", "endingRoute": "traveler" },
+        { "text": "동네 문구 회사 오후문구에 지원한다", "endingRoute": "employee" },
+        { "text": "모아 둔 생활비로 1년을 쉰다", "endingRoute": "rich_life" },
+        { "text": "졸업생 응원 무대에 오른다", "endingRoute": "campus_legend" },
+        { "text": "당분간 쉬면서 다음 길을 천천히 찾는다", "endingRoute": "ordinary" }
       ]
     }
   ]

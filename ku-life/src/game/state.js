@@ -1,3 +1,5 @@
+import { ENDINGS, getEndingId, resolveEnding } from './endings.js';
+
 /**
  * 게임 상태 관리
  * - 랜덤 시작 설정 (전형, 학과, 집안 형편, 성격)
@@ -231,11 +233,13 @@ export class GameState {
     this.semester = start.semester ?? 1;
     this.totalSemesters = start.totalSemesters ?? 8;
     this.eventsCompleted = [...(start.eventsCompleted || [])];
-    this.endings = [...(start.endings || [])];
+    this.endings = [...new Set((start.endings || []).map(getEndingId))];
+    this.endingRoute = start.endingRoute || null;
+    this.endingMilestones = { ...start.endingMilestones };
     this.currentEvent = start.currentEvent || null;
     this.currentScene = start.currentScene || 'campus';
     this.isGameOver = Boolean(start.isGameOver);
-    this.ending = start.ending || null;
+    this.ending = start.ending ? getEndingId(start.ending) : null;
   }
 
   /**
@@ -350,96 +354,35 @@ export class GameState {
     return this.isGameOver && this.ending !== 'dropout';
   }
 
-  /**
-   * 엔딩 결정
-   */
-  determineEnding() {
-    const { grade, hp, mental, money, relation, career } = this.stats;
-
-    // 드롭아웃 이미 체크됨
-    if (this.ending === 'dropout') return 'dropout';
-
-    // 엔딩 조건들 (우선순위 순)
-    if (grade >= 4.0 && career >= 80) return 'top_graduate'; // 수석 졸업 + 취업
-    if (grade >= 3.7 && mental >= 70) return 'academic'; // 학계 진로
-    if (career >= 85 && relation >= 70) return 'corporate'; // 대기업/좋은 직장
-    if (career >= 70 && money >= 100) return 'startup'; // 창업
-    if (relation >= 85 && mental >= 70) return 'ngo'; // NGO/공익
-    if (hp >= 80 && mental >= 80) return 'traveler'; // 세계일주/자유
-    if (grade >= 3.0) return 'grad_school'; // 대학원 진학
-    if (career >= 60) return 'employee'; // 일반 직장인
-    if (money >= 120) return 'rich_life'; // 부유한 삶
-    if (relation >= 70) return 'family_life'; // 가정 중심
-    return 'ordinary'; // 평범한 삶
+  recordEndingChoice(choice) {
+    if (choice.endingMilestone) {
+      const id = choice.endingMilestone;
+      this.endingMilestones[id] = (this.endingMilestones[id] || 0) + 1;
+    }
+    if (choice.endingRoute) {
+      this.endingRoute = { id: choice.endingRoute, text: choice.text };
+    }
   }
 
-  /**
-   * 엔딩 상세 정보
-   */
+  determineEnding() {
+    return resolveEnding(this);
+  }
+
   getEndingInfo(endingId) {
-    const endings = {
-      dropout: {
-        title: '중도 포기',
-        desc: '체력이나 멘탈이 바닥나 학업을 이어갈 수 없게 되었습니다. 언젠가 다시 도전할 날이 오길.',
-        icon: '😔',
-      },
-      top_graduate: {
-        title: '수석 졸업 & 꿈의 직장',
-        desc: '최고의 성적으로 졸업하고 원하는 기업에 입사했습니다. 당신의 노력은 배신하지 않았습니다.',
-        icon: '🏆',
-      },
-      academic: {
-        title: '연구자의 길',
-        desc: '학문에 대한 열정으로 대학원에 진학해 연구자가 되었습니다. 지식의 경계를 넓혀갑니다.',
-        icon: '🔬',
-      },
-      corporate: {
-        title: '대기업 입사',
-        desc: '탄탄한 스펙과 인맥으로 대기업에 입사했습니다. 안정적인 커리어를 쌓아갑니다.',
-        icon: '🏢',
-      },
-      startup: {
-        title: '창업가',
-        desc: '아이디어와 자금, 인맥을 바탕으로 스타트업을 창업했습니다. 도전은 계속됩니다.',
-        icon: '🚀',
-      },
-      ngo: {
-        title: '사회활동가',
-        desc: '따뜻한 마음과 넓은 인맥으로 NGO에서 일하며 세상을 바꾸고 있습니다.',
-        icon: '🤝',
-      },
-      traveler: {
-        title: '자유로운 영혼',
-        desc: '건강한 몸과 마음으로 세계를 여행하며 자신만의 길을 찾아갑니다.',
-        icon: '🌍',
-      },
-      grad_school: {
-        title: '대학원 진학',
-        desc: '더 깊은 공부를 위해 대학원에 진학했습니다. 석사/박사 과정에 도전합니다.',
-        icon: '📚',
-      },
-      employee: {
-        title: '직장인',
-        desc: '안정적인 직장에 취업해 평범한 직장인으로 살아갑니다. 소소한 행복을 누립니다.',
-        icon: '💼',
-      },
-      rich_life: {
-        title: '경제적 자유',
-        desc: '알바와 투자로 모은 자금으로 경제적 자유를 얻었습니다. 하고 싶은 일을 합니다.',
-        icon: '💰',
-      },
-      family_life: {
-        title: '가정적인 삶',
-        desc: '소중한 사람들과 가정을 꾸려 행복한 일상을 보냅니다. 그것이 최고의 성공입니다.',
-        icon: '🏠',
-      },
-      ordinary: {
-        title: '평범한 졸업',
-        desc: '무난하게 졸업해 평범한 삶을 살아갑니다. 특별하지 않아도 나름의 의미가 있습니다.',
-        icon: '🌱',
-      },
-    };
-    return endings[endingId] || endings.ordinary;
+    return ENDINGS[getEndingId(endingId)];
+  }
+
+  getEndingScore(endingId) {
+    const statsMax = 900;
+    const bonusMax = 100;
+    const limits = Object.entries(STAT_LIMITS);
+    const normalizedTotal = limits.reduce((total, [stat, limit]) => {
+      return total + Math.min(limit, Math.max(0, this.getStat(stat))) / limit;
+    }, 0);
+    const stats = Math.round(statsMax * normalizedTotal / limits.length);
+    const id = getEndingId(endingId);
+    const bonus = id === 'dropout' ? 0 : ENDINGS[id].special ? bonusMax : 70;
+    return { stats, bonus, total: stats + bonus, max: statsMax + bonusMax, statsMax, bonusMax };
   }
 
   /**
@@ -465,6 +408,8 @@ export class GameState {
       totalSemesters: this.totalSemesters,
       eventsCompleted: this.eventsCompleted,
       endings: this.endings,
+      endingRoute: this.endingRoute,
+      endingMilestones: this.endingMilestones,
       currentScene: this.currentScene,
       isGameOver: this.isGameOver,
       ending: this.ending,
@@ -475,11 +420,7 @@ export class GameState {
    * 상태 역직렬화 (불러오기용)
    */
   static deserialize(data) {
-    const state = new GameState(data);
-    state.currentScene = data.currentScene || 'campus';
-    state.isGameOver = data.isGameOver || false;
-    state.ending = data.ending || null;
-    return state;
+    return new GameState(data);
   }
 }
 
