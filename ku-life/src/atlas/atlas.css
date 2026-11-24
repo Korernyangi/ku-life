@@ -46,7 +46,6 @@ button:disabled { cursor: default; }
   letter-spacing: -.07em;
   text-decoration: none;
 }
-.text-link { font-size: .9rem; font-weight: 700; text-underline-offset: .2em; }
 .landing {
   position: relative;
   display: grid;

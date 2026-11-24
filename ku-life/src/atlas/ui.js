@@ -1,5 +1,5 @@
 import { drawPixelBackground } from '../ui/pixel-backgrounds.js';
-import { drawPixelStudent } from '../ui/pixel-scene.js';
+import { drawPixelStudent } from '../ui/pixel-student.js';
 import { AtlasGame } from './game.js';
 import { ENDINGS, EXPERIENCES, ITEMS, RULES, STATS, STATUSES, cashText } from './config.js';
 import { itemSprite, paintSprites, statSprite } from './sprites.js';
@@ -114,7 +114,7 @@ function statPanel() {
 
 function titleScreen() {
   return `
-    <header class="atlas-header"><a class="wordmark" href="./atlas.html">ATLAS</a><a class="text-link" href="./">KU LIFE로 돌아가기</a></header>
+    <header class="atlas-header"><a class="wordmark" href="./">ATLAS</a></header>
     <main class="landing">
       <div class="landing-art"><canvas class="scene-canvas" width="640" height="360" aria-hidden="true"></canvas></div>
       <section class="landing-card">
@@ -123,7 +123,7 @@ function titleScreen() {
         <p>새터에서 만난 선배가 나중에 시험 자료를 건넬 수도 있습니다. 공부, 사람, 생활비 사이에서 무엇을 우선할지 정하며 졸업까지 걸어가세요.</p>
         <div class="actions">
           ${saved ? `<button class="primary" data-action="resume">${saved.phase === 'ended' ? '지난 결과 보기' : '이어하기'}</button>` : ''}
-          <button class="${saved ? 'secondary' : 'primary'}" data-action="new">새 게임</button>
+          <button class="${saved ? 'secondary' : 'primary'}" data-action="new">입학하기</button>
         </div>
         ${storageNotice ? `<p class="notice" role="status">${escape(storageNotice)}</p>` : ''}
       </section>
