@@ -1,0 +1,202 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { ENDINGS, EXPERIENCES, ITEMS, RULES } from './config.js';
+import { EVENTS } from './events.js';
+import { AtlasGame } from './game.js';
+
+function fixture(eventId, overrides = {}, random = () => .25) {
+  const { state } = new AtlasGame();
+  const { stats, ...rest } = overrides;
+  return new AtlasGame({ ...state, eventId, termEvents: [eventId], ...rest, stats: { ...state.stats, ...stats } }, random);
+}
+
+function play(game, index) {
+  assert.equal(game.choose(index, game.eventToken), true);
+}
+
+test('four integer stats, cash separate, locked choices and stale tokens are enforced', () => {
+  const fresh = new AtlasGame();
+  assert.deepEqual(fresh.state.stats, { hp: 16, intelligence: 6, social: 6, mental: 16 });
+  assert.equal(fresh.state.cash, 1_000_000);
+  const game = fixture('koyeonjeon', { cash: 20_000, stats: { hp: 5 } });
+  assert.deepEqual(game.choiceReasons(game.event.choices[0]), ['체력 8 이상 필요', '자금 80,000원 이상 필요']);
+  const stale = game.eventToken;
+  assert.equal(game.choose(0, stale), false);
+  assert.equal(game.state.history.length, 0);
+  play(game, 3);
+  assert.deepEqual(game.state.receipt.stats, { hp: 4, social: -1, mental: 2 });
+  assert.equal(game.choose(3, stale), false);
+  assert.equal(game.state.history.length, 1);
+  game.nextEvent();
+  assert.equal(game.choose(0, stale), false);
+  game.changeStats({ hp: 99, mental: -38, social: .8 });
+  assert.deepEqual(game.state.stats, { hp: 20, intelligence: 6, social: 6, mental: 0 });
+  assert.equal(game.state.phase, 'event');
+});
+
+test('the same study choice scales with stamina and cannot run at 5 or below', () => {
+  for (const [hp, change] of [[16, { hp: -4, intelligence: 3 }], [12, { hp: -5, intelligence: 2 }], [7, { hp: -5, intelligence: 1 }]]) {
+    const game = fixture('night_review', { stats: { hp } });
+    play(game, 0);
+    assert.deepEqual(game.state.receipt.stats, change);
+  }
+  const tired = fixture('night_review', { stats: { hp: 5 } });
+  assert.equal(tired.choose(0, tired.eventToken), false);
+});
+
+test('zero health immediately ends a run while zero mental can trigger recovery', () => {
+  const reachedZero = fixture('koyeonjeon', { stats: { hp: 2, mental: 0 } });
+  play(reachedZero, 2);
+  assert.equal(reachedZero.state.stats.hp, 0);
+  assert.equal(reachedZero.state.phase, 'ended');
+  assert.equal(reachedZero.state.ending.id, 'dropout');
+  assert.equal(reachedZero.nextEvent(), false);
+
+  const survived = fixture('laptop_fault', {
+    semester: 2, termEvents: ['night_review', 'laptop_fault'],
+    stats: { hp: 5, mental: 0 }, streak: { mental: 1, critical: 1, both: 1 },
+  });
+  play(survived, 0);
+  assert.equal(survived.state.phase, 'result');
+  assert.deepEqual(survived.state.receipt.gained, ['lethargy', 'burnout', 'depression']);
+  survived.nextEvent();
+  assert.equal(survived.event.id, 'health_crisis');
+  play(survived, 0);
+  assert.ok(survived.state.receipt.cleared.includes('burnout'));
+});
+
+test('paid outcomes, recorded experiences, inventory and delayed chains survive save and restore', () => {
+  let game = new AtlasGame(null, () => 0);
+  play(game, 0);
+  assert.equal(game.state.cash, 930_000);
+  assert.deepEqual(game.state.receipt.flags, ['orientation', 'senior']);
+  assert.deepEqual(game.state.scheduled, [{ id: 'senior_notes', semester: 2 }]);
+  game = new AtlasGame(JSON.parse(JSON.stringify(game.state)), () => 0);
+  assert.equal(game.choose(0, game.eventToken), false);
+  while (game.state.phase !== 'term') {
+    if (game.state.phase === 'result') game.nextEvent();
+    else play(game, game.event.choices.findIndex(choice => !game.choiceReasons(choice).length));
+  }
+  game.nextTerm();
+  play(game, 2);
+  game.nextEvent();
+  assert.equal(game.event.id, 'senior_notes');
+  play(game, 1);
+  assert.equal(game.state.inventory.notes, 1);
+  assert.deepEqual(game.state.receipt.items, { notes: 1 });
+  assert.ok(game.state.scheduled.some(entry => entry.id === 'intern_interview' && entry.semester === 3));
+});
+
+test('stat, item and condition modifiers affect probability and their use is single-shot', () => {
+  const state = { inventory: { laptop: 1 }, boosts: { currentGpa: 0, nextGpa: 0, chance: .15 }, stats: { intelligence: 14 } };
+  const ready = fixture('lab_offer', state, () => .9);
+  const runDown = fixture('lab_offer', { ...state, stats: { intelligence: 14, mental: 2 }, streak: { mental: 2, critical: 2, both: 0 } }, () => .9);
+  play(ready, 0);
+  play(runDown, 0);
+  assert.equal(ready.state.receipt.chance.won, true);
+  assert.equal(runDown.state.receipt.chance.won, false);
+  assert.ok(ready.state.receipt.chance.probability > runDown.state.receipt.chance.probability);
+  assert.ok(ready.state.flags.includes('lab'));
+  assert.equal(runDown.state.boosts.chance, 0);
+});
+
+test('shop purchases, future-only stock, passives and consumables use their defined limits', () => {
+  const game = fixture('walk', { phase: 'term', semester: 3, cash: 1_600_000, stats: { hp: 9 }, grades: [2, 2.5, 2.6] });
+  assert.equal(game.buy('tablet'), true);
+  assert.equal(game.buy('tablet'), false);
+  assert.equal(game.buy('laptop'), true);
+  assert.equal(game.buy('vitamins'), false);
+  game.changeCash(500_000);
+  assert.equal(game.buy('notes'), true);
+  assert.equal(game.buy('notes'), true);
+  assert.equal(game.use('notes'), true);
+  assert.equal(game.use('notes'), false);
+  assert.equal(game.buy('vitamins'), true);
+  assert.equal(game.use('vitamins'), true);
+  assert.equal(game.state.stats.hp, 14);
+  assert.equal(game.state.inventory.vitamins, undefined);
+  game.nextTerm();
+  assert.equal(game.state.boosts.currentGpa, .5);
+  assert.equal(game.state.boosts.nextGpa, 0);
+  play(game, 1);
+  assert.equal(game.state.receipt.stats.hp, -1);
+  assert.equal(game.state.receipt.stats.intelligence, 3);
+
+  const last = fixture('graduation', { phase: 'term', semester: 8, cash: 9_000_000 });
+  assert.equal(last.buy('equipment'), false);
+  assert.equal(last.buy('notes'), false);
+  assert.equal(last.buy('counseling'), true);
+
+  const passive = fixture('walk', { inventory: { console: 1, equipment: 1 }, stats: { hp: 7, mental: 10 } });
+  passive.finishTerm();
+  assert.deepEqual(passive.state.gradeNotes.stats, { hp: 1, mental: 1 });
+});
+
+test('minigames receive a current balance and cannot double-settle or create debt', () => {
+  const game = fixture('walk', { phase: 'term', cash: 90_000 });
+  const session = game.beginMinigame();
+  assert.equal(session.balance, 90_000);
+  assert.equal(game.beginMinigame(), null);
+  assert.equal(game.nextTerm(), false);
+  assert.equal(game.settleMinigame('wrong-id', 50_000), false);
+  assert.equal(game.settleMinigame(session.id, 1.1), false);
+  assert.equal(game.settleMinigame(session.id, -100_000), true);
+  assert.equal(game.state.cash, 0);
+  assert.equal(game.settleMinigame(session.id, 50_000), false);
+  const second = game.beginMinigame();
+  assert.notEqual(second.id, session.id);
+  assert.equal(game.settleMinigame(second.id, 50_000), true);
+  assert.equal(game.state.cash, 50_000);
+});
+
+test('event content always offers a fallback and references registered items, flags and events', () => {
+  const ids = new Set(EVENTS.map(event => event.id));
+  assert.equal(ids.size, EVENTS.length);
+  const healthy = new AtlasGame();
+  for (const event of EVENTS) {
+    assert.ok(event.choices.length >= 2 && event.choices.length <= 4, event.id);
+    assert.ok(event.choices.some(choice => !(choice.requires || choice.cash < 0 || choice.intensity === 'high')), event.id);
+    for (const option of event.choices.flatMap(choice => [choice, choice.chance?.success, choice.chance?.failure]).filter(Boolean)) {
+      for (const id of option.grant ?? []) assert.ok(EXPERIENCES[id], id);
+      for (const id of Object.keys(option.items ?? {})) assert.ok(ITEMS[id], id);
+      if (option.schedule) assert.ok(ids.has(option.schedule.id), option.schedule.id);
+    }
+    assert.ok(event.choices.some(choice => !healthy.choiceReasons(choice).length), event.id);
+  }
+});
+
+test('eight terms offer their configured events, GPA, a shop and exactly one ending', () => {
+  let seed = 49;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const game = new AtlasGame(null, random);
+  const counts = [];
+  while (game.state.phase !== 'ended') {
+    if (game.state.phase === 'event') {
+      const choices = game.event.choices.map((choice, index) => ({ choice, index })).filter(({ choice }) => !game.choiceReasons(choice).length);
+      const value = choice => (choice.stats.hp ?? 0) * (game.state.stats.hp < 10 ? 4 : .45) + (choice.stats.intelligence ?? 0) + (choice.stats.mental ?? 0) * .35;
+      choices.sort((a, b) => value(b.choice) - value(a.choice));
+      play(game, choices[0].index);
+    } else if (game.state.phase === 'result') {
+      game.nextEvent();
+    } else {
+      counts.push(game.state.termEvents.length);
+      assert.ok(game.stock().includes('vitamins'));
+      assert.equal(game.state.grades.length, game.state.semester);
+      game.nextTerm();
+    }
+  }
+  assert.deepEqual(counts, RULES.termEvents);
+  assert.equal(game.state.history.length, counts.reduce((sum, count) => sum + count, 0));
+  assert.ok(game.gpa >= 0 && game.gpa <= 4.5);
+  assert.ok(ENDINGS.some(ending => ending.id === game.state.ending.id));
+  assert.equal(game.finish(), false);
+
+  const finale = fixture('graduation', {
+    phase: 'term', semester: 8, grades: Array(8).fill(4.35),
+    stats: { hp: 17, intelligence: 19, social: 16, mental: 18 }, flags: ['reporter', 'published', 'seniorBond', 'lab', 'job'],
+  });
+  finale.nextTerm();
+  assert.equal(finale.state.ending.id, 'editor');
+  assert.ok(finale.state.ending.achievements.includes('valedictorian'));
+  assert.ok(finale.state.ending.achievements.includes('researcher'));
+});
