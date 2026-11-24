@@ -80,6 +80,17 @@ button:disabled { cursor: default; }
   line-height: 1.06;
 }
 .landing-card > p:not(.context-label, .notice) { color: #5b4445; }
+.admission-dialog {
+  width: min(440px, calc(100% - 32px));
+  padding: clamp(18px, 5vw, 28px);
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 5px 5px 0 #271a24a8;
+}
+.admission-dialog::backdrop { background: #261b24a6; }
+.admission-dialog p { margin-top: 9px; color: var(--muted); }
+.admission-dialog .actions { justify-content: flex-end; }
 .context-label { color: var(--crimson); font-size: .80rem; font-weight: 850; letter-spacing: .04em; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
 .primary, .secondary, .game-header nav button {

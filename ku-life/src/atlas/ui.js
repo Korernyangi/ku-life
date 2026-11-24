@@ -127,7 +127,15 @@ function titleScreen() {
         </div>
         ${storageNotice ? `<p class="notice" role="status">${escape(storageNotice)}</p>` : ''}
       </section>
-    </main>`;
+    </main>
+    ${saved ? `<dialog class="admission-dialog" aria-labelledby="admission-title" aria-describedby="admission-warning">
+      <h2 id="admission-title">새로 입학할까요?</h2>
+      <p id="admission-warning">새로 입학하면 이 브라우저에 저장된 진행 기록을 덮어씁니다.</p>
+      <div class="actions">
+        <button type="button" class="secondary" data-action="cancel-admission" autofocus>취소</button>
+        <button type="button" class="primary" data-action="confirm-admission">새로 입학하기</button>
+      </div>
+    </dialog>` : ''}`;
 }
 
 function gameHeader() {
@@ -320,6 +328,12 @@ function actionResult(result, success = '') {
   if (result) present(success);
 }
 
+function startNewGame() {
+  game = new AtlasGame();
+  screen = 'game';
+  present();
+}
+
 function openMinigame() {
   const run = game;
   const connection = run.beginMinigame();
@@ -364,10 +378,15 @@ root.addEventListener('click', event => {
   const { action, value, token } = button.dataset;
   switch (action) {
     case 'new':
-      if (saved && !window.confirm('기존 ATLAS 진행 기록을 덮어쓰고 새 게임을 시작할까요?')) return;
-      game = new AtlasGame();
-      screen = 'game';
-      present();
+      if (saved) root.querySelector('.admission-dialog').showModal();
+      else startNewGame();
+      break;
+    case 'cancel-admission':
+      button.closest('dialog').close();
+      break;
+    case 'confirm-admission':
+      button.closest('dialog').close();
+      startNewGame();
       break;
     case 'resume':
       game = new AtlasGame(saved);
