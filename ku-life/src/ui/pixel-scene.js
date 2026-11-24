@@ -75,23 +75,30 @@ export function drawPixelStudent(ctx, state, x, y, scale = 1, pose = null) {
   if(look.accessory==='bookpin'){r(15,21,2,3,'#f0cc68');r(15,24,2,1,'#5c779c')}
 }
 
-export function drawPixelPortrait(canvas, state) {
+export function drawPixelPortrait(canvas, state, { campus = false } = {}) {
   const ctx = canvas.getContext('2d');
   const { width, height } = canvas;
-  const art = document.createElement('canvas');
-  art.width = 320;
-  art.height = 180;
-  drawPixelBackground(art.getContext('2d'), 'campus', state?.semester ?? 1);
-
   ctx.imageSmoothingEnabled = false;
   ctx.fillStyle = '#65283e';
   ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = '#e3bb81';
   ctx.fillRect(4, 4, width - 8, height - 8);
-  ctx.drawImage(art, 117, 29, 86, 130, 8, 8, width - 16, height - 16);
-  const scale = Math.floor(Math.min((width - 16) / 22, (height - 16) / 36));
-  drawPixelStudent(ctx, state, Math.round((width - 22 * scale) / 2), height - 10 - 36 * scale, scale);
 
+  const scale = Math.floor(Math.min((width - 16) / 22, (height - 16) / 36));
+  const x = Math.round((width - 22 * scale) / 2);
+  let y = Math.round((height - 36 * scale) / 2);
+  if (campus) {
+    const art = document.createElement('canvas');
+    art.width = 320;
+    art.height = 180;
+    drawPixelBackground(art.getContext('2d'), 'campus', state?.semester ?? 1);
+    ctx.drawImage(art, 117, 29, 86, 130, 8, 8, width - 16, height - 16);
+    y = height - 10 - 36 * scale;
+  } else {
+    ctx.fillStyle = '#f2e4c9';
+    ctx.fillRect(8, 8, width - 16, height - 16);
+  }
+  drawPixelStudent(ctx, state, x, y, scale);
 }
 
 export class PixelScene {

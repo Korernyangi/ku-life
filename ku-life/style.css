@@ -1266,3 +1266,102 @@ a:focus-visible,
   background: var(--paper);
   color: var(--ink);
 }
+
+.student-portrait {
+  display: block;
+  width: 180px;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  border: 3px solid #702b37;
+  box-shadow: 4px 4px 0 #d6b879;
+}
+
+#game-ui #char-screen {
+  background: linear-gradient(135deg, #8b0000, #4a1a1a 50%, #1a1a2e);
+}
+
+#game-ui #char-screen.randomization-screen {
+  z-index: 120;
+  background: rgba(16, 20, 32, .82);
+  padding: clamp(10px, 2vw, 18px);
+}
+
+.roll-card {
+  width: min(960px, 100%);
+  max-height: 90dvh;
+  overflow: auto;
+  padding: clamp(16px, 3vw, 28px);
+  background: #fff9ed;
+  border: 2px solid #bd9b68;
+  color: var(--ink);
+}
+
+.roll-kicker,
+.roll-preview strong {
+  color: var(--crimson);
+  font-weight: 800;
+}
+
+.roll-card h2 { margin: 4px 0; }
+
+.roll-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 22%);
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.roll-fields {
+  grid-area: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.roll-fields > div {
+  padding: 12px;
+  background: #f1e8d8;
+  opacity: .42;
+  transition: opacity .35s;
+}
+
+.roll-fields > .roll-revealed { opacity: 1; }
+.roll-fields strong { display: block; margin-block: 3px; }
+.roll-fields span, .roll-look { font-size: 12px; }
+
+.roll-preview {
+  grid-area: 1 / 2;
+  align-self: start;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 12px;
+  border: 1px solid #d6b879;
+  background: #fbefd8;
+  text-align: center;
+}
+
+.roll-look { margin-top: 4px; }
+
+.roll-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.roll-actions .btn-confirm { margin: 0; }
+.roll-actions .btn-confirm:disabled { opacity: .5; }
+
+@media (max-width: 650px) {
+  .roll-layout { grid-template-columns: minmax(0, 1fr); }
+  .roll-preview {
+    grid-area: 1 / 1;
+    grid-template-columns: minmax(0, 1fr) 104px;
+    align-items: center;
+  }
+  .roll-fields {
+    grid-area: 2 / 1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

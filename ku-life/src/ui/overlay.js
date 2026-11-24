@@ -17,6 +17,18 @@ import { showEndingScreen } from './ending-screen.js';
 const EVENT_RESULT_DURATION = 8000;
 const STAT_LABELS = { grade: '학기 성적 영향', hp: '체력', intelligence: '지능', mental: '멘탈', money: '돈', relation: '인맥', career: '커리어' };
 
+const HAIR_NAMES = { long: '롱 헤어', bob: '보브 컷', medium: '미디엄 컷', short: '숏 헤어' };
+const ACCESSORY_NAMES = {
+  glasses: '지능형 안경', earrings: '친화력 이어링', hairclip: '창의성 헤어핀',
+  lanyard: '커리어 목걸이', bookpin: '성실함 북핀', none: '캠퍼스 룩',
+};
+
+function describeAppearance(appearance) {
+  const hair = HAIR_NAMES[appearance?.hairStyle] || HAIR_NAMES.short;
+  const accessory = ACCESSORY_NAMES[appearance?.accessory] || ACCESSORY_NAMES.none;
+  return `${hair} · ${accessory}`;
+}
+
 export class UIOverlay {
   constructor(container, gameEngine) {
     this.container = container;
@@ -141,7 +153,7 @@ export class UIOverlay {
       color: #302720; pointer-events: auto;
     `;
     this.elements.profilePanel.innerHTML = `
-      <canvas class="profile-avatar" width="180" height="160" aria-label="게임 배경 캐릭터와 같은 픽셀 초상"></canvas>
+      <canvas class="profile-avatar student-portrait" width="180" height="160" role="img" aria-label="내 캐릭터 초상화"></canvas>
       <div style="width:100%;padding-bottom:8px;border-bottom:1px solid #ded2c1"><div style="font-size:16px;font-weight:900;color:#382a28">고려대 새내기</div><div class="profile-look" style="margin-top:3px;font-size:10px;color:#827467"></div></div>
       <div class="profile-details" style="width:100%;display:grid;gap:8px"></div>
       <div class="profile-grade" style="width:100%;padding:8px 10px;box-sizing:border-box;border-radius:10px;background:#f1e8d8;font-size:12px"></div>
@@ -229,7 +241,6 @@ export class UIOverlay {
     this.elements.charScreen.style.cssText = `
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, #8B0000 0%, #4A1A1A 50%, #1A1A2E 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -364,23 +375,69 @@ export class UIOverlay {
 
   showCharScreen() {
     this.hideAll();
+    this.elements.charScreen.classList.remove('randomization-screen');
     this.elements.charScreen.style.display = 'flex';
     this.renderCharScreen();
   }
 
   showRandomizationScreen() {
-    const state=this.preparedState; if(!state) return;
-    this.randomizationTimers ||= [];
-    this.randomizationTimers.forEach(clearTimeout);
-    this.randomizationTimers=[];
-    this.hideAll(); this.elements.charScreen.style.display='flex';
-    this.elements.charScreen.style.cssText += 'position:absolute;inset:0;z-index:120;align-items:center;justify-content:center;background:rgba(16,20,32,.82);padding:18px;box-sizing:border-box;';
-    const fields=[['admission','입학 전형'],['major','학과'],['background','집안 형편'],['personality','성격'],['intelligence','지능'],['gender','성별 정체성']];
-    this.elements.charScreen.innerHTML='<section style="width:min(760px,100%);max-height:90vh;overflow:auto;background:#fff9ed;border:2px solid #bd9b68;border-radius:22px;padding:24px;color:#302720"><p style="color:#8b0000;font-weight:800">KU LIFE · 신입생 배정</p><h2>당신의 대학 생활을 준비합니다</h2><p class="roll-status">전형과 학과, 기본 능력치를 무작위로 정하고 있어요…</p><div class="roll-fields" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:18px 0"></div><button class="btn-reroll">다시 뽑기</button> <button class="btn-confirm" disabled style="opacity:.5">이 설정으로 시작하기</button></section>';
-    const grid=this.elements.charScreen.querySelector('.roll-fields');
-    const values={intelligence:{name:`${state.stats.intelligence} / 100`,desc:'과목별 성적 산출에 반영되는 무작위 기본 능력치'},gender:{name:state.gender,desc:'관계 존중·교류 이벤트의 맥락에 반영됩니다.'}};
-    fields.forEach(([key,label],i)=>{const item=values[key]||state[key],card=document.createElement('div');card.style.cssText='padding:12px;border-radius:12px;background:#f1e8d8;opacity:.35;transition:all .35s';card.innerHTML=`<small>${label}</small><strong style="display:block">배정 중…</strong>`;grid.appendChild(card);this.randomizationTimers.push(setTimeout(()=>{card.style.opacity='1';card.innerHTML=`<small>${label}</small><strong style="display:block;font-size:17px">${item.name}</strong><span style="font-size:12px">${item.desc||''}</span>`},350+i*330))});
-    this.randomizationTimers.push(setTimeout(()=>{const b=this.elements.charScreen.querySelector('.btn-confirm');if(b){b.disabled=false;b.style.opacity='1';this.elements.charScreen.querySelector('.roll-status').textContent='배정된 기본 사항을 확인하고 대학 생활을 시작하세요.'}},2700));
+    const state = this.preparedState;
+    if (!state) return;
+    this.randomizationTimers?.forEach(clearTimeout);
+    this.randomizationTimers = [];
+    this.hideAll();
+
+    const screen = this.elements.charScreen;
+    screen.style.display = 'flex';
+    screen.classList.add('randomization-screen');
+    screen.innerHTML = `
+      <section class="roll-card">
+        <p class="roll-kicker">KU LIFE · 신입생 배정</p>
+        <h2>당신의 대학 생활을 준비합니다</h2>
+        <p class="roll-status" role="status">전형과 학과, 기본 능력치를 무작위로 정하고 있어요…</p>
+        <div class="roll-layout">
+          <figure class="roll-preview">
+            <figcaption>
+              <strong>내 캐릭터</strong>
+              <p class="roll-look"></p>
+            </figcaption>
+            <canvas class="student-portrait" width="180" height="160" role="img" aria-label="배정된 캐릭터 미리보기"></canvas>
+          </figure>
+          <div class="roll-fields"></div>
+        </div>
+        <div class="roll-actions">
+          <button type="button" class="btn-reroll">다시 뽑기</button>
+          <button type="button" class="btn-confirm" disabled>이 설정으로 시작하기</button>
+        </div>
+      </section>
+    `;
+    drawPixelPortrait(screen.querySelector('canvas'), state);
+    screen.querySelector('.roll-look').textContent = describeAppearance(state.appearance);
+
+    const fields = [
+      ['입학 전형', state.admission],
+      ['학과', state.major],
+      ['집안 형편', state.background],
+      ['성격', state.personality],
+      ['지능', { name: `${state.stats.intelligence} / 100`, desc: '과목별 성적 산출에 반영되는 무작위 기본 능력치' }],
+      ['성별 정체성', { name: state.gender, desc: '관계 존중·교류 이벤트의 맥락에 반영됩니다.' }],
+    ];
+    const grid = screen.querySelector('.roll-fields');
+    fields.forEach(([label, item], index) => {
+      const card = document.createElement('div');
+      card.innerHTML = '<small></small><strong>배정 중…</strong><span></span>';
+      card.querySelector('small').textContent = label;
+      grid.appendChild(card);
+      this.randomizationTimers.push(setTimeout(() => {
+        card.classList.add('roll-revealed');
+        card.querySelector('strong').textContent = item.name;
+        card.querySelector('span').textContent = item.desc || '';
+      }, 350 + index * 330));
+    });
+    this.randomizationTimers.push(setTimeout(() => {
+      screen.querySelector('.btn-confirm').disabled = false;
+      screen.querySelector('.roll-status').textContent = '배정된 기본 사항을 확인하고 대학 생활을 시작하세요.';
+    }, 2700));
   }
 
   renderCharScreen() {
@@ -467,16 +524,13 @@ export class UIOverlay {
         <span style="color:#786e62">${label}</span><strong style="text-align:right">${value || '미정'}</strong>
       </div>
     `).join('');
-    const accessoryNames={glasses:'지능형 안경',earrings:'친화력 이어링',hairclip:'창의성 헤어핀',lanyard:'커리어 목걸이',bookpin:'성실함 북핀',none:'캠퍼스 룩'};
-    const hairNames={long:'롱 헤어',bob:'보브 컷',medium:'미디엄 컷',short:'숏 헤어'};
-    this.elements.profilePanel.querySelector('.profile-look').textContent=`${hairNames[state.appearance?.hairStyle] || hairNames.short} · ${accessoryNames[state.appearance?.accessory] || accessoryNames.none}`;
+    this.elements.profilePanel.querySelector('.profile-look').textContent = describeAppearance(state.appearance);
 
     const previousGrade = state.gradeHistory?.at(-1);
     const average = state.stats?.grade;
     this.elements.profileGrade.innerHTML = `<div style="display:flex;justify-content:space-between"><span>${state.gradeHistory?.length ? '최근 학기 평점' : '첫 학기 평점'}</span><strong>${previousGrade == null ? '—' : `${Number(previousGrade).toFixed(2)} / 4.50`}</strong></div><div style="display:flex;justify-content:space-between;margin-top:3px"><span>누적 평점</span><strong>${average == null ? '—' : `${Number(average).toFixed(2)} / 4.50`}</strong></div><div style="margin-top:4px;color:#786e62">지능 ${state.stats?.intelligence ?? 0} · ${state.semester}학기</div>`;
     this.elements.profileSchedule.innerHTML = `<div style="font-size:12px;font-weight:800;margin-bottom:5px">주간 시간표</div>${(state.weeklySchedule || []).map(day => `<div style="display:grid;grid-template-columns:24px 1fr;gap:5px;font-size:10px;line-height:1.45;padding:3px 5px;border-radius:6px;background:#f7f2e9;margin-top:2px"><strong>${day.day}</strong><span>${day.classes.join(' · ')}</span></div>`).join('')}`;
 
-    this.elements.profileAvatar.style.cssText='display:block;width:180px;max-width:100%;height:auto;image-rendering:pixelated;border:3px solid #702b37;box-shadow:4px 4px 0 #d6b879';
     drawPixelPortrait(this.elements.profileAvatar, state);
   }
 

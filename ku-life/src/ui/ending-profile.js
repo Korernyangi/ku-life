@@ -22,7 +22,7 @@ function drawCard(canvas, profile, stats, info, score, state) {
   const portrait = document.createElement('canvas');
   portrait.width = 164;
   portrait.height = 204;
-  drawPixelPortrait(portrait, state);
+  drawPixelPortrait(portrait, state, { campus: true });
   ctx.drawImage(portrait, 28, 108);
   ctx.strokeStyle = '#b69162';
   ctx.lineWidth = 3;
