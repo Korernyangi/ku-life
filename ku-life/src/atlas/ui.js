@@ -17,7 +17,7 @@ const signed = value => value > 0 ? `+${value}` : `−${Math.abs(value)}`;
 const signedCash = value => `${value > 0 ? '+' : '−'}${cashText(Math.abs(value))}`;
 const gpaText = value => value == null ? '미산출' : `${value.toFixed(2)} / 4.50`;
 const typeName = { consumable: '소모형', permanent: '영구형', conditional: '조건형' };
-const eventType = { fixed: '학기 일정', campus: '학교 행사', random: '일상', conditional: '조건부', chain: '후속 사건', crisis: '위기', academic: '학업', fallback: '일상' };
+const eventType = { fixed: '학기 일정', special: '특별 이벤트', campus: '학교 행사', random: '일상', conditional: '조건부', chain: '후속 사건', crisis: '위기', academic: '학업', fallback: '일상' };
 const savedPhase = { event: '이벤트 진행 중', result: '선택 결과', term: '학기 결산', career: '졸업 진로 선택', ended: '플레이 완료' };
 const endingEntries = Object.entries(ENDINGS);
 const endingStorageKey = 'ku-life:ending:';
@@ -156,17 +156,17 @@ function titleScreen() {
 }
 
 function gameHeader() {
-  const { semester, phase, termEvents } = game.state;
+  const { semester, phase, termEvents, history, grades } = game.state;
   const total = RULES.termEvents[semester - 1];
-  const previous = RULES.termEvents.slice(0, semester - 1).reduce((sum, amount) => sum + amount, 0);
-  const solved = phase === 'event' ? termEvents.length - 1 : termEvents.length;
-  const overall = RULES.termEvents.reduce((sum, amount) => sum + amount, 0);
+  const solved = termEvents.length - Number(phase === 'event');
+  const remaining = RULES.termEvents.slice(semester).reduce((sum, amount) => sum + amount, 0);
+  const overall = history.length + (grades.length >= semester ? 0 : total - solved) + remaining;
   return `
     <header class="atlas-header game-header">
       <button class="wordmark" data-action="title" aria-label="ATLAS 시작 화면">ATLAS</button>
       <div class="progress-panel">
         <strong>${termLabel(semester)}</strong><span>${phase === 'event' || phase === 'result' ? `이벤트 ${termEvents.length} / ${total}` : `${semester} / ${termCount}학기`}</span>
-        <progress max="${overall}" value="${previous + Math.max(0, solved)}" aria-label="전체 이벤트 진행도"></progress>
+        <progress max="${overall}" value="${history.length}" aria-label="전체 이벤트 진행도"></progress>
       </div>
       <nav aria-label="기록 및 도구">
         ${screen !== 'game' ? '<button data-action="game">게임으로</button>' : ''}
@@ -183,7 +183,7 @@ function sceneMarkup() {
 function showEvent() {
   const event = game.event;
   return `${sceneMarkup()}
-    <article class="panel event-panel">
+    <article class="panel event-panel${event.kind === 'special' ? ' special-event' : ''}">
       <p class="context-label">${eventType[event.kind]}</p>
       <h1 tabindex="-1">${escape(event.title)}</h1>
       <p class="event-description">${escape(event.description)}</p>

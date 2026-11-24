@@ -1,8 +1,9 @@
-import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, cashText } from './config.js';
+import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, TERM_CALENDAR, cashText } from './config.js';
 import { CAREER_ROUTES, resolveEnding } from './endings.js';
 import { EVENTS } from './events.js';
 
 const eventById = Object.fromEntries(EVENTS.map(event => [event.id, event]));
+const recoveryEvents = EVENTS.filter(event => event.kind === 'crisis');
 const termCount = RULES.termEvents.length;
 const bounded = (value, low, high) => Math.min(high, Math.max(low, value));
 const roundGpa = value => Math.round(bounded(value, 0, RULES.maxGpa) * 100) / 100;
@@ -94,7 +95,7 @@ export class AtlasGame {
 
   eligible(event) {
     const { semester, termEvents, history, scheduled } = this.state;
-    return (!event.terms || event.terms.includes(semester))
+    return event && (!event.terms || event.terms.includes(semester))
       && !termEvents.includes(event.id)
       && !scheduled.some(entry => entry.id === event.id && entry.semester > semester)
       && (event.repeat || event.kind === 'fixed' || !history.some(entry => entry.eventId === event.id))
@@ -102,37 +103,36 @@ export class AtlasGame {
       && event.choices.some(choice => !this.choiceReasons(choice).length);
   }
 
-  weightedEvent(candidates) {
-    if (!candidates.length) return null;
-    const isolated = this.statuses.includes('isolation');
-    const weights = candidates.map(event => (event.weight ?? 1) * (isolated && event.network ? .3 : 1));
-    let roll = this.random() * weights.reduce((sum, weight) => sum + weight, 0);
-    return candidates.find((_, index) => (roll -= weights[index]) < 0) ?? candidates.at(-1);
+  scheduledEvent() {
+    const { scheduled, semester } = this.state;
+    return scheduled.filter(entry => entry.semester <= semester)
+      .sort((first, second) => first.semester - second.semester)
+      .map(entry => eventById[entry.id])
+      .find(event => this.eligible(event));
   }
 
   advanceEvent() {
     const s = this.state;
     if (s.stats.hp === 0) return this.finish();
-    if (s.termEvents.length >= RULES.termEvents[s.semester - 1]) return this.finishTerm();
+    const calendar = TERM_CALENDAR[s.semester - 1];
+    if (s.termEvents.length >= calendar.length) return this.finishTerm();
 
-    const candidates = EVENTS.filter(event => this.eligible(event));
-    const playedKinds = s.termEvents.map(id => eventById[id].kind);
-    let next = candidates.find(event => event.kind === 'fixed');
-
-    if (!next && !playedKinds.includes('crisis')) next = candidates.find(event => event.kind === 'crisis');
-    if (!next) {
-      const pending = s.scheduled.filter(entry => entry.semester <= s.semester && candidates.includes(eventById[entry.id]));
-      pending.sort((a, b) => a.semester - b.semester);
-      next = eventById[pending[0]?.id];
+    const slot = calendar[s.termEvents.length];
+    let next;
+    if (typeof slot === 'string') {
+      next = eventById[slot];
+    } else if (slot.followUp) {
+      next = this.scheduledEvent() ?? eventById[slot.followUp];
+    } else {
+      const recovery = s.termEvents.some(id => eventById[id].kind === 'crisis')
+        ? undefined : recoveryEvents.find(event => this.eligible(event));
+      next = recovery ?? this.scheduledEvent() ?? slot.support.map(id => eventById[id]).find(event => this.eligible(event));
     }
-    if (!next) {
-      const normal = candidates.filter(event => ['campus', 'conditional', 'random', 'academic'].includes(event.kind));
-      for (const preferred of ['campus', 'conditional', 'random', 'academic']) {
-        if (playedKinds.includes(preferred)) continue;
-        next = this.weightedEvent(normal.filter(event => event.kind === preferred));
-        if (next) break;
-      }
-      next ??= this.weightedEvent(normal) ?? eventById.quiet_day;
+
+    // A save made before the calendar may already contain an event assigned to a later slot.
+    if (!next || !this.eligible(next)) {
+      next = ['quiet_day', 'walk', 'parttime', 'reading_room'].filter(id => !calendar.includes(id))
+        .map(id => eventById[id]).find(event => this.eligible(event)) ?? eventById.quiet_day;
     }
 
     s.scheduled = s.scheduled.filter(entry => entry.id !== next.id);
@@ -220,7 +220,7 @@ export class AtlasGame {
       if (statuses.includes('slump')) delta.intelligence -= RULES.slumpPenalty;
       if (event.study && statuses.includes('burnout')) delta.intelligence = Math.max(0, delta.intelligence - RULES.burnoutPenalty);
     }
-    if (event.kind === 'campus' && delta.social > 0) delta.social += this.itemEffect('campusGain');
+    if (['campus', 'special'].includes(event.kind) && delta.social > 0) delta.social += this.itemEffect('campusGain');
     return delta;
   }
 

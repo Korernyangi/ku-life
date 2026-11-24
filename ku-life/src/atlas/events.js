@@ -74,7 +74,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'registration', title: '수강신청 실패', scene: 'exam', kind: 'academic', terms: [1, 3, 5, 7],
+    id: 'registration', title: '수강신청 실패', scene: 'exam', kind: 'academic', terms: [1, 3, 5, 7], repeat: true,
     description: '정각에 열렸던 전공 수업이 이미 마감됐다. 다른 시간대를 찾거나 주변에 도움을 청할 수 있다.',
     study: true,
     choices: [
@@ -84,7 +84,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'cheer_ot', network: true, weight: 2, title: '응원 OT', scene: 'club', kind: 'campus', terms: [1],
+    id: 'cheer_ot', title: '응원 OT', scene: 'club', kind: 'campus', terms: [1],
     description: '처음 듣는 응원가가 강당에서 울린다. 기본 동작부터 옆자리 동기와 맞춰 볼까?',
     choices: [
       pick('끝까지 남아 응원가를 배운다', '후렴을 외우고 고연전 때 다시 만나기로 했다.', { social: 2, mental: 1, hp: -2 }, { requires: { min: { hp: 4 } }, grant: ['cheerOt'] }),
@@ -92,7 +92,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'ipselenti', weight: 3, title: '입실렌티', scene: 'ipselenti', kind: 'campus', terms: [1, 3, 5, 7], repeat: true,
+    id: 'ipselenti', title: '입실렌티', scene: 'ipselenti', kind: 'special', terms: [1, 3, 5, 7], repeat: true,
     description: '축제 무대로 사람들이 몰린다. 좋은 자리와 편한 귀가 사이에서 선택해야 한다.',
     choices: [
       pick('친구들과 마지막 곡까지 뛴다', '목은 쉬었지만 밤공기가 오래 기억에 남았다.', { hp: -4, social: 3, mental: 3 }, { cash: -50_000, requires: { min: { hp: 6 } }, grant: ['ipselenti'] }),
@@ -101,7 +101,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'koyeonjeon', weight: 3, title: '정기 고연전', scene: 'koyeonjeon', kind: 'campus', terms: [2, 4, 6, 8], repeat: true,
+    id: 'koyeonjeon', title: '정기 고연전', scene: 'koyeonjeon', kind: 'special', terms: [2, 4, 6, 8], repeat: true,
     description: '친구들이 고연전에 함께 가자고 한다. 최근 과제와 시험공부로 체력이 빠듯하다.',
     choices: [
       pick('친구들과 끝까지 응원한다', '목이 쉬도록 응원했다. 잊지 못할 추억을 만들었지만 몸은 피곤하다.', { hp: -5, social: 3, mental: 3 }, { cash: -80_000, requires: { min: { hp: 8 } }, intensity: 'high', grant: ['koyeonjeon'] }),
@@ -136,7 +136,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'club', network: true, title: '애기능 동아리 활동', scene: 'club', kind: 'campus', terms: [1, 2, 3, 4, 5, 6, 7, 8], repeat: true,
+    id: 'club', title: '애기능 동아리 활동', scene: 'club', kind: 'campus', terms: [1, 2, 3, 4, 5, 6, 7, 8], repeat: true,
     description: '애기능 동아리방에서 신입 회원을 맞이하고 있다. 꾸준히 참여할 시간도 생각해야 한다.',
     choices: [
       pick('동아리에 가입해 선배와 이야기한다', '동아리방 열쇠를 받았다. 선배가 학과 자료를 나눠 주기로 했다.', { social: 2, hp: -1 }, { requires: { min: { hp: 3 } }, grant: ['club', 'senior'], schedule: { id: 'senior_notes', after: 1 } }),
@@ -184,7 +184,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'reporter', network: true, title: '고대신문 기자 모집', scene: 'campus', kind: 'conditional', terms: [2, 3, 4, 5],
+    id: 'reporter', title: '고대신문 기자 모집', scene: 'campus', kind: 'conditional', terms: [2, 3, 4, 5],
     requires: { min: { social: 7 } },
     description: '캠퍼스에 남겨 둘 이야기를 찾을 학생 기자를 모집한다.',
     choices: [
@@ -193,7 +193,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'representative', network: true, title: '과대표 출마', scene: 'club', kind: 'conditional', terms: [3, 4],
+    id: 'representative', title: '과대표 출마', scene: 'club', kind: 'conditional', terms: [3, 4],
     requires: { min: { social: 8 } },
     description: '과대표 후보를 찾고 있다. 사람들 의견을 모으는 보람만큼 시간도 많이 든다.',
     choices: [
@@ -251,7 +251,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'dating', network: true, title: '동기와의 약속', scene: 'campus', kind: 'random', terms: [2, 3, 4, 5, 6],
+    id: 'dating', title: '동기와의 약속', scene: 'campus', kind: 'random', terms: [2, 3, 4, 5, 6],
     description: '자주 함께 공부하던 동기가 따로 만나자고 한다. 서로의 속도를 존중하며 답할 차례다.',
     choices: [
       pick('카페에서 서로의 마음을 확인한다', '서두르지 않고 함께 시간을 보내 보기로 했다.', { social: 2, mental: 2 }, { cash: -35_000, grant: ['dating'] }),
@@ -286,7 +286,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'competition', title: '학부 공모전', scene: 'study', kind: 'academic', terms: [3, 4, 5, 6, 7], study: true,
+    id: 'competition', title: '학부 공모전', scene: 'study', kind: 'academic', terms: [3, 4, 5, 6, 7], study: true, repeat: true,
     description: '팀을 꾸려 전공 문제를 푸는 공모전이 열렸다. 발표 기회와 체력을 바꿔야 한다.',
     choices: [
       pick('팀을 꾸려 공모전에 나간다', '초안을 발표 자료로 만들었다.', { hp: -3, social: 1 }, {
@@ -317,7 +317,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'prep_interview', title: '취업 준비 모임', scene: 'club', kind: 'academic', terms: [6, 7, 8],
+    id: 'prep_interview', title: '취업 준비 모임', scene: 'club', kind: 'academic', terms: [6, 7, 8], repeat: true,
     description: '동기들이 모의 면접을 연다. 현장 경험 유무에 따라 말할 수 있는 예시가 달라진다.',
     choices: [
       pick('인턴 경험을 정리해 발표한다', '중요한 일의 결과를 숫자로 정리해 발표했다.', { social: 2, intelligence: 2, hp: -1 }, { requires: { min: { hp: 2 }, flags: ['internship'] } }),
@@ -405,6 +405,107 @@ export const EVENTS = [
     choices: [
       pick('동기 한 명에게 먼저 점심을 제안한다', '단체 모임보다 편한 대화로 시작했다.', { social: 2, mental: 1 }),
       pick('교내 소모임 정보를 조용히 읽어 본다', '다음에 들를 수 있는 모임을 한 곳 찾았다.', { mental: 3, hp: 2 }),
+    ],
+  },
+  {
+    id: 'syllabus', title: '개강 첫 주의 강의계획서', scene: 'study', kind: 'academic', repeat: true,
+    description: '여덟 시 수업과 저녁 세미나 사이에 빈 시간이 생겼다. 이번 학기를 어떻게 꾸릴까?',
+    choices: [
+      pick('과제 마감일을 달력에 옮긴다', '겹치는 마감을 찾아 미리 준비할 과목을 골랐다.', { intelligence: 1, mental: 1 }),
+      pick('공강 한 칸을 점심시간으로 비워 둔다', '끼니를 거르지 않을 시간부터 확보했다.', { hp: 2, mental: 1 }),
+      pick('동기와 강의계획서를 비교한다', '같이 들을 전공 수업과 서로 다른 관심사를 발견했다.', { social: 2 }),
+    ],
+  },
+  {
+    id: 'fresh_market', title: '선배들의 중고 교재 장터', scene: 'campus', kind: 'random',
+    description: '책마다 이름표 대신 지난 시험 때 그은 밑줄이 남아 있다. 필요한 책만 골라 보자.',
+    choices: [
+      pick('필기가 남은 전공책을 한 권 산다', '막히는 단원에 선배가 붙인 메모부터 읽었다.', { intelligence: 2 }, { cash: -35_000 }),
+      pick('도서관 대출 목록을 만들어 둔다', '책값을 아끼고 필요한 책의 위치를 기록했다.', { intelligence: 1, mental: 1 }),
+    ],
+  },
+  {
+    id: 'midterm', title: '중간고사 주간', scene: 'exam', kind: 'academic', repeat: true, study: true,
+    description: '두 과목 시험이 하루에 몰렸다. 남은 저녁을 복습, 스터디, 휴식 중 어디에 쓸까?',
+    choices: [
+      pick('기출 문제를 실전처럼 풀어 본다', '틀린 문제를 표시했더니 마지막 복습 순서가 분명해졌다.', { intelligence: 2, hp: -2 }, { requires: { min: { hp: 5 } } }),
+      pick('동기와 서로 한 문제씩 설명한다', '설명하다 놓쳤던 개념을 알아차렸다.', { intelligence: 1, social: 1, hp: -1 }, { requires: { min: { hp: 3 } } }),
+      pick('핵심 개념만 확인하고 일찍 잔다', '아침 시험 전에 충분히 쉴 수 있었다.', { hp: 2, mental: 1 }),
+    ],
+  },
+  {
+    id: 'finals', title: '기말고사와 마지막 제출', scene: 'exam', kind: 'academic', repeat: true, study: true,
+    description: '마지막 과제와 시험만 남았다. 한 학기 동안 배운 내용을 정리할 시간이다.',
+    choices: [
+      pick('약한 단원 하나를 끝까지 정리한다', '답을 외우기보다 풀이 과정을 손으로 정리했다.', { intelligence: 2, hp: -2 }, { requires: { min: { hp: 5 } } }),
+      pick('팀원과 제출 파일을 서로 확인한다', '마지막에 빠진 페이지를 찾아 제출했다.', { intelligence: 1, social: 1 }),
+      pick('자료를 제출하고 남은 저녁은 쉰다', '마감 알람을 끄자 비로소 학기가 끝난 느낌이 났다.', { hp: 2, mental: 2 }),
+    ],
+  },
+  {
+    id: 'library_shift', title: '도서관 근로 장학생 대타', scene: 'parttime', kind: 'random', repeat: true,
+    description: '반납대 저녁 근무가 비었다. 오늘 강의가 끝난 뒤 한 타임을 맡을 수 있다.',
+    choices: [
+      pick('저녁 근무를 맡는다', '책을 정리하고 근로 수당을 받았다.', { hp: -2 }, { cash: 120_000, requires: { min: { hp: 5 } } }),
+      pick('한 시간만 도와주고 공부하러 간다', '반납이 몰린 시간만 돕고 읽을 자료를 챙겼다.', { intelligence: 1 }, { cash: 45_000 }),
+      pick('오늘은 내 일정을 비워 둔다', '기숙사로 일찍 돌아가 저녁을 먹었다.', { hp: 2, mental: 1 }),
+    ],
+  },
+  {
+    id: 'study_group', title: '공강에 열린 전공 스터디', scene: 'study', kind: 'academic', study: true,
+    description: '동기 셋이 돌아가며 기출 한 문제를 설명하기로 했다. 발표 첫 순서가 비어 있다.',
+    choices: [
+      pick('칠판에 풀이를 적어 설명한다', '질문에 답하면서 헷갈리던 전제를 고쳤다.', { intelligence: 2, social: 1, hp: -1 }, { requires: { min: { hp: 3 } } }),
+      pick('각자 정리한 자료를 한 폴더에 모은다', '비교하면서 다음에 물어볼 내용을 정리했다.', { intelligence: 1, social: 1 }),
+    ],
+  },
+  {
+    id: 'community_center', title: '성북구 청소년 공부방', scene: 'club', kind: 'campus',
+    description: '학교 근처 공부방에서 대학생 멘토를 찾는다. 설명에 자신 있는 문제를 하나 골랐다.',
+    choices: [
+      pick('학생과 함께 풀이를 만들어 본다', '같은 문제도 다른 말로 설명하면 잘 통한다는 걸 배웠다.', { social: 3, mental: 1, hp: -2 }, { requires: { min: { hp: 4 } } }),
+      pick('연습 문제와 풀이 노트를 전달한다', '이번에는 시간을 내기 어려워 자료를 정리해 보냈다.', { intelligence: 1, social: 1 }),
+    ],
+  },
+  {
+    id: 'department_talk', title: '학과 공개 세미나', scene: 'study', kind: 'academic', repeat: true, study: true,
+    description: '세미나가 끝나고 질의응답 시간이 남았다. 슬라이드에 이해하지 못한 그래프가 하나 있다.',
+    choices: [
+      pick('손을 들어 그래프를 다시 설명해 달라고 한다', '발표자가 빠뜨린 가정을 짚어 줬다.', { intelligence: 2, social: 1, hp: -1 }, { requires: { min: { hp: 3 } } }),
+      pick('발표 자료를 받아 천천히 읽는다', '마음이 급하지 않을 때 다시 읽기로 했다.', { intelligence: 1, mental: 1 }),
+    ],
+  },
+  {
+    id: 'career_fair', title: '교내 진로 박람회', scene: 'club', kind: 'campus',
+    description: '연구실, 기업, 지역단체 부스가 나란히 열렸다. 오늘은 어느 테이블에 오래 머물까?',
+    choices: [
+      pick('채용 담당자에게 포트폴리오를 보여 준다', '첫 장에 결과부터 쓰면 좋겠다는 피드백을 받았다.', { intelligence: 1, social: 2, hp: -1 }, { requires: { min: { hp: 3 } } }),
+      pick('연구실과 지역단체의 활동을 비교한다', '놓치고 있던 진로 몇 가지를 수첩에 적었다.', { intelligence: 1, mental: 1 }),
+      pick('관심 있는 설명회 일정만 챙긴다', '다음에 들를 곳을 골라 두고 여유 있게 돌아왔다.', { hp: 2, mental: 1 }),
+    ],
+  },
+  {
+    id: 'alumni_mentoring', title: '졸업생 멘토와의 점심', scene: 'campus', kind: 'campus',
+    description: '졸업한 선배가 점심을 먹자고 한다. 진로 상담 시간이라기엔 메뉴 이야기를 먼저 했다.',
+    choices: [
+      pick('졸업 직후 가장 당황했던 일을 묻는다', '실패담을 듣고 지금 걸리는 고민을 꺼낼 수 있었다.', { social: 2, mental: 2 }),
+      pick('지원서를 한 장만 가져가 의견을 구한다', '말이 길었던 부분을 골라 한 문장으로 줄였다.', { intelligence: 2, social: 1, hp: -1 }, { requires: { min: { hp: 3 } } }),
+    ],
+  },
+  {
+    id: 'portfolio_review', title: '학부 포트폴리오 합평', scene: 'study', kind: 'academic', study: true,
+    description: '지난 학기 자료를 책상에 펼쳐 놓았다. 어떤 작업으로 지금의 나를 소개할까?',
+    choices: [
+      pick('처음 실패한 시안까지 발표한다', '실패한 이유와 바꾼 과정을 함께 설명했다.', { intelligence: 2, social: 1, hp: -2 }, { requires: { min: { hp: 4 } } }),
+      pick('동기의 발표를 듣고 작업 기록을 보완한다', '질문을 받아 적는 것만으로도 새 관점을 얻었다.', { intelligence: 1, mental: 1 }),
+    ],
+  },
+  {
+    id: 'last_lunch', title: '졸업 전 마지막 학식', scene: 'campus', kind: 'campus',
+    description: '마지막 수업을 마친 동기들이 늘 앉던 자리에 모였다. 메뉴판은 그대로인데 다음 약속은 캠퍼스 밖이다.',
+    choices: [
+      pick('다 같이 먹고 여름에 다시 만날 날짜를 잡는다', '졸업식보다 먼저 다음 모임이 달력에 들어갔다.', { social: 2, mental: 2 }),
+      pick('혼자 천천히 먹고 캠퍼스를 한 바퀴 걷는다', '서두르지 않고 익숙한 길을 돌아 나왔다.', { hp: 2, mental: 2 }),
     ],
   },
   {

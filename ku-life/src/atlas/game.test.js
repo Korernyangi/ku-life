@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { EXPERIENCES, ITEMS, RULES } from './config.js';
+import { EXPERIENCES, ITEMS, RULES, TERM_CALENDAR } from './config.js';
 import { ENDINGS, endingScore, resolveEnding } from './endings.js';
 import { EVENTS } from './events.js';
 import { AtlasGame } from './game.js';
@@ -54,7 +54,7 @@ test('zero health immediately ends a run while zero mental can trigger recovery'
   assert.equal(reachedZero.nextEvent(), false);
 
   const survived = fixture('laptop_fault', {
-    semester: 2, termEvents: ['night_review', 'laptop_fault'],
+    semester: 2, termEvents: ['night_review', 'syllabus', 'boarding', 'parttime', 'midterm', 'laptop_fault'],
     stats: { hp: 5, mental: 0 }, streak: { mental: 1, critical: 1, both: 1 },
   });
   play(survived, 0);
@@ -76,11 +76,16 @@ test('paid outcomes, recorded experiences, inventory and delayed chains survive 
   assert.equal(game.choose(0, game.eventToken), false);
   while (game.state.phase !== 'term') {
     if (game.state.phase === 'result') game.nextEvent();
-    else play(game, game.event.choices.findIndex(choice => !game.choiceReasons(choice).length));
+    else play(game, game.event.choices.findLastIndex(choice => !game.choiceReasons(choice).length));
   }
   game.nextTerm();
   play(game, 2);
   game.nextEvent();
+  for (const expected of ['syllabus', 'boarding']) {
+    assert.equal(game.event.id, expected);
+    play(game, game.event.choices.findLastIndex(choice => !game.choiceReasons(choice).length));
+    game.nextEvent();
+  }
   assert.equal(game.event.id, 'senior_notes');
   play(game, 1);
   assert.equal(game.state.inventory.notes, 1);
@@ -183,6 +188,13 @@ test('eight terms offer their configured events, GPA, a shop and exactly one end
       assert.equal(game.chooseCareer('ordinary'), true);
     } else {
       counts.push(game.state.termEvents.length);
+      const calendar = TERM_CALENDAR[game.state.semester - 1];
+      for (const [index, slot] of calendar.entries()) {
+        if (typeof slot === 'string') assert.equal(game.state.termEvents[index], slot);
+      }
+      assert.deepEqual(game.state.termEvents.filter(id => ['ipselenti', 'koyeonjeon'].includes(id)),
+        [game.state.semester % 2 ? 'ipselenti' : 'koyeonjeon']);
+      assert.equal(new Set(game.state.termEvents).size, calendar.length);
       assert.ok(game.stock().includes('vitamins'));
       assert.equal(game.state.grades.length, game.state.semester);
       game.nextTerm();
@@ -208,6 +220,24 @@ test('eight terms offer their configured events, GPA, a shop and exactly one end
   assert.ok(restored.state.ending.achievements.includes('editor'));
   assert.ok(restored.state.ending.achievements.includes('valedictorian'));
   assert.ok(restored.state.ending.achievements.includes('researcher'));
+});
+
+test('the calendar preserves past choices and does not repeat a festival already seen in an old save', () => {
+  const played = ['orientation', 'ipselenti', 'parttime', 'registration', 'walk'];
+  const oldSave = fixture('walk', {
+    phase: 'result', termEvents: played, history: played.map(eventId => ({ eventId, semester: 1 })),
+  }).state;
+  const resumed = new AtlasGame(oldSave, () => .99);
+  for (let slot = played.length; slot < RULES.termEvents[0]; slot++) {
+    assert.equal(resumed.nextEvent(), true);
+    assert.notEqual(resumed.event.id, 'ipselenti');
+    play(resumed, resumed.event.choices.findLastIndex(choice => !resumed.choiceReasons(choice).length));
+  }
+  assert.deepEqual(resumed.state.termEvents.slice(0, played.length), played);
+  assert.equal(resumed.event.id, 'finals');
+  assert.equal(resumed.nextEvent(), true);
+  assert.equal(resumed.state.phase, 'term');
+  assert.equal(resumed.state.history.length, 9);
 });
 
 test('graduation choices can reach each basic and special ending and award the corresponding score', () => {

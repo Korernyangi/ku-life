@@ -133,6 +133,8 @@ button:disabled { cursor: default; }
 .admission-dialog .actions { justify-content: flex-end; }
 .dialog-close { float: right; margin: 0 0 8px 12px; }
 .context-label { color: var(--crimson); font-size: .80rem; font-weight: 850; letter-spacing: .04em; }
+.special-event { border-top: 5px solid var(--crimson); }
+.special-event .context-label { display: inline-block; padding: 3px 9px; color: var(--paper); background: var(--crimson); }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
 .primary, .secondary, .game-header nav button {
   min-height: 42px;

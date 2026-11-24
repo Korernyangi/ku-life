@@ -1,9 +1,20 @@
+export const TERM_CALENDAR = [
+  ['orientation', 'registration', 'cheer_ot', { followUp: 'fresh_market' }, 'midterm', 'ipselenti', { support: ['sabal', 'walk'] }, 'club', 'finals'],
+  ['night_review', 'syllabus', 'boarding', { followUp: 'parttime' }, 'midterm', 'koyeonjeon', { support: ['reporter', 'dating', 'scholarship', 'walk'] }, 'library_shift', 'finals'],
+  ['teamwork', 'registration', 'club', { followUp: 'study_group' }, 'midterm', 'ipselenti', { support: ['double_major', 'representative', 'dating', 'chamsari', 'walk'] }, 'community_center', 'finals'],
+  ['night_review', 'syllabus', 'department_talk', { followUp: 'library_shift' }, 'midterm', 'koyeonjeon', { support: ['club_chair', 'exchange', 'pub', 'laptop_fault', 'walk'] }, 'reading_room', 'finals'],
+  ['career_plan', 'registration', 'competition', { followUp: 'parttime' }, 'midterm', 'ipselenti', { support: ['reporter', 'double_major', 'dating', 'scholarship', 'walk'] }, 'career_fair', 'finals'],
+  ['night_review', 'syllabus', 'prep_interview', { followUp: 'department_talk' }, 'midterm', 'koyeonjeon', { support: ['exchange', 'club_chair', 'pub', 'scholarship', 'laptop_fault', 'walk'] }, 'alumni_mentoring', 'finals'],
+  ['capstone', 'registration', 'portfolio_review', { followUp: 'competition' }, 'midterm', 'ipselenti', { support: ['lab_offer', 'scholarship', 'walk'] }, 'parttime', 'finals'],
+  ['graduation', 'syllabus', 'photos', { followUp: 'prep_interview' }, 'midterm', 'koyeonjeon', { support: ['scholarship', 'laptop_fault', 'walk'] }, 'last_lunch', 'finals'],
+];
+
 export const RULES = {
   startingStats: { hp: 16, intelligence: 6, social: 6, mental: 16 },
   statMin: 0,
   statMax: 20,
   startingCash: 1_000_000,
-  termEvents: [5, 4, 5, 4, 5, 4, 4, 5],
+  termEvents: TERM_CALENDAR.map(calendar => calendar.length),
   lowHealth: 5,
   exhaustion: 2,
   lowMental: 5,
@@ -45,7 +56,7 @@ export const STATUSES = {
   lethargy: { name: '무기력', icon: '💤', detail: '낮은 멘탈이 두 번 연속 유지되면 고강도 활동이 제한됩니다.', active: s => s.stats.mental <= RULES.lowMental && s.streak.mental >= 2 },
   burnout: { name: '번아웃', icon: '🔥', detail: '낮은 체력과 멘탈이 연속으로 유지되면 학업 효율과 평점이 낮아집니다.', active: s => s.stats.hp <= RULES.lowHealth && s.stats.mental <= RULES.lowMental && s.streak.both >= 2 },
   depression: { name: '우울증', icon: '🌧️', detail: '멘탈 2 이하가 두 번 연속 유지되면 일부 활동이 제한되고 회복 이벤트가 열립니다.', active: s => s.stats.mental <= RULES.criticalMental && s.streak.critical >= 2 },
-  isolation: { name: '고립', icon: '🫥', detail: '사회성 3 이하. 인맥 이벤트가 덜 등장합니다.', active: s => s.stats.social <= RULES.isolation },
+  isolation: { name: '고립', icon: '🫥', detail: '사회성 3 이하. 관계를 회복할 수 있는 이벤트가 열립니다.', active: s => s.stats.social <= RULES.isolation },
   financial: { name: '경제적 위기', icon: '💸', detail: '자금 10만원 미만. 긴급 생활비를 마련할 기회가 열립니다.', active: s => s.cash < RULES.lowCash },
   academic: { name: '학사 위기', icon: '📚', detail: '직전 학기 평점 1.75 미만. 학업 지원 이벤트가 열립니다.', active: s => (s.grades.at(-1) ?? RULES.maxGpa) < RULES.warningGpa },
 };
