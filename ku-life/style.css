@@ -942,7 +942,13 @@ a:focus-visible,
 }
 
 
-.panel-layout-hide-all { margin-top: 8px; }
+.panel-layout-hide-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+}
 #panel-restore-help { margin-top: 7px; }
 
 #game-ui.all-panels-hidden > :not(.panel-layout-restore) {
