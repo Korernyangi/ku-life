@@ -22,17 +22,24 @@ function publicRun(row) {
   return row && { id: row.id, revision: row.revision, state: row.state, score: row.score, published: row.public_nickname != null };
 }
 
-export function challengeHandler(db) {
+export function challengeHandler(db, auth = db.auth) {
   return async (req, res) => {
     res.setHeader('Cache-Control', 'private, no-store');
     if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({});
     const token = req.headers.authorization?.match(/^Bearer (\S+)$/i)?.[1];
-    if (!token) return res.status(401).json({});
+    if (!token) return res.status(401).json({ error: 'CHALLENGE_SESSION_INVALID' });
     try {
-      const { data: { user }, error } = await db.auth.getUser(token);
-      if (error || !user?.email_confirmed_at || !schoolEmail.test(user.email ?? '')) return res.status(401).json({});
+      const { data, error } = await auth.getUser(token);
+      if (error && (!error.status || error.status >= 500)) {
+        return unavailable(res, 'CHALLENGE_AUTH_UNAVAILABLE', error.code);
+      }
+      if (error || !data?.user) return res.status(401).json({ error: 'CHALLENGE_SESSION_INVALID' });
+      const { user } = data;
+      if (!user.email_confirmed_at || !schoolEmail.test(user.email ?? '')) {
+        return res.status(403).json({ error: 'CHALLENGE_SCHOOL_EMAIL_REQUIRED' });
+      }
       const nickname = typeof user.user_metadata?.nickname === 'string' ? user.user_metadata.nickname.trim() : '';
-      if (!nickname || nickname.length > 20) return res.status(403).json({});
+      if (!nickname || nickname.length > 20) return res.status(403).json({ error: 'CHALLENGE_NICKNAME_REQUIRED' });
       const runs = db.from('challenge_runs');
       const latest = async () => requireData(await runs.select(runFields)
         .eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle());
@@ -99,14 +106,20 @@ export function challengeHandler(db) {
 }
 
 export default function handler(req, res) {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return unavailable(res, 'CHALLENGE_CONFIGURATION_MISSING');
-  let db;
+  const env = process.env;
+  const url = (env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL)?.trim();
+  const publicKey = (env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY
+    || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    || env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY)?.trim();
+  const key = (env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY)?.trim();
+  if (!url || !publicKey || !key) return unavailable(res, 'CHALLENGE_CONFIGURATION_MISSING');
+  let db, auth;
   try {
-    db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+    const options = { auth: { persistSession: false, autoRefreshToken: false } };
+    db = createClient(url, key, options);
+    auth = createClient(url, publicKey, options).auth;
   } catch {
     return unavailable(res, 'CHALLENGE_CONFIGURATION_INVALID');
   }
-  return challengeHandler(db)(req, res);
+  return challengeHandler(db, auth)(req, res);
 }

@@ -579,7 +579,12 @@ async function challengeRequest(body, view = '') {
     headers: { Authorization: `Bearer ${accessToken}`, ...(body && { 'Content-Type': 'application/json' }) },
     ...(body && { method: 'POST', body: JSON.stringify(body) }),
   });
-  if (response.status === 401 || response.status === 403) throw new Error('인증된 고려대 계정으로 다시 로그인해 주세요.');
+  if (response.status === 401 || response.status === 403) {
+    const { error } = await response.json().catch(() => ({}));
+    if (error === 'CHALLENGE_NICKNAME_REQUIRED') throw new Error('내 계정에서 닉네임을 1~20자로 저장해 주세요.');
+    if (error === 'CHALLENGE_SCHOOL_EMAIL_REQUIRED') throw new Error('이메일이 인증된 고려대 계정(@korea.ac.kr)으로 로그인해 주세요.');
+    throw new Error('도전 서버에서 로그인 세션을 확인하지 못했습니다. 로그아웃 후 다시 로그인해 주세요.');
+  }
   if (response.status === 422) throw new Error('현재 진행 단계에서는 이 선택을 할 수 없어요.');
   if (response.status === 503) {
     const { error } = await response.json().catch(() => ({}));
