@@ -1,3 +1,14 @@
+export function studentAppearance(id) {
+  const seed = Array.from(id ?? '').reduce((value, character) => (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
+  return {
+    hairStyle: ['short', 'bob', 'medium', 'long'][seed & 3],
+    hairColor: ['#241b20', '#46302a', '#332637', '#44352e'][(seed >>> 2) & 3],
+    skinTone: ['#f2c49f', '#e9b995', '#c89771', '#a77655'][(seed >>> 4) & 3],
+    outfitColor: ['#8b1e2d', '#78364c', '#315061', '#39455f'][(seed >>> 6) & 3],
+    accessory: ['none', 'glasses', 'hairclip', 'earrings'][(seed >>> 8) & 3],
+  };
+}
+
 export function drawPixelStudent(ctx, state, x, y, scale = 1) {
   const look=state?.appearance||{hairStyle:'short',hairColor:'#241b20',skinTone:'#e9b995',outfitColor:'#8b1e2d',accessory:'none'};
   const r=(dx,dy,w,h,color)=>{ctx.fillStyle=color;ctx.fillRect(x+dx*scale,y+dy*scale,w*scale,h*scale)};

@@ -315,6 +315,19 @@ thead, tfoot { background: #f4e5cb; }
 .ending-keepsake { margin: 14px 0; padding: 12px 15px; border-left: 3px solid var(--crimson); background: #f4e9d6; }
 .ending-keepsake figcaption { color: var(--crimson); font-size: .88rem; font-weight: 850; }
 .ending-keepsake blockquote { margin: 5px 0 0; font-weight: 650; }
+.ending-replay { margin-top: 24px; }
+.replay-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 9px; }
+.replay-header span { color: var(--muted); font-weight: 750; font-variant-numeric: tabular-nums; }
+.replay-film { margin: 0; border: 2px solid var(--ink); background: #3b2836; color: var(--paper); }
+.replay-film canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.replay-film figcaption { min-height: 145px; padding: 12px clamp(12px, 3vw, 18px); border-top: 3px solid #c08a73; }
+.replay-metadata { display: flex; flex-wrap: wrap; gap: 4px 12px; color: #f2cfb1; font-size: .88rem; font-weight: 760; }
+.replay-metadata [data-replay-turning-point] { color: #ffdfa2; }
+.replay-film h3 { margin-top: 6px; font-size: 1.14rem; }
+.replay-choice { margin-top: 5px; font-weight: 760; }
+.replay-result { margin-top: 3px; color: #f1d8bc; }
+.replay-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.replay-controls button { min-height: 40px; }
 .student-major { margin: 4px 0 8px; color: var(--crimson); font-weight: 800; }
 .career-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .career-choices button { height: 100%; }

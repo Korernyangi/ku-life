@@ -1,5 +1,6 @@
 import { drawPixelBackground } from '../ui/pixel-backgrounds.js';
-import { drawPixelStudent } from '../ui/pixel-student.js';
+import { drawPixelStudent, studentAppearance } from '../ui/pixel-student.js';
+import { mountPixelReplay } from '../ui/pixel-replay.js';
 import { AtlasGame } from './game.js';
 import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, cashText } from './config.js';
 import { ENDINGS, archiveEndingInfo, careerOptions, endingChoices, endingScore, majorEnding, normalizeEnding } from './endings.js';
@@ -8,6 +9,7 @@ import { findMajor } from './majors.js';
 import { openAdmission } from './admission.js';
 import { showEndingProfile } from './ending-profile.js';
 import { createEndingPreview } from './ending-preview.js';
+import { endingMemories } from './ending-replay.js';
 import { itemSprite, paintSprites, statSprite } from './sprites.js';
 import { animateArcade, arcadeMenu, arcadeScreen, mountClaw } from './arcade-ui.js';
 import './atlas.css';
@@ -40,6 +42,7 @@ let screen = inEndingPreview ? 'game' : 'title';
 let notice = '';
 let storageNotice = '';
 let saved;
+let stopReplay;
 
 try {
   const data = JSON.parse(localStorage.getItem(storageKey) || 'null');
@@ -78,17 +81,9 @@ function statIcons(key, value) {
 
 function paintProfile(canvas, id) {
   const context = canvas.getContext('2d');
-  const seed = Array.from(id ?? '').reduce((value, character) => (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
-  const appearance = {
-    hairStyle: ['short', 'bob', 'medium', 'long'][seed & 3],
-    hairColor: ['#241b20', '#46302a', '#332637', '#44352e'][(seed >>> 2) & 3],
-    skinTone: ['#f2c49f', '#e9b995', '#c89771', '#a77655'][(seed >>> 4) & 3],
-    outfitColor: ['#8b1e2d', '#78364c', '#315061', '#39455f'][(seed >>> 6) & 3],
-    accessory: ['none', 'glasses', 'hairclip', 'earrings'][(seed >>> 8) & 3],
-  };
   context.fillStyle = '#d9e5e8';
   context.fillRect(0, 0, canvas.width, canvas.height);
-  drawPixelStudent(context, { appearance }, 4, 12, 4);
+  drawPixelStudent(context, { appearance: studentAppearance(id) }, 4, 12, 4);
 }
 
 function statusIcons(ids) {
@@ -420,7 +415,30 @@ function currentEnding() {
   return { ...info, id: ending.id, legacy, major: findMajor(majorId)?.name };
 }
 
-function showEnding() {
+function endingReplayMarkup() {
+  return `<section class="ending-replay" data-ending-replay aria-labelledby="ending-replay-title">
+    <header class="replay-header">
+      <h2 id="ending-replay-title">대학생활 돌아보기</h2>
+      <span data-replay-count aria-label="장면 진행도"></span>
+    </header>
+    <figure class="replay-film">
+      <canvas width="320" height="180" aria-hidden="true"></canvas>
+      <figcaption data-replay-caption aria-live="off" aria-atomic="true">
+        <div class="replay-metadata"><span data-replay-term></span><span data-replay-turning-point hidden>엔딩으로 이어진 선택</span></div>
+        <h3 data-replay-title></h3>
+        <p class="replay-choice" data-replay-choice></p>
+        <p class="replay-result" data-replay-result></p>
+      </figcaption>
+    </figure>
+    <div class="replay-controls">
+      <button type="button" class="secondary" data-replay-previous aria-label="이전 장면">이전</button>
+      <button type="button" class="primary" data-replay-toggle>재생</button>
+      <button type="button" class="secondary" data-replay-next aria-label="다음 장면">다음</button>
+    </div>
+  </section>`;
+}
+
+function showEnding(memories) {
   const { ending, history, inventory, flags, receipt, majorId } = game.state;
   const main = currentEnding();
   const score = endingScore(game.state, game.gpa, main.id);
@@ -429,7 +447,7 @@ function showEnding() {
   const achievements = (ending.achievements ?? []).map(id => LEGACY_ENDINGS.find(outcome => outcome.id === id)?.title).filter(Boolean);
   const recap = endingChoices(history, main.id);
   const record = history.map(entry => `<li><strong>${termLabel(entry.semester)} · ${escape(entry.title)}</strong><p>${escape(entry.choice)}</p></li>`).join('');
-  return `${sceneMarkup()}
+  return `${memories.length ? '' : sceneMarkup()}
     <article class="panel ending${main.hidden ? ' hidden-ending' : ''}">
       <p class="context-label">${main.legacy ? '지난 플레이 결과' : main.hidden ? '히든 엔딩' : '기본 엔딩'}</p>
       <h1 tabindex="-1">${escape(main.title)}</h1>
@@ -439,6 +457,7 @@ function showEnding() {
       ${main.hidden ? `<p class="subline">${termLabel(game.state.semester)}에 플레이 종료</p>` : ''}
       ${ending.route ? `<p class="subline">진로 · ${escape(ENDINGS[main.id]?.title)}</p>` : ''}
       ${missedGraduation ? `<p class="subline">누적 평점이 ${RULES.graduationGpa.toFixed(2)} 미만이라 졸업 요건을 채우지 못했습니다.</p>` : ''}
+      ${memories.length ? endingReplayMarkup() : ''}
       <section class="ending-score" aria-labelledby="score-title">
         <div><h2 id="score-title">토탈 스코어</h2><p><strong>${score.total.toLocaleString('ko-KR')}</strong> / ${score.max.toLocaleString('ko-KR')}</p></div>
         <dl><div><dt>스탯 · 평점 · 자금</dt><dd>${score.base} / ${score.statsMax}</dd></div><div><dt>엔딩 보너스</dt><dd>${score.bonus} / ${score.bonusMax}</dd></div></dl>
@@ -456,12 +475,15 @@ function showEnding() {
 }
 
 function render(focus = false) {
+  stopReplay?.();
+  stopReplay = undefined;
   if (screen === 'title') {
     root.innerHTML = titleScreen();
     const portrait = root.querySelector('.save-portrait');
     if (portrait) paintProfile(portrait, saved.id);
   } else {
-    const views = { event: showEvent, result: showReceipt, term: showTerm, career: showCareer, ended: showEnding };
+    const memories = screen === 'game' && game.state.phase === 'ended' ? endingMemories(game.state.history, game.state.ending.id) : [];
+    const views = { event: showEvent, result: showReceipt, term: showTerm, career: showCareer, ended: () => showEnding(memories) };
     const body = screen === 'inventory' ? showInventory() : screen === 'grades' ? showGrades() : views[game.state.phase]();
     const storageMessage = inEndingPreview ? '엔딩 테스트 · 진행과 도감은 이 탭에만 기록돼요.' : storageNotice;
     const messages = [notice, storageMessage].filter(Boolean);
@@ -471,6 +493,7 @@ function render(focus = false) {
     </div></main>`;
     paintProfile(root.querySelector('.student-photo'), game.state.id);
     paintSprites(root);
+    if (memories.length) stopReplay = mountPixelReplay(root.querySelector('[data-ending-replay]'), memories, studentAppearance(game.state.id), termLabel);
     if (game.state.minigame?.kind === 'claw') mountClaw(root, game.state.minigame);
   }
   const canvas = root.querySelector('.scene-canvas');

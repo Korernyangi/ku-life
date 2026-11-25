@@ -7,6 +7,7 @@ import { MAJOR_GROUPS } from './majors.js';
 import { EVENTS } from './events.js';
 import { AtlasGame } from './game.js';
 import { createEndingPreview } from './ending-preview.js';
+import { endingMemories } from './ending-replay.js';
 
 function fixture(eventId, overrides = {}, random = () => .25) {
   const { state } = new AtlasGame();
@@ -442,6 +443,30 @@ test('the existing ending preview links each open a single final choice', () => 
     assert.equal(game.state.phase, 'ended');
     assert.equal(game.state.ending.id, id);
   }
+});
+
+test('the ending replay covers each played semester and keeps the first and final choices in order', () => {
+  const game = createEndingPreview('family');
+  play(game, 0);
+  const { history, ending } = game.state;
+  const memories = endingMemories(history, ending.id);
+  assert.deepEqual([...new Set(memories.map(memory => memory.semester))], [1, 2, 3, 4, 5, 6]);
+  assert.equal(memories[0].choice, history[0].choice);
+  assert.equal(memories.at(-1).result, history.at(-1).message);
+  assert.deepEqual(memories.filter(memory => memory.turningPoint).map(memory => memory.title),
+    endingChoices(history, ending.id).map(entry => entry.title));
+  assert.ok(memories.length < history.length);
+  assert.deepEqual(endingMemories([], 'ordinary'), []);
+});
+
+test('the pixel scene reflects a festival choice and supports an older receipt without a result', () => {
+  const event = EVENTS.find(candidate => candidate.id === 'koyeonjeon');
+  const [attended, stayedAtLibrary] = [event.choices[1], event.choices[2]].map(choice =>
+    endingMemories([{ eventId: event.id, semester: 2, choice: choice.text }], 'ordinary')[0]);
+  assert.equal(attended.scene, 'koyeonjeon');
+  assert.equal(attended.title, event.title);
+  assert.equal(stayedAtLibrary.scene, 'study');
+  assert.equal(stayedAtLibrary.result, '');
 });
 
 test('work, newspaper, and arcade achievements each lead to one ending choice', () => {
