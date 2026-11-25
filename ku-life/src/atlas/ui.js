@@ -121,13 +121,12 @@ function titleScreen() {
   loadEndings();
   if (saved?.phase === 'ended') unlockEnding(saved.ending?.id);
   return `
-    <header class="atlas-header"><a class="wordmark" href="./">ATLAS</a></header>
     <main class="landing">
       <div class="landing-art"><canvas class="scene-canvas" width="640" height="360" aria-hidden="true"></canvas></div>
       <div class="landing-layout">
       <section class="landing-card">
         <p class="context-label">고려대학교 대학생활 전략 시뮬레이션</p>
-        <h1 tabindex="-1">안암의<br>여덟 학기</h1>
+        <h1 tabindex="-1">KU-LIFE</h1>
         <p>공부, 사람, 생활비 사이에서 무엇을 우선할지 정하며 졸업까지 걸어가세요.</p>
       </section>
       <section class="entry-panel" aria-label="게임 시작">
@@ -163,7 +162,7 @@ function gameHeader() {
   const overall = history.length + (grades.length >= semester ? 0 : total - solved) + remaining;
   return `
     <header class="atlas-header game-header">
-      <button class="wordmark" data-action="title" aria-label="ATLAS 시작 화면">ATLAS</button>
+      <button class="wordmark" data-action="title" aria-label="KU-LIFE 시작 화면">KU-LIFE</button>
       <div class="progress-panel">
         <strong>${termLabel(semester)}</strong><span>${phase === 'event' || phase === 'result' ? `이벤트 ${termEvents.length} / ${total}` : `${semester} / ${termCount}학기`}</span>
         <progress max="${overall}" value="${history.length}" aria-label="전체 이벤트 진행도"></progress>
