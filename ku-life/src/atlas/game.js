@@ -1,6 +1,7 @@
 import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, TERM_CALENDAR, cashText } from './config.js';
 import { CAREER_ROUTES, resolveEnding } from './endings.js';
 import { EVENTS } from './events.js';
+import { ROULETTE, clawBoard, clawHitRadius, clawPrize, rouletteCash } from './arcade.js';
 
 const eventById = Object.fromEntries(EVENTS.map(event => [event.id, event]));
 const recoveryEvents = EVENTS.filter(event => event.kind === 'crisis');
@@ -33,6 +34,10 @@ export class AtlasGame {
   constructor(saved = null, random = Math.random) {
     this.random = random;
     this.state = saved ? structuredClone(saved) : newState();
+    const session = this.state.minigame;
+    if (session?.kind === 'claw' && !session.result) {
+      for (const prize of session.prizes) prize.radius = clawHitRadius(ITEMS[prize.id].price);
+    }
     if (!saved) this.advanceEvent();
   }
 
@@ -360,13 +365,69 @@ export class AtlasGame {
   beginMinigame() {
     const s = this.state;
     if (s.phase !== 'term' || s.minigame) return null;
-    s.minigame = { id: `${s.id}:${++s.minigameCount}`, balance: s.cash };
+    s.minigameCount = (s.minigameCount ?? 0) + 1;
+    s.minigame = { id: `${s.id}:${s.minigameCount}`, balance: s.cash };
     return { ...s.minigame };
   }
 
   settleMinigame(id, cashDelta) {
     const s = this.state;
-    if (s.phase !== 'term' || !s.minigame || s.minigame.id !== id || !this.changeCash(cashDelta)) return false;
+    if (s.phase !== 'term' || !s.minigame || s.minigame.kind || s.minigame.id !== id || !this.changeCash(cashDelta)) return false;
+    s.minigame = null;
+    return true;
+  }
+
+  get arcadePlayed() {
+    return this.state.arcadeTerm === this.state.semester;
+  }
+
+  arcadePrizes() {
+    const { semester, inventory } = this.state;
+    return clawBoard(this.stock().filter(id => {
+      const item = ITEMS[id];
+      return !(item.future && semester === termCount) && (item.type === 'consumable' || !inventory[id]);
+    }), ITEMS, semester);
+  }
+
+  beginArcade(kind) {
+    if (this.arcadePlayed || !['roulette', 'claw'].includes(kind) || !this.beginMinigame()) return false;
+    const session = this.state.minigame;
+    session.kind = kind;
+    if (kind === 'claw') session.prizes = this.arcadePrizes();
+    return true;
+  }
+
+  spinRoulette() {
+    const s = this.state;
+    const session = s.minigame;
+    if (s.phase !== 'term' || session?.kind !== 'roulette' || this.arcadePlayed) return false;
+    const index = Math.floor(this.random() * ROULETTE.length);
+    const percent = ROULETTE[index];
+    const cash = rouletteCash(session.balance, percent);
+    if (!this.changeCash(cash)) return false;
+    session.result = { index, percent, cash };
+    s.arcadeTerm = s.semester;
+    return true;
+  }
+
+  aimClaw(position) {
+    const s = this.state;
+    const session = s.minigame;
+    if (s.phase !== 'term' || session?.kind !== 'claw' || this.arcadePlayed || !Number.isFinite(position) || position < 0 || position > 100) return false;
+    if (session.x == null) {
+      session.x = position;
+      return true;
+    }
+    const item = clawPrize(session.prizes, session.x, position);
+    if (item) this.updateInventory(item, 1);
+    session.result = { item, y: position };
+    s.arcadeTerm = s.semester;
+    return true;
+  }
+
+  closeArcade() {
+    const s = this.state;
+    if (s.phase !== 'term' || !s.minigame?.kind) return false;
     s.minigame = null;
     return true;
   }

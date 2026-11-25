@@ -5,7 +5,9 @@ import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, cashText } 
 import { CAREER_ROUTES, ENDINGS, endingScore } from './endings.js';
 import { showEndingProfile } from './ending-profile.js';
 import { itemSprite, paintSprites, statSprite } from './sprites.js';
+import { animateArcade, arcadeMenu, arcadeScreen, mountClaw } from './arcade-ui.js';
 import './atlas.css';
+import './arcade.css';
 
 const root = document.querySelector('#atlas');
 const storageKey = 'ku-life:atlas:v1';
@@ -230,6 +232,7 @@ function showReceipt() {
 
 function showTerm() {
   const { semester, grades, gradeNotes, minigame } = game.state;
+  if (minigame?.kind) return arcadeScreen(minigame);
   if (minigame) return `
     <article class="panel">
       <p class="context-label">학기 말 활동</p>
@@ -238,6 +241,7 @@ function showTerm() {
       <p class="muted">현재 연결된 미니게임이 없으면 아래 버튼으로 상점에 돌아갈 수 있습니다.</p>
       <div class="actions"><button class="primary" data-action="exit-minigame">상점으로 돌아가기</button></div>
     </article>`;
+  if (screen === 'arcade') return arcadeMenu(game);
   const stock = game.stock().map(id => {
     const item = ITEMS[id];
     const reason = game.buyReason(id);
@@ -264,7 +268,7 @@ function showTerm() {
       <p class="muted">지능이 높을수록 높은 평점이 나올 확률이 커집니다.</p>
       ${gradeFactors.length ? `<p class="muted grade-factors">${gradeFactors.join(' · ')}</p>` : ''}
       ${effects ? `<ul class="changes">${effects}</ul>` : ''}
-      <div class="term-actions actions"><button class="primary" data-action="next-term">${semester !== termCount ? '다음 학기' : game.gpa < RULES.graduationGpa ? '최종 결과 보기' : '졸업 후 진로 선택'}</button><button class="secondary" data-action="minigame">미니게임</button></div>
+      <div class="term-actions actions"><button class="primary" data-action="next-term">${semester !== termCount ? '다음 학기' : game.gpa < RULES.graduationGpa ? '최종 결과 보기' : '졸업 후 진로 선택'}</button><button class="secondary" data-action="arcade-menu" ${game.arcadePlayed ? 'disabled' : ''}>${game.arcadePlayed ? '미니게임 완료' : '미니게임'}</button></div>
       <section class="shop" aria-labelledby="shop-title">
         <h2 id="shop-title">학기 말 상점</h2>
         <ul class="items">${stock}</ul>
@@ -398,6 +402,7 @@ function render(focus = false) {
     </div></main>`;
     paintProfile(root.querySelector('.student-photo'), game.state.id);
     paintSprites(root);
+    if (game.state.minigame?.kind === 'claw') mountClaw(root, game.state.minigame);
   }
   const canvas = root.querySelector('.scene-canvas');
   if (canvas) {
@@ -418,20 +423,18 @@ function startNewGame() {
   present();
 }
 
-function openMinigame() {
-  const run = game;
-  const connection = run.beginMinigame();
-  if (!connection) return;
-  present();
-  const settle = delta => {
-    if (game !== run || !run.settleMinigame(connection.id, delta)) return false;
-    screen = 'game';
-    present(delta ? `미니게임 정산 ${signedCash(run.state.cash - connection.balance)}` : '');
-    return true;
-  };
-  window.dispatchEvent(new CustomEvent('atlas:minigame-start', { detail: {
-    ...connection, complete: settle, exit: () => settle(0),
-  } }));
+async function showArcadeResult(panel) {
+  persist();
+  try {
+    await animateArcade(panel, game.state.minigame);
+  } catch {
+    // The saved outcome is still available if animation is interrupted.
+  } finally {
+    if (panel.isConnected) {
+      render();
+      root.querySelector('.arcade-status')?.focus();
+    }
+  }
 }
 
 function restoreStatusTooltip(event) {
@@ -514,9 +517,36 @@ root.addEventListener('click', event => {
     case 'use':
       actionResult(game.use(value), `${ITEMS[value].name}을 사용했습니다.`);
       break;
-    case 'minigame':
-      openMinigame();
+    case 'arcade-menu':
+      if (game.state.phase !== 'term' || game.arcadePlayed) break;
+      screen = 'arcade';
+      notice = '';
+      render(true);
       break;
+    case 'arcade-start':
+      actionResult(game.beginArcade(value));
+      break;
+    case 'arcade-close': {
+      const session = game.state.minigame;
+      screen = session && !session.result ? 'arcade' : 'game';
+      if (session) actionResult(game.closeArcade());
+      else render(true);
+      break;
+    }
+    case 'roulette-spin':
+      if (game.spinRoulette()) void showArcadeResult(button.closest('[data-arcade]'));
+      break;
+    case 'claw-aim': {
+      const panel = button.closest('[data-arcade]');
+      const position = Number(panel.querySelector('.claw-board').dataset.position);
+      if (!game.aimClaw(position)) break;
+      if (game.state.minigame.result) void showArcadeResult(panel);
+      else {
+        present();
+        root.querySelector('[data-action="claw-aim"]')?.focus();
+      }
+      break;
+    }
     case 'exit-minigame':
       actionResult(game.settleMinigame(game.state.minigame?.id, 0));
       break;

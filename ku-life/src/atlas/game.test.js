@@ -155,6 +155,65 @@ test('minigames receive a current balance and cannot double-settle or create deb
   assert.equal(game.state.cash, 50_000);
 });
 
+test('roulette settles the selected slot against the starting balance once per term, even after reload', () => {
+  const game = fixture('walk', { phase: 'term', cash: 100_001 }, () => .15);
+  assert.equal(game.beginArcade('roulette'), true);
+  assert.equal(game.spinRoulette(), true);
+  assert.deepEqual(game.state.minigame.result, { index: 1, percent: -8, cash: -8_000 });
+  assert.equal(game.state.cash, 92_001);
+
+  const restored = new AtlasGame(JSON.parse(JSON.stringify(game.state)));
+  assert.equal(restored.spinRoulette(), false);
+  assert.equal(restored.closeArcade(), true);
+  assert.equal(restored.beginArcade('claw'), false);
+  assert.equal(restored.nextTerm(), true);
+  assert.equal(restored.arcadePlayed, false);
+});
+
+test('the claw awards aligned shop items, while a miss consumes the same term attempt', () => {
+  const game = fixture('walk', { phase: 'term', inventory: { laptop: 1 }, cash: 0 });
+  assert.equal(game.beginArcade('claw'), true);
+  assert.equal(game.state.minigame.prizes.some(prize => ['laptop', 'charm'].includes(prize.id)), false);
+  const notes = game.state.minigame.prizes.find(prize => prize.id === 'notes');
+  assert.equal(game.aimClaw(notes.x), true);
+  const restored = new AtlasGame(JSON.parse(JSON.stringify(game.state)));
+  assert.equal(restored.aimClaw(notes.y), true);
+  assert.equal(restored.state.inventory.notes, 1);
+  assert.equal(restored.state.cash, 0);
+  assert.equal(restored.aimClaw(notes.y), false);
+
+  assert.equal(game.closeArcade(), true);
+  assert.equal(game.beginArcade('claw'), true);
+  assert.equal(game.aimClaw(0), true);
+  assert.equal(game.aimClaw(0), true);
+  assert.equal(game.state.minigame.result.item, null);
+  assert.equal(game.arcadePlayed, true);
+});
+
+test('each higher-priced claw prize requires a tighter aim, including games resumed from an older save', () => {
+  const game = fixture('walk', { phase: 'term', semester: 3 });
+  assert.equal(game.beginArcade('claw'), true);
+  const { prizes } = game.state.minigame;
+  const sorted = [...prizes].sort((a, b) => ITEMS[a.id].price - ITEMS[b.id].price);
+  for (let i = 1; i < sorted.length; i++) {
+    assert.ok(sorted[i].radius < sorted[i - 1].radius);
+  }
+  const cheap = sorted[0];
+  const expensive = sorted.at(-1);
+  const saved = structuredClone(game.state);
+  saved.minigame.prizes.find(prize => prize.id === expensive.id).radius = 9;
+
+  const hit = new AtlasGame(saved);
+  hit.aimClaw(cheap.x + 7);
+  hit.aimClaw(cheap.y);
+  assert.equal(hit.state.minigame.result.item, cheap.id);
+
+  const miss = new AtlasGame(saved);
+  miss.aimClaw(expensive.x + 7);
+  miss.aimClaw(expensive.y);
+  assert.equal(miss.state.minigame.result.item, null);
+});
+
 test('event content always offers a fallback and references registered items, flags and events', () => {
   const ids = new Set(EVENTS.map(event => event.id));
   assert.equal(ids.size, EVENTS.length);
