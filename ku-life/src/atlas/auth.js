@@ -97,13 +97,13 @@ export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : '
       <h2 id="account-title">${view.title}</h2>
       ${view.fields}
       <p role="status" class="account-status"></p>
-      ${view.links ? `<div class="account-links">${view.links.map(([target, label]) =>
-        `<button type="button" class="secondary" data-account-view="${target}">${label}</button>`).join('')}</div>` : ''}
       <div class="actions">
         <button type="button" class="secondary" data-account-close>닫기</button>
         ${view.submit ? `<button type="submit" class="primary">${view.submit}</button>` : ''}
       </div>
-    </form>`;
+    </form>
+    ${view.links ? `<div class="account-links">${view.links.map(([target, label]) =>
+        `<button type="button" class="secondary" data-account-view="${target}">${label}</button>`).join('')}</div>` : ''}`;
 
   const form = dialog.querySelector('form');
   const status = dialog.querySelector('[role="status"]');
@@ -112,7 +112,7 @@ export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : '
 
   form.querySelector('[data-account-close]').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => dialog.remove(), { once: true });
-  for (const link of form.querySelectorAll('[data-account-view]')) {
+  for (const link of dialog.querySelectorAll('[data-account-view]')) {
     link.addEventListener('click', () => {
       dialog.close();
       dialog.remove();

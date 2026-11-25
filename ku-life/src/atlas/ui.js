@@ -164,7 +164,7 @@ function titleScreen() {
     <main class="landing">
       <div class="landing-art"><canvas class="scene-canvas" width="640" height="360" aria-hidden="true"></canvas></div>
       <button type="button" class="landing-account secondary" data-action="account">
-        <strong>${currentPlayer() ? '내 계정' : '로그인 · 회원가입'}</strong>
+        <strong>${currentPlayer() ? '내 계정' : '로그인'}</strong>
       </button>
       <div class="landing-layout">
       <section class="landing-card">
