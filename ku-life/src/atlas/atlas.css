@@ -409,3 +409,9 @@ thead, tfoot { background: #f4e5cb; }
   right: clamp(16px, 4vw, 48px);
   min-height: 44px;
 }
+
+.challenge-status:empty { display: none; }
+.entry-panel .challenge-status { margin: 0; }
+.challenge-result { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 14px; }
+.challenge-ranking td { overflow-wrap: anywhere; }
+.challenge-ranking th { text-align: left; }

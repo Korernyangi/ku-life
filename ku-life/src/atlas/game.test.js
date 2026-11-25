@@ -175,29 +175,26 @@ test('roulette settles the selected slot against the starting balance once per t
   assert.equal(restored.arcadePlayed, false);
 });
 
-test('the claw charges once when dropped, with or without an item, and cancels for free', () => {
+test('the claw charges on drop and awards the item only after a successful lift', () => {
   const game = fixture('walk', { phase: 'term', inventory: { laptop: 1 }, cash: 100_000 });
   assert.equal(game.beginArcade('claw'), true);
   assert.equal(game.state.minigame.prizes.some(prize => ['laptop', 'charm'].includes(prize.id)), false);
-  const notes = game.state.minigame.prizes.find(prize => prize.id === 'notes');
-  assert.equal(game.aimClaw(notes.x), true);
-  assert.equal(game.state.cash, 100_000);
-  const restored = new AtlasGame(JSON.parse(JSON.stringify(game.state)));
-  assert.equal(restored.aimClaw(notes.y), true);
-  assert.equal(restored.state.inventory.notes, 1);
-  assert.equal(restored.state.cash, 50_000);
-  const settled = new AtlasGame(JSON.parse(JSON.stringify(restored.state)));
-  assert.equal(settled.aimClaw(notes.y), false);
-  assert.equal(settled.state.cash, 50_000);
-
   assert.equal(game.closeArcade(), true);
   assert.equal(game.state.cash, 100_000);
   assert.equal(game.beginArcade('claw'), true);
-  assert.equal(game.aimClaw(0), true);
-  assert.equal(game.aimClaw(0), true);
-  assert.equal(game.state.minigame.result.item, null);
+  const notes = game.state.minigame.prizes.find(prize => prize.id === 'notes');
+  assert.equal(game.aimClaw(notes.x), true);
   assert.equal(game.state.cash, 50_000);
+  assert.equal(game.state.inventory.notes, undefined);
   assert.equal(game.arcadePlayed, true);
+  assert.equal(game.aimClaw(notes.x), false);
+  const restored = new AtlasGame(JSON.parse(JSON.stringify(game.state)));
+  assert.equal(restored.state.minigame.result.item, null);
+  assert.equal(restored.state.cash, 50_000);
+  assert.equal(restored.finishClaw(true), false);
+  assert.equal(game.finishClaw(true), true);
+  assert.equal(game.state.inventory.notes, 1);
+  assert.equal(game.finishClaw(true), false);
 });
 
 test('the claw charges a fixed fee and requires enough cash to play', () => {
@@ -209,33 +206,35 @@ test('the claw charges a fixed fee and requires enough cash to play', () => {
     const game = fixture('walk', { phase: 'term', cash });
     assert.equal(game.beginArcade('claw'), true);
     assert.equal(game.aimClaw(0), true);
-    assert.equal(game.aimClaw(0), true);
+    assert.equal(game.finishClaw(false), true);
     assert.equal(game.state.minigame.result.fee, 50_000);
+    assert.equal(game.state.minigame.result.item, null);
     assert.equal(game.state.cash, cash - 50_000);
   }
 });
 
-test('each higher-priced claw prize requires a tighter aim, including games resumed from an older save', () => {
+test('claw prizes require tighter aim at higher prices and older aiming saves can retry for free', () => {
   const game = fixture('walk', { phase: 'term', semester: 3 });
   assert.equal(game.beginArcade('claw'), true);
-  const { prizes } = game.state.minigame;
-  const sorted = [...prizes].sort((a, b) => ITEMS[a.id].price - ITEMS[b.id].price);
+  const saved = structuredClone(game.state);
+  saved.minigame.x = 34;
+  saved.minigame.prizes = [{ id: 'notes', x: 21, y: 60, radius: 14 }];
+
+  const hit = new AtlasGame(saved);
+  assert.equal(hit.state.minigame.x, undefined);
+  const sorted = [...hit.state.minigame.prizes].sort((a, b) => ITEMS[a.id].price - ITEMS[b.id].price);
   for (let i = 1; i < sorted.length; i++) {
     assert.ok(sorted[i].radius < sorted[i - 1].radius);
   }
   const cheap = sorted[0];
   const expensive = sorted.at(-1);
-  const saved = structuredClone(game.state);
-  saved.minigame.prizes.find(prize => prize.id === expensive.id).radius = 9;
-
-  const hit = new AtlasGame(saved);
   hit.aimClaw(cheap.x + 7);
-  hit.aimClaw(cheap.y);
+  hit.finishClaw(true);
   assert.equal(hit.state.minigame.result.item, cheap.id);
 
   const miss = new AtlasGame(saved);
   miss.aimClaw(expensive.x + 7);
-  miss.aimClaw(expensive.y);
+  miss.finishClaw(true);
   assert.equal(miss.state.minigame.result.item, null);
 });
 
@@ -460,10 +459,10 @@ test('work, newspaper, and arcade achievements each lead to one ending choice', 
   assert.equal(arcade.beginArcade('claw'), true);
   const prize = arcade.state.minigame.prizes[0];
   assert.equal(arcade.aimClaw(prize.x), true);
-  assert.equal(arcade.aimClaw(prize.y), true);
+  assert.equal(arcade.finishClaw(true), true);
   assert.equal(arcade.state.clawWins, 3);
   arcade = new AtlasGame(JSON.parse(JSON.stringify(arcade.state)));
-  assert.equal(arcade.aimClaw(prize.y), false);
+  assert.equal(arcade.finishClaw(true), false);
   assert.equal(arcade.closeArcade(), true);
   assert.equal(arcade.event.id, 'claw_handoff');
 
@@ -570,4 +569,45 @@ test('older choice grade adjustments are ignored and semester items still apply'
   [reference, oldSave, withNotes].forEach(game => game.finishTerm());
   assert.deepEqual(oldSave.state.grades, reference.state.grades);
   assert.equal(withNotes.state.grades[0], reference.state.grades[0] + .5);
+});
+
+test('ranked challenge starts below ordinary conditions and only accepts eligible game actions', async () => {
+  const { applyChallengeAction, challengeScore, createChallenge } = await import('./challenge.js');
+  const low = createChallenge(() => 0);
+  const high = createChallenge(() => .99999);
+  assert.notEqual(low.state.majorId, high.state.majorId);
+  for (const game of [low, high]) {
+    assert.ok(game.state.cash < RULES.startingCash);
+    for (const stat of Object.keys(RULES.startingStats)) assert.ok(game.state.stats[stat] < RULES.startingStats[stat]);
+    assert.equal(challengeScore(game), null);
+    assert.equal(applyChallengeAction(game, { action: 'finish' }), false);
+    assert.equal(applyChallengeAction(game, { action: 'arcade-start', value: 'roulette' }), false);
+    assert.equal(applyChallengeAction(game, { action: 'choose', token: 'stale', value: 0 }), false);
+    assert.equal(applyChallengeAction(game, { action: 'choose', token: game.eventToken, value: 2 }), true);
+    assert.equal(applyChallengeAction(game, { action: 'choose', token: game.eventToken, value: 2 }), false);
+  }
+});
+
+test('server-style challenge actions can reach a real scored ending after restoring each saved state', async () => {
+  const { applyChallengeAction, challengeScore, createChallenge } = await import('./challenge.js');
+  let game = createChallenge(() => .25);
+  for (let attempt = 0; attempt < 250 && game.state.phase !== 'ended'; attempt++) {
+    game = new AtlasGame(game.state, () => .25);
+    const { phase } = game.state;
+    let action;
+    if (phase === 'event') {
+      const value = game.event.choices.findLastIndex(choice => !game.choiceReasons(choice).length);
+      action = { action: 'choose', token: game.eventToken, value };
+    } else if (phase === 'result') {
+      action = { action: 'next-event' };
+    } else if (phase === 'term') {
+      action = { action: 'next-term' };
+    } else {
+      const option = careerOptions(game.state, game.gpa).find(item => !item.reasons.length);
+      action = { action: 'career', route: option.route, value: option.id };
+    }
+    assert.equal(applyChallengeAction(game, action), true);
+  }
+  assert.equal(game.state.phase, 'ended');
+  assert.ok(challengeScore(game) >= 0 && challengeScore(game) <= 1000);
 });

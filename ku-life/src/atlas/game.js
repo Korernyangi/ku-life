@@ -3,7 +3,7 @@ import { CAREER_ROUTES, careerOptions, normalizeEnding, resolveEnding } from './
 import { employmentForEnding } from './employment.js';
 import { findMajor } from './majors.js';
 import { EVENTS } from './events.js';
-import { CLAW_ATTEMPT_FEE, ROULETTE, clawBoard, clawHitRadius, clawPrize, rouletteCash } from './arcade.js';
+import { CLAW_ATTEMPT_FEE, ROULETTE, clawBoard, clawPrize, rouletteCash } from './arcade.js';
 
 const eventById = Object.fromEntries(EVENTS.map(event => [event.id, event]));
 const recoveryEvents = EVENTS.filter(event => event.kind === 'crisis');
@@ -35,16 +35,21 @@ function newState(majorId) {
 }
 
 export class AtlasGame {
-  constructor(saved = null, random = Math.random, majorId = null) {
+  constructor(saved = null, random = Math.random, majorId = null, initialConditions = null) {
     this.random = random;
     this.state = saved ? structuredClone(saved) : newState(majorId);
     const session = this.state.minigame;
     this.state.clawWins ??= Number(Boolean(session?.kind === 'claw' && session.result?.item));
     this.state.ending = normalizeEnding(this.state.ending);
     if (session?.kind === 'claw' && !session.result) {
-      for (const prize of session.prizes) prize.radius = clawHitRadius(ITEMS[prize.id].price);
+      if (session.drop) this.finishClaw(false);
+      else {
+        session.prizes = this.arcadePrizes();
+        delete session.x;
+      }
     }
     if (!saved) {
+      if (initialConditions) Object.assign(this.state, initialConditions);
       this.advanceEvent();
       return;
     }
@@ -449,19 +454,24 @@ export class AtlasGame {
     const s = this.state;
     const session = s.minigame;
     if (s.phase !== 'term' || session?.kind !== 'claw' || this.arcadePlayed || !Number.isFinite(position) || position < 0 || position > 100) return false;
-    if (s.cash < CLAW_ATTEMPT_FEE) return false;
-    if (session.x == null) {
-      session.x = position;
-      return true;
-    }
-    const item = clawPrize(session.prizes, session.x, position);
     if (!this.changeCash(-CLAW_ATTEMPT_FEE)) return false;
+    session.x = position;
+    session.drop = { item: clawPrize(session.prizes, position) };
+    s.arcadeTerm = s.semester;
+    return true;
+  }
+
+  finishClaw(held) {
+    const s = this.state;
+    const session = s.minigame;
+    if (s.phase !== 'term' || session?.kind !== 'claw' || !session.drop || session.result) return false;
+    const item = held ? session.drop.item : null;
     if (item) {
       this.updateInventory(item, 1);
       s.clawWins++;
     }
-    session.result = { item, y: position, fee: CLAW_ATTEMPT_FEE };
-    s.arcadeTerm = s.semester;
+    session.result = { item, fee: CLAW_ATTEMPT_FEE, dropped: !held && Boolean(session.drop.item) };
+    delete session.drop;
     return true;
   }
 

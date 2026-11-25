@@ -9,8 +9,8 @@ import { openAdmission } from './admission.js';
 import { showEndingProfile } from './ending-profile.js';
 import { createEndingPreview } from './ending-preview.js';
 import { itemSprite, paintSprites, statSprite } from './sprites.js';
-import { animateArcade, arcadeMenu, arcadeScreen, mountClaw } from './arcade-ui.js';
-import { currentPlayer, openAccount, watchPlayer } from './auth.js';
+import { animateRoulette, arcadeMenu, arcadeScreen, mountClaw, playClaw } from './arcade-ui.js';
+import { currentPlayer, openAccount, openAccountCallback, playerAccessToken, watchPlayer } from './auth.js';
 import './atlas.css';
 import './arcade.css';
 
@@ -29,31 +29,50 @@ const savedPhase = { event: '이벤트 진행 중', result: '선택 결과', ter
 const endingEntries = Object.entries(ENDINGS);
 const basicEndings = endingEntries.filter(([, ending]) => !ending.hidden);
 const hiddenEndings = endingEntries.filter(([, ending]) => ending.hidden);
-const endingStorageKey = 'ku-life:ending:';
-const variantStorageKey = 'ku-life:ending-major:';
+const endingStorageKey = 'ending:';
+const variantStorageKey = 'ending-major:';
 const unlockedEndings = new Set();
 const endingVariants = new Map(endingEntries.map(([id]) => [id, new Map()]));
 const previewId = import.meta.env.VITE_ENDING_PREVIEW === '1'
   ? new URLSearchParams(window.location.search).get('ending-preview') : null;
+const clawPreview = (import.meta.env.DEV || import.meta.env.VITE_CLAW_PREVIEW === '1')
+  && (window.location.protocol === 'file:' || new URLSearchParams(window.location.search).get('preview') === 'claw');
 let game = previewId ? createEndingPreview(previewId) : null;
-const inEndingPreview = Boolean(game);
-let screen = inEndingPreview ? 'game' : 'title';
+if (clawPreview) {
+  const { state } = new AtlasGame();
+  game = new AtlasGame({ ...state, phase: 'term' });
+  game.beginArcade('claw');
+}
+const inPreview = Boolean(game);
+let screen = inPreview ? 'game' : 'title';
 let notice = '';
 let storageNotice = '';
 let saved;
+let accountId = null;
+let challengeRun = null;
+let challengeBusy = false;
 
-try {
-  const data = JSON.parse(localStorage.getItem(storageKey) || 'null');
-  if (data?.version === 1 && Object.hasOwn(savedPhase, data.phase) && data.stats && data.inventory && Array.isArray(data.history)) saved = data;
-} catch {
-  storageNotice = '이 브라우저에서 저장 기록을 읽을 수 없습니다.';
+function accountStorageKey(part) {
+  return `${storageKey}:${accountId}:${part}`;
+}
+
+function loadSave() {
+  saved = undefined;
+  storageNotice = '';
+  if (!accountId) return;
+  try {
+    const data = JSON.parse(localStorage.getItem(accountStorageKey('game')) || 'null');
+    if (data?.version === 1 && Object.hasOwn(savedPhase, data.phase) && data.stats && data.inventory && Array.isArray(data.history)) saved = data;
+  } catch {
+    storageNotice = '이 브라우저에서 저장 기록을 읽을 수 없습니다.';
+  }
 }
 
 function persist() {
-  if (inEndingPreview) return;
+  if (inPreview || !accountId || challengeRun) return;
   saved = game.state;
   try {
-    localStorage.setItem(storageKey, JSON.stringify(saved));
+    localStorage.setItem(accountStorageKey('game'), JSON.stringify(saved));
     storageNotice = '';
   } catch {
     storageNotice = '브라우저 저장소에 기록을 남길 수 없습니다.';
@@ -159,8 +178,13 @@ function titleScreen() {
           <span><strong id="resume-label">${saved.phase === 'ended' ? '지난 결과 보기' : '이어하기'}</strong><small id="resume-details">${major ? escape(major.name) + ' · ' : ''}${termLabel(saved.semester)} · ${savedPhase[saved.phase]}</small></span><span aria-hidden="true">→</span>
         </button>` : ''}
         <button type="button" class="entry-button ${saved ? '' : 'entry-primary'}" data-action="new" aria-labelledby="new-label" aria-describedby="new-details">
-          <span><strong id="new-label">입학하기</strong><small id="new-details">학과를 골라 1학년부터 시작</small></span><span aria-hidden="true">→</span>
+          <span><strong id="new-label">입학하기</strong><small id="new-details">${accountId ? '학과를 골라 1학년부터 시작' : '로그인하면 이 브라우저에서 이어할 수 있어요'}</small></span><span aria-hidden="true">→</span>
         </button>
+        <button type="button" class="entry-button" data-action="challenge-open">
+          <span><strong>도전모드</strong><small>${accountId ? '무작위 학과 · 낮은 초기 스탯과 자금' : '고려대 계정으로 로그인 후 플레이'}</small></span><span aria-hidden="true">→</span>
+        </button>
+        <button type="button" class="entry-button" data-action="ranking"><strong>도전 순위표</strong></button>
+        <p class="challenge-status notice" role="status"></p>
         <button type="button" class="entry-button entry-archive" data-action="archive" aria-labelledby="archive-label" aria-describedby="archive-count">
           <span><strong id="archive-label">엔딩 도감</strong><small>기본 ${basicEndings.length}개 · 히든 ${hiddenEndings.length}개</small></span><span id="archive-count">${unlockedEndings.size} / ${endingEntries.length}</span>
         </button>
@@ -182,7 +206,7 @@ function gameHeader() {
     <header class="atlas-header game-header">
       <button class="wordmark" data-action="title" aria-label="KU-LIFE 시작 화면">KU-LIFE</button>
       <div class="progress-panel">
-        <strong>${termLabel(semester)}</strong><span>${progressLabel}</span>
+        <strong>${challengeRun ? '도전모드 · ' : ''}${termLabel(semester)}</strong><span>${progressLabel}</span>
         <progress max="${overall}" value="${history.length}" aria-label="전체 이벤트 진행도"></progress>
       </div>
       <nav aria-label="기록 및 도구">
@@ -283,7 +307,7 @@ function showTerm() {
       <p class="muted">지능이 높을수록 높은 평점이 나올 확률이 커집니다.</p>
       ${gradeFactors.length ? `<p class="muted grade-factors">${gradeFactors.join(' · ')}</p>` : ''}
       ${effects ? `<ul class="changes">${effects}</ul>` : ''}
-      <div class="term-actions actions"><button class="primary" data-action="next-term">${semester !== termCount ? '다음 학기' : game.gpa < RULES.graduationGpa ? '최종 결과 보기' : '졸업 후 진로 선택'}</button><button class="secondary" data-action="arcade-menu" ${game.arcadePlayed ? 'disabled' : ''}>${game.arcadePlayed ? '미니게임 완료' : '미니게임'}</button></div>
+      <div class="term-actions actions"><button class="primary" data-action="next-term">${semester !== termCount ? '다음 학기' : game.gpa < RULES.graduationGpa ? '최종 결과 보기' : '졸업 후 진로 선택'}</button>${challengeRun ? '<span class="muted">도전모드에서는 미니게임을 이용할 수 없어요.</span>' : `<button class="secondary" data-action="arcade-menu" ${game.arcadePlayed ? 'disabled' : ''}>${game.arcadePlayed ? '미니게임 완료' : '미니게임'}</button>`}</div>
       <section class="shop" aria-labelledby="shop-title">
         <h2 id="shop-title">학기 말 상점</h2>
         <ul class="items">${stock}</ul>
@@ -352,14 +376,16 @@ function recordEndingVariant(id, majorId, employerId) {
 }
 
 function loadEndings() {
+  if (!accountId || inPreview) return;
+  const variants = accountStorageKey(variantStorageKey);
   try {
     for (const [id] of endingEntries) {
-      if (localStorage.getItem(endingStorageKey + id) === '1') unlockedEndings.add(id);
+      if (localStorage.getItem(accountStorageKey(endingStorageKey + id)) === '1') unlockedEndings.add(id);
     }
     for (let index = 0; index < localStorage.length; index++) {
       const key = localStorage.key(index);
-      if (!key?.startsWith(variantStorageKey)) continue;
-      const [id, majorId, employerId] = key.slice(variantStorageKey.length).split(':');
+      if (!key?.startsWith(variants)) continue;
+      const [id, majorId, employerId] = key.slice(variants.length).split(':');
       if (recordEndingVariant(id, majorId, employerId)) unlockedEndings.add(id);
     }
   } catch {
@@ -372,10 +398,10 @@ function unlockEnding(id, majorId, employerId) {
   const firstEnding = !unlockedEndings.has(id);
   const newVariant = recordEndingVariant(id, majorId, employerId);
   unlockedEndings.add(id);
-  if (inEndingPreview) return;
+  if (inPreview || !accountId) return;
   try {
-    if (firstEnding) localStorage.setItem(endingStorageKey + id, '1');
-    if (newVariant) localStorage.setItem(variantStorageKey + id + ':' + newVariant, '1');
+    if (firstEnding) localStorage.setItem(accountStorageKey(endingStorageKey + id), '1');
+    if (newVariant) localStorage.setItem(accountStorageKey(variantStorageKey + id + ':' + newVariant), '1');
   } catch {
     // The main save path reports unavailable browser storage.
   }
@@ -447,6 +473,14 @@ function showEnding() {
         <dl><div><dt>스탯 · 평점 · 자금</dt><dd>${score.base} / ${score.statsMax}</dd></div><div><dt>엔딩 보너스</dt><dd>${score.bonus} / ${score.bonusMax}</dd></div></dl>
       </section>
       <div class="actions ending-actions"><button class="primary" data-action="profile">프로필 보기</button><button class="secondary" data-action="archive">엔딩 도감</button><button class="secondary" data-action="title">시작 화면</button></div>
+      ${challengeRun ? `<section class="challenge-result" aria-label="도전모드 결과">
+        <p>${challengeRun.published ? '순위표에 공개된 기록입니다.' : '기록을 공개하면 닉네임, 학과, 점수가 순위표에 표시됩니다.'}</p>
+        <div class="actions">
+          ${challengeRun.published ? '' : '<button class="primary" data-action="challenge-publish">순위표에 기록 공개</button>'}
+          <button class="secondary" data-action="ranking">도전 순위표</button>
+          <button class="secondary" data-action="challenge-start">새 도전 시작</button>
+        </div>
+      </section>` : ''}
       ${main.id === 'dropout' && receipt ? `<section class="last-choice"><h2>마지막 선택</h2><p>${escape(receipt.choice)}</p>${receiptList(receipt)}</section>` : ''}
       ${recap.length ? `<section class="ending-recap"><h2>이 결말로 이어진 선택</h2><ol>${recap.map(entry => `<li><small>${termLabel(entry.semester)} · ${escape(entry.title)}</small><strong>${escape(entry.choice)}</strong></li>`).join('')}</ol></section>` : ''}
       <div class="summary-grid">
@@ -466,10 +500,11 @@ function render(focus = false) {
   } else {
     const views = { event: showEvent, result: showReceipt, term: showTerm, career: showCareer, ended: showEnding };
     const body = screen === 'inventory' ? showInventory() : screen === 'grades' ? showGrades() : views[game.state.phase]();
-    const storageMessage = inEndingPreview ? '엔딩 테스트 · 진행과 도감은 이 탭에만 기록돼요.' : storageNotice;
+    const storageMessage = inPreview ? '테스트 · 진행과 도감은 이 탭에만 기록돼요.' : storageNotice;
     const messages = [notice, storageMessage].filter(Boolean);
     root.innerHTML = `${gameHeader()}<main class="dashboard">${statPanel()}<div class="workspace">
       <p class="notice" role="status" ${messages.length ? '' : 'hidden'}>${messages.map(escape).join(' ')}</p>
+      ${challengeRun ? '<p class="challenge-status notice" role="status"></p>' : ''}
       ${body}
     </div></main>`;
     paintProfile(root.querySelector('.student-photo'), game.state.id);
@@ -485,6 +520,93 @@ function render(focus = false) {
   if (focus) root.querySelector('h1')?.focus();
 }
 
+async function challengeRequest(body, view = '') {
+  const accessToken = await playerAccessToken();
+  if (!accessToken) throw new Error('로그인 후 이용할 수 있어요.');
+  const response = await fetch(`/api/challenge${view ? '?view=' + view : ''}`, {
+    headers: { Authorization: `Bearer ${accessToken}`, ...(body && { 'Content-Type': 'application/json' }) },
+    ...(body && { method: 'POST', body: JSON.stringify(body) }),
+  });
+  if (response.status === 401 || response.status === 403) throw new Error('인증된 고려대 계정으로 다시 로그인해 주세요.');
+  if (response.status === 422) throw new Error('현재 진행 단계에서는 이 선택을 할 수 없어요.');
+  if (!response.ok && response.status !== 409) throw new Error('도전 서버에 연결하지 못했습니다. 다시 시도해 주세요.');
+  const result = await response.json();
+  return { ...result, stale: response.status === 409 };
+}
+
+function challengeStatus(message) {
+  const status = root.querySelector('.challenge-status');
+  if (status) status.textContent = message;
+}
+
+async function updateChallenge(request) {
+  if (challengeBusy) return;
+  if (!accountId) {
+    openAccount(root);
+    return;
+  }
+  const owner = accountId;
+  challengeBusy = true;
+  challengeStatus('도전 기록을 불러오는 중…');
+  try {
+    const result = request ? await challengeRequest(request) : await challengeRequest();
+    if (owner !== accountId) return;
+    if (!result.run) {
+      if (result.stale) throw new Error('도전 기록이 바뀌었습니다. 다시 시도해 주세요.');
+      const started = await challengeRequest({ action: 'start' });
+      if (owner !== accountId) return;
+      if (!started.run) throw new Error('도전을 시작하지 못했습니다.');
+      result.run = started.run;
+    }
+    challengeRun = result.run;
+    game = new AtlasGame(challengeRun.state);
+    if (screen !== 'inventory' || request?.action !== 'use') screen = 'game';
+    notice = result.stale ? '다른 탭의 최신 도전 기록을 불러왔어요.' : '';
+    render(true);
+  } catch (error) {
+    if (owner === accountId) challengeStatus(error.message);
+  } finally {
+    challengeBusy = false;
+  }
+}
+
+function challengeMove(action, data = {}) {
+  void updateChallenge({ ...data, action, id: challengeRun.id, revision: challengeRun.revision });
+}
+
+async function openRanking() {
+  if (!accountId) {
+    openAccount(root);
+    return;
+  }
+  const dialog = document.createElement('dialog');
+  dialog.className = 'atlas-dialog challenge-ranking';
+  dialog.setAttribute('aria-labelledby', 'ranking-title');
+  dialog.innerHTML = `<button class="secondary dialog-close" data-action="close-dialog" aria-label="순위표 닫기">×</button>
+    <h2 id="ranking-title">도전 순위표</h2>
+    <p>플레이어별 공개 최고 점수 · 상위 50명</p>
+    <p role="status">순위를 불러오는 중…</p>`;
+  dialog.addEventListener('close', () => dialog.remove(), { once: true });
+  root.append(dialog);
+  dialog.showModal();
+  const status = dialog.querySelector('[role="status"]');
+  try {
+    const { rows } = await challengeRequest(null, 'ranking');
+    if (!dialog.isConnected) return;
+    if (!rows.length) {
+      status.textContent = '아직 공개된 도전 기록이 없어요.';
+      return;
+    }
+    status.textContent = '';
+    dialog.insertAdjacentHTML('beforeend', `<table><thead><tr><th scope="col">순위</th><th scope="col">닉네임</th>
+      <th scope="col">학과</th><th scope="col">점수</th></tr></thead><tbody>${rows.map(row => `<tr>
+      <td>${escape(row.rank)}</td><td>${escape(row.public_nickname)}</td><td>${escape(findMajor(row.major_id)?.name ?? '—')}</td>
+      <td>${escape(row.score)}</td></tr>`).join('')}</tbody></table>`);
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
+
 function actionResult(result, success = '') {
   if (result) present(success);
 }
@@ -495,10 +617,31 @@ function startNewGame(majorId) {
   present();
 }
 
+async function runClaw(panel, button) {
+  const activeGame = game;
+  persist();
+  for (const control of root.querySelectorAll('.game-header button, [data-action="arcade-close"]')) {
+    control.disabled = true;
+  }
+  let held = false;
+  try {
+    held = await playClaw(panel, game.state.minigame, button);
+  } catch {
+    // An interrupted attempt keeps its fee and settles without a prize.
+  } finally {
+    if (game === activeGame) {
+      game.finishClaw(held);
+      persist();
+      render();
+      root.querySelector('.arcade-status')?.focus();
+    }
+  }
+}
+
 async function showArcadeResult(panel) {
   persist();
   try {
-    await animateArcade(panel, game.state.minigame);
+    await animateRoulette(panel, game.state.minigame);
   } catch {
     // The saved outcome is still available if animation is interrupted.
   } finally {
@@ -535,7 +678,23 @@ root.addEventListener('click', event => {
   const button = event.target.closest('button[data-action]');
   if (!button || button.disabled) return;
   const { action, value, token } = button.dataset;
+  if (challengeBusy && action !== 'close-dialog') return;
+  if (challengeRun && ['choose', 'next-event', 'next-term', 'career', 'buy', 'use', 'challenge-publish'].includes(action)) {
+    challengeMove(action === 'challenge-publish' ? 'publish' : action, {
+      value: action === 'choose' ? Number(value) : value, token, route: button.dataset.route,
+    });
+    return;
+  }
   switch (action) {
+    case 'challenge-open':
+      void updateChallenge();
+      break;
+    case 'challenge-start':
+      void updateChallenge({ action: 'start', previousId: challengeRun?.id });
+      break;
+    case 'ranking':
+      void openRanking();
+      break;
     case 'account':
       openAccount(root);
       break;
@@ -554,15 +713,17 @@ root.addEventListener('click', event => {
       openAdmission(root, saved ? termLabel(saved.semester) : '', startNewGame);
       break;
     case 'resume':
+      if (!accountId || !saved) break;
       game = new AtlasGame(saved);
       screen = 'game';
       render(true);
       break;
     case 'title':
-      if (inEndingPreview) {
+      if (inPreview) {
         window.location.assign(window.location.pathname);
         break;
       }
+      challengeRun = null;
       // Fall through to the shared screen navigation.
     case 'game':
     case 'inventory':
@@ -611,12 +772,7 @@ root.addEventListener('click', event => {
     case 'claw-aim': {
       const panel = button.closest('[data-arcade]');
       const position = Number(panel.querySelector('.claw-board').dataset.position);
-      if (!game.aimClaw(position)) break;
-      if (game.state.minigame.result) void showArcadeResult(panel);
-      else {
-        present();
-        root.querySelector('[data-action="claw-aim"]')?.focus();
-      }
+      if (game.aimClaw(position)) void runClaw(panel, button);
       break;
     }
     case 'exit-minigame':
@@ -628,6 +784,18 @@ root.addEventListener('click', event => {
 render();
 
 watchPlayer(() => {
-  const label = root.querySelector('[data-action="account"] strong');
-  if (label) label.textContent = currentPlayer() ? '내 계정' : '로그인 · 회원가입';
+  if (inPreview) return;
+  const nextId = currentPlayer()?.id ?? null;
+  if (nextId !== accountId) {
+    accountId = nextId;
+    challengeRun = null;
+    screen = 'title';
+    game = null;
+    notice = '';
+    unlockedEndings.clear();
+    for (const variants of endingVariants.values()) variants.clear();
+    loadSave();
+    render();
+  }
+  if (screen === 'title') openAccountCallback(root);
 });

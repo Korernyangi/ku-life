@@ -82,51 +82,48 @@ function rouletteScreen({ balance, result }) {
     </article>`;
 }
 
-function clawPerspective(x, depth) {
-  return { x: 50 + (x - 50) * (.72 + depth * .0028), y: 58 + depth * .35 };
-}
+const gripMin = 35;
+const gripMax = 75;
+const shelfHeight = 82;
+const railHeight = 23;
 
-function clawScreen({ balance, prizes, x, result }) {
-  const unaffordable = balance < CLAW_ATTEMPT_FEE;
-  let feeText = `참가비 ${cashText(CLAW_ATTEMPT_FEE)} · ${unaffordable ? '보유 자금 부족' : '집게를 내릴 때 차감'}`;
-  if (result) feeText = result.fee == null ? '' : `사용한 참가비 ${cashText(result.fee)}`;
-  const targets = prizes.filter(({ id }) => id !== result?.item).map(prize => {
-    const { x: left, y: top } = clawPerspective(prize.x, prize.y);
-    return `
-      <div class="claw-prize" data-prize="${prize.id}" style="--left:${left}%; --top:${top}%; --depth:${prize.y}; --hit-area:${prize.radius * 2}%">
-        <span class="claw-target"></span>${itemSprite(prize.id)}
-      </div>`;
-  }).join('');
+function clawScreen({ prizes, x, result }) {
+  const feeText = result ? `사용한 참가비 ${cashText(result.fee ?? CLAW_ATTEMPT_FEE)}`
+    : `참가비 ${cashText(CLAW_ATTEMPT_FEE)} · 집게를 내릴 때 차감`;
+  const targets = prizes.filter(({ id }) => id !== result?.item).map(prize => `
+    <div class="claw-prize" data-prize="${prize.id}" style="left:${prize.x}%">${itemSprite(prize.id)}</div>`).join('');
   const prizeList = prizes.map(({ id }) => `
     <li>${itemSprite(id)}<div><strong>${ITEMS[id].name}</strong><small>${ITEMS[id].detail}</small></div><span class="claw-price">${cashText(ITEMS[id].price)}</span></li>`).join('');
   const resultText = result && (result.item
     ? `${ITEMS[result.item].name} 획득! 인벤토리에 넣었어요.`
-    : '집게가 상품을 놓쳤어요.');
-  const cursor = clawPerspective(x ?? 50, result?.y ?? 50);
+    : result.dropped ? '힘이 초록 구간을 벗어나 상품이 떨어졌어요.' : '집게가 상품을 놓쳤어요.');
   return `
     <article class="panel arcade-panel" data-arcade="claw">
       <p class="context-label">안정성 중간</p>
       <h1 tabindex="-1">인형뽑기</h1>
-      <p>바닥의 조준점을 보고 좌우와 앞뒤를 맞춰요. 비싼 상품일수록 중앙을 정확하게 노려야 해요.</p>
+      <p>좌우로 움직이는 집게를 상품 위에서 내려요. 들어 올릴 때 버튼을 눌렀다 떼며 힘을 초록 구간에 유지하세요.</p>
       <p class="claw-fee" id="claw-fee">${feeText}</p>
       <div class="claw-machine">
         <div class="claw-marquee" aria-hidden="true"></div>
         <div class="claw-glass" aria-hidden="true">
-          <div class="claw-board" style="--aim-x:${cursor.x}%; --aim-y:${cursor.y}%">
+          <div class="claw-board" style="--aim-x:${x ?? 50}%">
             <div class="claw-floor"></div>
             <div class="claw-drop-slot"></div>
             ${targets}
             ${result ? '' : '<div class="claw-aim-marker"></div>'}
-            <div class="claw-rig" style="left:${cursor.x}%; height:35%">
+            <div class="claw-rig" style="left:${x ?? 50}%; height:${railHeight}%">
               <div class="claw-cable"></div>
               <div class="claw-head"><span class="claw-hub"></span><span class="claw-arm"></span><span class="claw-arm"></span></div>
             </div>
+          </div>
+          <div class="claw-gauge" style="--min:${gripMin}%; --max:${gripMax}%" hidden>
+            <span class="claw-gauge-band"></span><span class="claw-gauge-level"></span>
           </div>
         </div>
         <div class="claw-console">
           <span class="claw-stick" aria-hidden="true"></span>
           <span class="claw-chute">${result?.item ? `${itemSprite(result.item)} 수령 완료` : '상품 출구'}</span>
-          ${result ? '' : `<button class="claw-action" type="button" data-action="claw-aim" aria-describedby="claw-fee" ${unaffordable ? 'disabled' : ''}>${x == null ? '좌우 위치 고정' : '집게 내리기'}</button>`}
+          ${result ? '' : '<button class="claw-action" type="button" data-action="claw-aim" aria-describedby="claw-fee">집게 내리기</button>'}
         </div>
         <p class="arcade-status" role="status" tabindex="-1">${resultText ?? ''}</p>
       </div>
@@ -144,21 +141,15 @@ export function arcadeScreen(session) {
 export function mountClaw(root, session) {
   const board = root.querySelector('.claw-board');
   if (!board || session.result) return;
-  const axis = session.x == null ? 'x' : 'y';
-  const period = axis === 'x' ? 3400 : 3000;
   const rig = board.querySelector('.claw-rig');
-  board.dataset.axis = axis;
   const start = performance.now();
   const move = now => {
-    if (!board.isConnected || board.dataset.axis !== axis) return;
-    const phase = ((now - start) / period + .5) % 2;
+    if (!board.isConnected || board.dataset.dropped) return;
+    const phase = ((now - start) / 2700 + .5) % 2;
     const position = 8 + 84 * (1 - Math.abs(phase - 1));
     board.dataset.position = position;
-    const aim = clawPerspective(session.x ?? position, axis === 'x' ? 50 : position);
-    board.style.setProperty('--aim-x', `${aim.x}%`);
-    board.style.setProperty('--aim-y', `${aim.y}%`);
-    rig.style.left = `${aim.x}%`;
-    rig.style.height = `${32 + (axis === 'x' ? 50 : position) * .06}%`;
+    board.style.setProperty('--aim-x', `${position}%`);
+    rig.style.left = `${position}%`;
     requestAnimationFrame(move);
   };
   move(start);
@@ -174,50 +165,140 @@ async function moveClaw(rig, x, y, duration) {
   motion.cancel();
 }
 
-export async function animateArcade(panel, session) {
+export async function animateRoulette(panel, session) {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   for (const button of panel.querySelectorAll('button')) button.disabled = true;
   const status = panel.querySelector('.arcade-status');
-  if (session.kind === 'roulette') {
-    status.textContent = '룰렛이 돌아가는 중…';
-    const resultNote = session.result.percent > 0 ? 784 : session.result.percent < 0 ? 220 : 440;
-    arcadeSound(reduced ? [[0, resultNote]] : [
-      ...[0, .07, .15, .25, .38, .55, .76, 1.01, 1.31, 1.67, 2.08].map(time => [time, 490]),
-      [2.35, resultNote],
-    ]);
-    if (reduced) return;
-    const wheel = panel.querySelector('.roulette-wheel');
-    await wheel.animate(
-      [{ transform: 'rotate(0deg)' }, { transform: `rotate(${rotationFor(session.result.index)}deg)` }],
-      { duration: 2350, easing: 'cubic-bezier(.12, .73, .14, 1)', fill: 'forwards' },
-    ).finished;
-    return;
-  }
-  const { item, y } = session.result;
-  status.textContent = '집게가 내려가는 중…';
-  arcadeSound(item ? [[0, 380], [reduced ? .12 : 1.9, 660]] : [[0, 380], [.69, 210]]);
-  const board = panel.querySelector('.claw-board');
-  board.dataset.axis = 'done';
+  status.textContent = '룰렛이 돌아가는 중…';
+  const resultNote = session.result.percent > 0 ? 784 : session.result.percent < 0 ? 220 : 440;
+  arcadeSound(reduced ? [[0, resultNote]] : [
+    ...[0, .07, .15, .25, .38, .55, .76, 1.01, 1.31, 1.67, 2.08].map(time => [time, 490]),
+    [2.35, resultNote],
+  ]);
   if (reduced) return;
-  const rig = board.querySelector('.claw-rig');
-  const prize = item ? board.querySelector(`[data-prize="${item}"]`) : null;
-  const target = item ? session.prizes.find(prize => prize.id === item) : { x: session.x, y };
-  const grip = clawPerspective(target.x, target.y);
-  await moveClaw(rig, grip.x, grip.y, 520);
-  rig.dataset.closed = 'true';
-  await rig.animate([{ opacity: 1 }, { opacity: 1 }], 160).finished;
-  if (!board.isConnected) return;
-  if (prize) {
-    const size = prize.getBoundingClientRect().width;
-    rig.append(prize);
-    prize.style.width = `${size}px`;
-    status.textContent = '상품을 집어 올렸어요!';
+  const wheel = panel.querySelector('.roulette-wheel');
+  await wheel.animate(
+    [{ transform: 'rotate(0deg)' }, { transform: `rotate(${rotationFor(session.result.index)}deg)` }],
+    { duration: 2350, easing: 'cubic-bezier(.12, .73, .14, 1)', fill: 'forwards' },
+  ).finished;
+}
+
+function liftWithGrip(panel, rig, button, x) {
+  const gauge = panel.querySelector('.claw-gauge');
+  const level = gauge.querySelector('.claw-gauge-level');
+  const controls = new AbortController();
+  const { signal } = controls;
+  let pointer = null;
+  let keyHeld = false;
+  let force = 55;
+  let elapsed = 0;
+
+  gauge.hidden = false;
+  button.removeAttribute('data-action');
+  button.textContent = '눌러 힘 조절';
+  button.disabled = false;
+  button.focus({ preventScroll: true });
+  button.addEventListener('pointerdown', event => {
+    if (event.button !== 0 || pointer !== null) return;
+    event.preventDefault();
+    pointer = event.pointerId;
+    button.setPointerCapture(pointer);
+  }, { signal });
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    button.addEventListener(type, event => {
+      if (pointer === event.pointerId) pointer = null;
+    }, { signal });
   }
-  await moveClaw(rig, grip.x, 32, 440);
-  if (!prize || !board.isConnected) return;
-  await moveClaw(rig, 13, 32, 470);
+  for (const type of ['keydown', 'keyup']) {
+    button.addEventListener(type, event => {
+      if (event.code !== 'Space' && event.code !== 'Enter') return;
+      event.preventDefault();
+      keyHeld = type === 'keydown';
+    }, { signal });
+  }
+  const release = () => { pointer = null; keyHeld = false; };
+  button.addEventListener('blur', release, { signal });
+  window.addEventListener('blur', release, { signal });
+  document.addEventListener('visibilitychange', release, { signal });
+
+  return new Promise(resolve => {
+    let previous = performance.now();
+    const frame = now => {
+      const dt = Math.min(0.05, Math.max(0, (now - previous) / 1000));
+      previous = now;
+      if (!document.hidden) {
+        elapsed += dt;
+        const held = pointer !== null || keyHeld;
+        button.classList.toggle('is-held', held);
+        force += (held ? 37 : -29) * dt;
+      }
+      level.style.bottom = `${force}%`;
+      rig.style.left = `${x}%`;
+      rig.style.height = `${shelfHeight - (shelfHeight - railHeight) * Math.min(elapsed / 2.45, 1)}%`;
+      const safe = force >= gripMin && force <= gripMax;
+      if (panel.isConnected && safe && elapsed < 2.45) {
+        requestAnimationFrame(frame);
+        return;
+      }
+      if (pointer !== null && button.hasPointerCapture(pointer)) button.releasePointerCapture(pointer);
+      controls.abort();
+      button.disabled = true;
+      button.classList.remove('is-held');
+      gauge.hidden = true;
+      resolve(panel.isConnected && safe);
+    };
+    frame(previous);
+  });
+}
+
+async function dropPrize(board, prize, x, from, to, duration) {
+  board.append(prize);
+  prize.style.left = `${x}%`;
+  prize.style.top = `${to}%`;
+  await prize.animate([
+    { top: `${from}%`, rotate: '-9deg' },
+    { top: `${to}%`, rotate: '12deg', offset: .83 },
+    { top: `${to - 2}%`, rotate: '-5deg', offset: .92 },
+    { top: `${to}%`, rotate: '0deg' },
+  ], { duration, easing: 'ease-in' }).finished;
+}
+
+export async function playClaw(panel, session, button) {
+  const board = panel.querySelector('.claw-board');
+  const rig = board.querySelector('.claw-rig');
+  const status = panel.querySelector('.arcade-status');
+  const target = panel.querySelector(`[data-prize="${session.drop.item}"]`);
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  board.dataset.dropped = 'true';
+  button.disabled = true;
+  status.textContent = '집게가 내려가는 중…';
+  arcadeSound([[0, 380]]);
+  await moveClaw(rig, session.x, shelfHeight, reduced ? 0 : 530);
+  rig.dataset.closed = 'true';
+  if (!target) {
+    status.textContent = '집게 아래에 상품이 없어요.';
+    await moveClaw(rig, session.x, railHeight, reduced ? 0 : 440);
+    return false;
+  }
+
+  const x = session.prizes.find(prize => prize.id === session.drop.item).x;
+  rig.style.left = `${x}%`;
+  target.style.width = `${target.getBoundingClientRect().width}px`;
+  rig.append(target);
+  status.textContent = '버튼을 눌렀다 떼며 초록 구간을 유지하세요.';
+  const held = await liftWithGrip(panel, rig, button, x);
+  if (!panel.isConnected) return false;
+  if (!held) {
+    rig.dataset.closed = 'false';
+    status.textContent = '힘이 초록 구간을 벗어나 상품이 떨어졌어요.';
+    arcadeSound([[0, 220]]);
+    await dropPrize(board, target, x, parseFloat(rig.style.height), shelfHeight, reduced ? 0 : 440);
+    return false;
+  }
+
+  await moveClaw(rig, 13, railHeight, reduced ? 0 : 440);
   rig.dataset.closed = 'false';
-  await prize.animate([{ top: '100%', opacity: 1 }, { top: '275%', opacity: .25, scale: '.68' }], {
-    duration: 350, easing: 'ease-in', fill: 'forwards',
-  }).finished;
+  arcadeSound([[0, 660], [.1, 880]]);
+  await dropPrize(board, target, 13, railHeight, 106, reduced ? 0 : 430);
+  return true;
 }
