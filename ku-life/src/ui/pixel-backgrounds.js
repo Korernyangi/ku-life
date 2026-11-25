@@ -1,5 +1,3 @@
-import { getSeasonFromSemester } from '../voxel/particles.js';
-
 // All artwork uses the scene's 320 × 180 logical pixel grid.
 const STONE = ['#b2a38c', '#9b8c79', '#d8c8a7', '#72675d'];
 const CAMPUS_SEASONS = {
@@ -388,7 +386,7 @@ function festivalField(rect) {
   }
 }
 
-export function drawPixelBackground(ctx, scene, semester, season = getSeasonFromSemester(semester)) {
+export function drawPixelBackground(ctx, scene, semester, season = semester % 2 === 0 ? 'autumn' : 'spring') {
   const rect = (x, y, width, height, color) => {
     ctx.fillStyle = color;
     ctx.fillRect(x, y, width, height);
