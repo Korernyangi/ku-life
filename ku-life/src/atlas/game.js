@@ -365,15 +365,8 @@ export class AtlasGame {
   }
 
   buy(id, quantity = 1) {
-    return this.buyMany({ [id]: quantity });
-  }
-
-  buyMany(order) {
-    const lines = Object.entries(order);
-    if (!lines.length || lines.some(([id, quantity]) => this.buyReason(id, quantity))) return false;
-    const total = lines.reduce((sum, [id, quantity]) => sum + ITEMS[id].price * quantity, 0);
-    if (total > this.state.cash || !this.changeCash(-total)) return false;
-    for (const [id, quantity] of lines) this.updateInventory(id, quantity);
+    if (this.buyReason(id, quantity) || !this.changeCash(-ITEMS[id].price * quantity)) return false;
+    this.updateInventory(id, quantity);
     return true;
   }
 

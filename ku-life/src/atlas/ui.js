@@ -267,9 +267,6 @@ function showTerm() {
           <input type="number" min="1" step="1" ${item.type === 'consumable' ? '' : 'max="1" readonly'} value="1" required inputmode="numeric" aria-label="${escape(item.name)} 구매 수량">
           <button type="button" class="secondary" data-action="buy" data-value="${id}"></button>
         </div>
-        <label class="shop-select">
-          <input type="checkbox" aria-label="${escape(item.name)} 함께 구매에 담기"> 담기
-        </label>
         <div class="shop-message"><small class="lock-reason"></small><small class="shop-feedback" role="status"></small></div>
       </div></li>`;
   }).join('');
@@ -293,14 +290,7 @@ function showTerm() {
       <div class="term-actions actions"><button class="primary" data-action="next-term">${semester !== termCount ? '다음 학기' : game.gpa < RULES.graduationGpa ? '최종 결과 보기' : '졸업 후 진로 선택'}</button><button class="secondary" data-action="arcade-menu" ${game.arcadePlayed ? 'disabled' : ''}>${game.arcadePlayed ? '미니게임 완료' : '미니게임'}</button></div>
       <section class="shop" aria-labelledby="shop-title">
         <h2 id="shop-title">학기 말 상점</h2>
-        <p class="muted">여러 상품을 사려면 수량을 정하고 담은 뒤 목록 아래에서 함께 구매하세요.</p>
         <ul class="items">${stock}</ul>
-        <div class="shop-checkout">
-          <div><strong data-shop-total tabindex="-1"></strong>
-            <div class="shop-message"><small class="lock-reason"></small><small class="shop-feedback" role="status"></small></div>
-          </div>
-          <button type="button" class="primary" data-action="buy-many">함께 구매</button>
-        </div>
       </section>
     </article>`;
 }
@@ -311,63 +301,35 @@ function shopQuantity(input) {
 }
 
 function updateShop(shop) {
-  const order = {};
-  let total = 0;
-  let count = 0;
-  let invalid = false;
   for (const row of shop.querySelectorAll('[data-shop-item]')) {
     const id = row.dataset.shopItem;
     const input = row.querySelector('input[type="number"]');
-    const selection = row.querySelector('input[type="checkbox"]');
     const button = row.querySelector('button');
     const quantity = shopQuantity(input);
     const reason = quantity === null ? '1 이상의 정수를 입력해 주세요.' : game.buyReason(id, quantity);
-    const unavailable = Boolean(game.buyReason(id));
-    input.disabled = unavailable;
-    selection.disabled = unavailable && !selection.checked;
+    input.disabled = Boolean(game.buyReason(id));
     button.disabled = Boolean(reason);
     button.textContent = quantity === null ? '구매' : `${quantity}개 구매`;
     button.setAttribute('aria-label', `${ITEMS[id].name} ${button.textContent}`);
     row.querySelector('.lock-reason').textContent = reason;
-    if (!selection.checked) continue;
-    if (reason) invalid = true;
-    if (quantity === null) continue;
-    order[id] = quantity;
-    total += ITEMS[id].price * quantity;
-    count += quantity;
   }
-  const checkout = shop.querySelector('.shop-checkout');
-  const overBudget = total > game.state.cash;
-  checkout.querySelector('[data-shop-total]').textContent = `${count.toLocaleString('ko-KR')}개 선택 · ${cashText(total)}`;
-  checkout.querySelector('.lock-reason').textContent = overBudget ? '보유 자금이 부족합니다.' : '';
-  checkout.querySelector('button').disabled = !count || invalid || overBudget;
-  return order;
 }
 
 function purchaseFromShop(button, id) {
   const shop = button.closest('.shop');
-  const order = updateShop(shop);
-  if (button.disabled) return;
-  const area = button.closest(id ? '[data-shop-item]' : '.shop-checkout');
-  const quantity = id ? shopQuantity(area.querySelector('input[type="number"]'))
-    : Object.values(order).reduce((sum, count) => sum + count, 0);
-  const purchased = id ? game.buy(id, quantity) : game.buyMany(order);
-  if (!purchased) return;
+  const row = button.closest('[data-shop-item]');
+  const input = row.querySelector('input[type="number"]');
+  const quantity = shopQuantity(input);
+  if (quantity === null || !game.buy(id, quantity)) return;
 
   persist();
   clearShopFeedback(shop);
-  for (const itemId of id ? [id] : Object.keys(order)) {
-    const row = shop.querySelector(`[data-shop-item="${itemId}"]`);
-    row.querySelector('input[type="number"]').value = 1;
-    row.querySelector('input[type="checkbox"]').checked = false;
-  }
+  input.value = 1;
   root.querySelector('[data-balance]').textContent = cashText(game.state.cash);
-  const message = id ? `${ITEMS[id].name} ${quantity}개 구매 완료.` : `선택한 상품 ${quantity}개 구매 완료.`;
-  area.querySelector('.shop-feedback').textContent = [message, storageNotice].filter(Boolean).join(' ');
+  const message = `${ITEMS[id].name} ${quantity}개 구매 완료.`;
+  row.querySelector('.shop-feedback').textContent = [message, storageNotice].filter(Boolean).join(' ');
   updateShop(shop);
-  if (button.disabled) {
-    area.querySelector(id ? 'h3' : '[data-shop-total]').focus({ preventScroll: true });
-  }
+  if (button.disabled) row.querySelector('h3').focus({ preventScroll: true });
 }
 
 function clearShopFeedback(shop) {
@@ -683,7 +645,6 @@ root.addEventListener('click', event => {
       actionResult(game.chooseCareer(button.dataset.route, value));
       break;
     case 'buy':
-    case 'buy-many':
       purchaseFromShop(button, value);
       break;
     case 'use':

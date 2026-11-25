@@ -160,17 +160,17 @@ test('minigames receive a current balance and cannot double-settle or create deb
   assert.equal(game.state.cash, 50_000);
 });
 
-test('shop orders buy multiple items together or leave the balance and inventory intact', () => {
-  const game = fixture('walk', { phase: 'term', semester: 3, cash: 330_000 });
-  for (const order of [{}, { vitamins: 0 }, { vitamins: 1.5 }, { jacket: 2 }, { vitamins: 2, notes: 1 }]) {
-    assert.equal(game.buyMany(order), false);
-    assert.equal(game.state.cash, 330_000);
+test('a shop purchase validates quantity and charges for every unit of the selected item', () => {
+  const game = fixture('walk', { phase: 'term', semester: 3, cash: 210_000 });
+  for (const [id, quantity] of [['vitamins', 0], ['vitamins', -1], ['vitamins', 1.5], ['jacket', 2], ['vitamins', 3]]) {
+    assert.equal(game.buy(id, quantity), false);
+    assert.equal(game.state.cash, 210_000);
     assert.deepEqual(game.state.inventory, {});
   }
-  assert.equal(game.buyMany({ vitamins: 2, jacket: 1 }), true);
+  assert.equal(game.buy('vitamins', 2), true);
   assert.equal(game.state.cash, 10_000);
   const restored = new AtlasGame(game.state);
-  assert.deepEqual(restored.state.inventory, { vitamins: 2, jacket: 1 });
+  assert.deepEqual(restored.state.inventory, { vitamins: 2 });
   assert.equal(restored.buy('vitamins', 2), false);
   assert.equal(restored.state.cash, 10_000);
 });
