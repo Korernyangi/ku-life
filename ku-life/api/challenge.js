@@ -11,6 +11,13 @@ function requireData(result) {
   return result.data;
 }
 
+function unavailable(res, reason, upstreamCode) {
+  const code = typeof upstreamCode === 'string' && /^[a-zA-Z0-9_]{1,60}$/.test(upstreamCode)
+    && !upstreamCode.startsWith('sb_') ? upstreamCode : undefined;
+  console.error('[challenge]', { reason, code });
+  return res.status(503).json({ error: reason });
+}
+
 function publicRun(row) {
   return row && { id: row.id, revision: row.revision, state: row.state, score: row.score, published: row.public_nickname != null };
 }
@@ -81,8 +88,12 @@ export function challengeHandler(db) {
         .eq('id', row.id).eq('user_id', user.id).eq('revision', row.revision).select(runFields).maybeSingle());
       if (!saved) return res.status(409).json({ run: publicRun(await latest()) });
       return res.status(200).json({ run: publicRun(saved) });
-    } catch {
-      return res.status(503).json({});
+    } catch (error) {
+      const code = error?.code;
+      const reason = ['PGRST204', 'PGRST205', '42P01', '42703'].includes(code) ? 'CHALLENGE_SCHEMA_MISSING'
+        : code === '42501' ? 'CHALLENGE_DATABASE_PERMISSION'
+        : 'CHALLENGE_DATABASE_ERROR';
+      return unavailable(res, reason, code);
     }
   };
 }
@@ -90,7 +101,12 @@ export function challengeHandler(db) {
 export default function handler(req, res) {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return res.status(503).json({});
-  const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  if (!url || !key) return unavailable(res, 'CHALLENGE_CONFIGURATION_MISSING');
+  let db;
+  try {
+    db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  } catch {
+    return unavailable(res, 'CHALLENGE_CONFIGURATION_INVALID');
+  }
   return challengeHandler(db)(req, res);
 }

@@ -581,6 +581,18 @@ async function challengeRequest(body, view = '') {
   });
   if (response.status === 401 || response.status === 403) throw new Error('인증된 고려대 계정으로 다시 로그인해 주세요.');
   if (response.status === 422) throw new Error('현재 진행 단계에서는 이 선택을 할 수 없어요.');
+  if (response.status === 503) {
+    const { error } = await response.json().catch(() => ({}));
+    if (['CHALLENGE_CONFIGURATION_MISSING', 'CHALLENGE_CONFIGURATION_INVALID'].includes(error)) {
+      throw new Error('도전 서버 설정을 확인해 주세요. (Vercel 환경 변수)');
+    }
+    if (error === 'CHALLENGE_SCHEMA_MISSING') {
+      throw new Error('도전 기록 저장소 설정을 확인해 주세요. (Supabase 도전모드 SQL)');
+    }
+    if (error === 'CHALLENGE_DATABASE_PERMISSION') {
+      throw new Error('도전 기록 저장소의 접근 권한을 확인해 주세요.');
+    }
+  }
   if (!response.ok && response.status !== 409) throw new Error('도전 서버에 연결하지 못했습니다. 다시 시도해 주세요.');
   const result = await response.json();
   return { ...result, stale: response.status === 409 };
