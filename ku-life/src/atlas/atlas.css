@@ -312,6 +312,9 @@ thead, tfoot { background: #f4e5cb; }
 .ending h1 { color: var(--crimson); }
 .hidden-ending { border-top: 5px solid var(--crimson); }
 .hidden-ending .event-description, .ending-archive li p { white-space: pre-line; }
+.ending-keepsake { margin: 14px 0; padding: 12px 15px; border-left: 3px solid var(--crimson); background: #f4e9d6; }
+.ending-keepsake figcaption { color: var(--crimson); font-size: .88rem; font-weight: 850; }
+.ending-keepsake blockquote { margin: 5px 0 0; font-weight: 650; }
 .student-major { margin: 4px 0 8px; color: var(--crimson); font-weight: 800; }
 .career-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .career-choices button { height: 100%; }

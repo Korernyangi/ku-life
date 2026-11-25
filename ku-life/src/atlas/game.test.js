@@ -60,12 +60,12 @@ test('zero health immediately ends a run while zero mental can trigger recovery'
     stats: { hp: 5, mental: 0 }, streak: { mental: 1, critical: 1, both: 1 },
   });
   play(survived, 0);
-  assert.equal(survived.state.phase, 'result');
-  assert.deepEqual(survived.state.receipt.gained, ['lethargy', 'burnout', 'depression']);
-  survived.nextEvent();
-  assert.equal(survived.event.id, 'health_crisis');
+  assert.equal(survived.state.phase, 'event');
+  assert.deepEqual(survived.state.history.at(-1).gained, ['lethargy', 'burnout', 'depression']);
+  assert.equal(survived.event.id, 'recovery_leave');
+  assert.equal(survived.event.choices.length, 1);
   play(survived, 0);
-  assert.ok(survived.state.receipt.cleared.includes('burnout'));
+  assert.equal(survived.state.ending.id, 'recovery');
 });
 
 test('paid outcomes, recorded experiences, inventory and delayed chains survive save and restore', () => {
@@ -97,8 +97,10 @@ test('paid outcomes, recorded experiences, inventory and delayed chains survive 
 
 test('stat, item and condition modifiers affect probability and their use is single-shot', () => {
   const state = { inventory: { laptop: 1 }, boosts: { currentGpa: 0, nextGpa: 0, chance: .15 }, stats: { intelligence: 14 } };
-  const ready = fixture('lab_offer', state, () => .9);
-  const runDown = fixture('lab_offer', { ...state, stats: { intelligence: 14, mental: 2 }, streak: { mental: 2, critical: 2, both: 0 } }, () => .9);
+  const ready = fixture('lab_offer', state, () => .93);
+  const runDown = fixture('lab_offer', {
+    ...state, stats: { intelligence: 14, mental: 4, hp: 5 }, streak: { mental: 2, critical: 0, both: 2 },
+  }, () => .93);
   play(ready, 0);
   play(runDown, 0);
   assert.equal(ready.state.receipt.chance.won, true);
@@ -241,13 +243,17 @@ test('event content always offers a fallback and references registered items, fl
   assert.equal(ids.size, EVENTS.length);
   const healthy = new AtlasGame();
   for (const event of EVENTS) {
-    assert.ok(event.choices.length >= 2 && event.choices.length <= 4, event.id);
+    if (event.ending) {
+      assert.ok(ENDINGS[event.ending]?.hidden, event.id);
+      assert.equal(event.choices.length, 1, event.id);
+    } else {
+      assert.ok(event.choices.length >= 2 && event.choices.length <= 4, event.id);
+    }
     assert.ok(event.choices.some(choice => !(choice.requires || choice.cash < 0 || choice.intensity === 'high')), event.id);
     for (const option of event.choices.flatMap(choice => [choice, choice.chance?.success, choice.chance?.failure]).filter(Boolean)) {
       for (const id of option.grant ?? []) assert.ok(EXPERIENCES[id], id);
       for (const id of Object.keys(option.items ?? {})) assert.ok(ITEMS[id], id);
       if (option.schedule) assert.ok(ids.has(option.schedule.id), option.schedule.id);
-      if (option.ending) assert.ok(ENDINGS[option.ending]?.early, option.ending);
     }
     assert.ok(event.choices.some(choice => !healthy.choiceReasons(choice).length), event.id);
   }
@@ -322,7 +328,7 @@ test('the calendar preserves past choices and does not repeat a festival already
   assert.equal(resumed.state.history.length, 9);
 });
 
-test('graduation choices can reach each basic and special ending and award the corresponding score', () => {
+test('all basic endings remain reachable and award the corresponding score', () => {
   const stats = { hp: 20, intelligence: 20, social: 20, mental: 20 };
   const base = { stats, cash: 3_000_000, flags: [], history: [] };
   const cases = [
@@ -334,13 +340,11 @@ test('graduation choices can reach each basic and special ending and award the c
     ['employee', 'employee', []],
     ['rich_life', 'rich_life', []],
     ['ordinary', 'ordinary', []],
-    ['grad_school', 'professor', ['lab', 'researchProposal']],
-    ['corporate', 'top_graduate', ['job', 'internship']],
-    ['campus_legend', 'campus_legend', ['cheerOt', 'koyeonjeon', 'ipselenti']],
   ];
   for (const [route, id, flags] of cases) {
     assert.equal(resolveEnding({ ...base, flags }, 4.5, route), id);
-    assert.equal(endingScore(base, 4.5, id).total, ENDINGS[id].special ? 1000 : 970);
+    assert.equal(endingScore(base, 4.5, id).total, 970);
+    assert.ok(ENDINGS[id].keepsake?.text);
   }
   assert.equal(new Set([...cases.map(([, id]) => id), 'dropout']).size, Object.values(ENDINGS).filter(ending => !ending.hidden).length);
   assert.equal(resolveEnding({ ...base, stats: { ...stats, hp: 0 } }, null, 'corporate'), 'dropout');
@@ -348,7 +352,11 @@ test('graduation choices can reach each basic and special ending and award the c
   assert.equal(resolveEnding(base, 1.99, 'corporate'), 'ordinary');
   assert.equal(resolveEnding(base, 4.5, 'corporate'), 'employee');
   assert.equal(resolveEnding(base, 4.5, 'campus_legend'), 'ordinary');
-  assert.equal(resolveEnding({ ...base, flags: ['lab'], history: [{ eventId: 'graduation', choice: '졸업생 연구 제안을 검토한다' }] }, 3.75, 'grad_school'), 'professor');
+  for (const [oldId, id] of [['professor', 'grad_school'], ['top_graduate', 'corporate'], ['campus_legend', 'ordinary']]) {
+    assert.equal(ENDINGS[oldId], undefined);
+    const old = fixture('graduation', { phase: 'ended', ending: { id: oldId, route: oldId, achievements: [] } });
+    assert.deepEqual(old.state.ending, { id, route: id, achievements: [] });
+  }
 });
 
 test('choosing the relationship milestones in consecutive semesters can end a fresh game early', () => {
@@ -385,45 +393,83 @@ test('choosing the relationship milestones in consecutive semesters can end a fr
   assert.deepEqual(new AtlasGame(oldSave).state.scheduled, [{ id: 'couple_dates', semester: 5 }]);
 });
 
-test('sustained critical mental opens a treatment ending alongside the regular recovery choices', () => {
-  const recent = fixture('mental_crisis', { stats: { mental: 2 }, streak: { mental: 1, critical: 1, both: 0 } });
-  assert.equal(recent.choose(2, recent.eventToken), false);
-  const crisis = { stats: { mental: 2 }, streak: { mental: 3, critical: 2, both: 0 } };
-  const regular = fixture('mental_crisis', crisis);
+test('a saved treatment threshold leaves one ending choice while moderate distress can recover', () => {
+  const regular = fixture('mental_crisis', { stats: { mental: 2 }, streak: { mental: 1, critical: 1, both: 0 } });
+  assert.equal(regular.event.choices.length, 2);
   play(regular, 0);
   assert.equal(regular.state.phase, 'result');
   assert.equal(regular.state.streak.critical, 0);
-  const leave = fixture('mental_crisis', { ...crisis, semester: 3 });
-  play(leave, 2);
+
+  const leave = fixture('mental_crisis', {
+    stats: { mental: 2 }, streak: { mental: 3, critical: 2, both: 0 }, inventory: { counseling: 1 }, semester: 3,
+  });
+  assert.equal(leave.event.id, 'recovery_leave');
+  assert.equal(leave.event.choices.length, 1);
+  assert.equal(leave.use('counseling'), false);
+  assert.equal(leave.choose(1, leave.eventToken), false);
+  play(leave, 0);
   assert.equal(leave.state.phase, 'ended');
   assert.equal(leave.state.ending.id, 'recovery');
   assert.ok(leave.state.history.at(-1).flags.includes('recoveryLeave'));
   assert.equal(endingScore(leave.state, leave.gpa, leave.state.ending.id).bonus, 100);
 });
 
-test('hidden endings reveal their title and story only after discovery and never appear in career choices', () => {
+test('hidden endings have no archive data until discovery and never appear in career choices', () => {
   const { state } = new AtlasGame();
   const routes = careerOptions(state, 4.5).map(option => option.id);
-  for (const id of ['family', 'recovery']) {
-    const ending = ENDINGS[id];
+  const hidden = Object.entries(ENDINGS).filter(([, ending]) => ending.hidden);
+  assert.equal(hidden.length, 5);
+  for (const [id, ending] of hidden) {
     assert.equal(ending.special, true);
     assert.equal(routes.includes(id), false);
-    assert.deepEqual(archiveEndingInfo(ending, false), { icon: '🔒', title: '???', description: '발견하면 공개되는 히든 스페셜 엔딩' });
+    assert.equal(archiveEndingInfo(ending, false), null);
     assert.equal(archiveEndingInfo(ending, true).title, ending.title);
     assert.equal(archiveEndingInfo(ending, true).description, ending.description);
   }
 });
 
-test('both ending previews start one real choice away from the requested ending', () => {
+test('the existing ending preview links each open a single final choice', () => {
   assert.equal(createEndingPreview('unknown'), null);
-  for (const [id, eventId, choiceIndex] of [['family', 'couple_future', 0], ['recovery', 'mental_crisis', 2]]) {
+  for (const [id, eventId] of [['family', 'couple_future'], ['recovery', 'recovery_leave']]) {
     const game = createEndingPreview(id);
     assert.equal(game.state.phase, 'event', id);
     assert.equal(game.state.ending, null, id);
     assert.equal(game.event.id, eventId);
     assert.ok(game.state.history.length > 0);
-    assert.ok(game.event.choices.some((choice, index) => index !== choiceIndex && !game.choiceReasons(choice).length));
-    play(game, choiceIndex);
+    assert.equal(game.event.choices.length, 1);
+    play(game, 0);
+    assert.equal(game.state.phase, 'ended');
+    assert.equal(game.state.ending.id, id);
+  }
+});
+
+test('work, newspaper, and arcade achievements each lead to one ending choice', () => {
+  const worker = fixture('parttime', {
+    semester: 5, cash: 1_400_000,
+    history: [{ eventId: 'parttime', semester: 2, cash: 250_000 }, { eventId: 'parttime', semester: 4, cash: 250_000 }],
+  });
+  play(worker, 0);
+  assert.equal(worker.event.id, 'cafe_keys');
+
+  const reporter = fixture('newspaper_special', { flags: ['reporter', 'koyeonjeon', 'ipselenti'] });
+  play(reporter, 0);
+  assert.equal(reporter.event.id, 'newspaper_extra');
+
+  let arcade = fixture('walk', { phase: 'term', semester: 3, clawWins: 2 });
+  assert.equal(arcade.beginArcade('claw'), true);
+  const prize = arcade.state.minigame.prizes[0];
+  assert.equal(arcade.aimClaw(prize.x), true);
+  assert.equal(arcade.aimClaw(prize.y), true);
+  assert.equal(arcade.state.clawWins, 3);
+  arcade = new AtlasGame(JSON.parse(JSON.stringify(arcade.state)));
+  assert.equal(arcade.aimClaw(prize.y), false);
+  assert.equal(arcade.closeArcade(), true);
+  assert.equal(arcade.event.id, 'claw_handoff');
+
+  for (const [game, id] of [[worker, 'cafe'], [reporter, 'newspaper'], [arcade, 'claw']]) {
+    assert.equal(game.event.choices.length, 1);
+    assert.equal(game.nextEvent(), false);
+    play(game, 0);
     assert.equal(game.state.phase, 'ended');
     assert.equal(game.state.ending.id, id);
   }
@@ -446,16 +492,14 @@ test('every selectable major has distinct career text and survives a saved game'
 
 test('the displayed career lock is enforced and an eligible basic ending remains selectable', () => {
   const game = fixture('graduation', {
-    phase: 'career', semester: 8, grades: Array(8).fill(3.7), flags: ['lab'],
-    majorId: 'computer-science',
+    phase: 'career', semester: 8, grades: Array(8).fill(3.7), flags: ['lab', 'job'],
+    majorId: 'computer-science', stats: { intelligence: 14, social: 12 },
   });
-  const options = careerOptions(game.state, game.gpa);
-  const professor = options.find(option => option.id === 'professor');
-  assert.ok(professor.reasons.some(reason => reason.includes('3.75') && reason.includes('3.70')));
-  assert.equal(game.chooseCareer(professor.route, professor.id), false);
-  game.state.grades.fill(4);
-  game.state.flags.push('researchProposal');
-  assert.equal(careerOptions(game.state, game.gpa).find(option => option.id === 'professor').reasons.length, 0);
+  const corporate = careerOptions(game.state, game.gpa).find(option => option.id === 'corporate');
+  assert.ok(corporate.reasons.some(reason => reason.includes('15') && reason.includes('14')));
+  assert.equal(game.chooseCareer(corporate.route, corporate.id), false);
+  game.state.stats.intelligence = 15;
+  assert.equal(careerOptions(game.state, game.gpa).find(option => option.id === 'corporate').reasons.length, 0);
   assert.equal(game.chooseCareer('corporate', 'grad_school'), false);
   assert.equal(game.chooseCareer('grad_school', 'grad_school'), true);
   assert.equal(game.state.ending.id, 'grad_school');

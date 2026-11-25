@@ -268,15 +268,6 @@ export const EVENTS = [
     ],
   },
   {
-    id: 'couple_future', title: '우리의 다음 시간표', scene: 'parttime', kind: 'chain',
-    requires: { flags: ['dating', 'coupleTime'] },
-    description: '둘이 같이 살고 언젠가 아이를 키우는 모습을 그려 본다. 생활비와 돌봄을 어떻게 나눌지 적어 놓으니, 학교 일정도 다시 짜야 할 것 같다.',
-    choices: [
-      pick('한 학기 쉬고 둘이 세운 가족 계획을 시작한다', '휴학 신청서를 내고, 둘이 그려 둔 생활을 준비하기 시작했다.', {}, { grant: ['familyPlan'], ending: 'family' }),
-      pick('학교를 다니며 계획을 천천히 준비한다', '오늘 적은 종이를 집에 가져왔다. 다음 학기도 함께 걸을 길이 많다.', { mental: 2 }),
-    ],
-  },
-  {
     id: 'club_chair', title: '동아리 회장 제안', scene: 'club', kind: 'conditional', terms: [3, 4, 5, 6],
     requires: { flags: ['club'], min: { social: RULES.strongNetwork } },
     description: '다음 학기 동아리를 운영해 달라는 제안이 왔다.',
@@ -396,9 +387,47 @@ export const EVENTS = [
     choices: [
       pick('상담 시간을 잡고 당분간 쉬어 간다', '부담을 말로 정리하고 할 일을 두 가지로 줄였다.', { mental: 7, hp: 2 }, { resetMental: true }),
       pick('믿을 만한 동기와 짧게 산책한다', '대화가 길어지지는 않았지만 혼자 가진 부담은 줄었다.', { mental: 4, social: 1, hp: 2 }),
-      pick('휴학하고 진료와 회복에 시간을 쓰기로 한다', '상담 선생님과 진료 일정을 잡았다. 이번 학기 시간표에서 가장 먼저 비운 칸은 내일 아침이다.', {}, {
-        requires: { anyStatuses: ['depression'] }, grant: ['recoveryLeave'], ending: 'recovery',
-      }),
+    ],
+  },
+  {
+    id: 'recovery_leave', title: '상담센터에서 온 연락', scene: 'campus', kind: 'crisis', ending: 'recovery',
+    requires: { anyStatuses: ['depression'] },
+    description: '몸과 마음이 버거운 날이 이어졌다. 상담 선생님과 이야기를 나누고, 이번 학기의 일정을 비워 치료에 시간을 내기로 한다.',
+    choices: [
+      pick('휴학하고 진료와 회복에 시간을 쓰기로 한다', '상담 선생님과 진료 일정을 잡았다. 이번 학기 시간표에서 가장 먼저 비운 칸은 내일 아침이다.', {}, { grant: ['recoveryLeave'] }),
+    ],
+  },
+  {
+    id: 'couple_future', title: '우리의 다음 시간표', scene: 'parttime', kind: 'chain', ending: 'family',
+    requires: { flags: ['dating', 'coupleTime'] },
+    description: '공강마다 만나던 카페에서 둘이 정리한 계획을 다시 펼쳤다. 같이 살 집과 서로 나눌 일까지 적혀 있다. 이제 계획표를 덮고 첫 일정을 시작할 차례다.',
+    choices: [
+      pick('한 학기 쉬고 둘이 세운 가족 계획을 시작한다', '휴학 신청서를 내고, 둘이 그려 둔 생활을 준비하기 시작했다.', {}, { grant: ['familyPlan'] }),
+    ],
+  },
+  {
+    id: 'newspaper_extra', title: '인쇄소 마감 3분 전', scene: 'study', kind: 'chain', ending: 'newspaper',
+    requires: { flags: ['published', 'ipselenti', 'koyeonjeon'] },
+    description: '입실렌티 사진과 고연전 사진을 같은 책상에 펼쳤다. 두 장의 오른쪽 아래를 번갈아 본 후배 기자가 인쇄소에 전화를 걸었다. “한 장만 더 뽑을게요.”',
+    choices: [
+      pick('사진 두 장으로 호외를 인쇄한다', '기자단 채팅방에 지면을 올렸다. 교수님보다 댓글이 먼저 도착했다. “그 고양이 저희 조에도 있어요.”'),
+    ],
+  },
+  {
+    id: 'cafe_keys', title: '맨 마지막 교대 근무', scene: 'parttime', kind: 'chain', ending: 'cafe',
+    requires: { cash: 1_650_000 },
+    endingTrigger: state => state.history.filter(entry => entry.eventId === 'parttime' && entry.cash >= 250_000).length >= 3,
+    description: '주말마다 맡던 카페에서 마감 정산을 했다. 사장님이 늘 앉던 자리에 열쇠와 단골의 주문 노트가 놓여 있다. “내일부터 여기 이름은 네가 정해.”',
+    choices: [
+      pick('가게 열쇠를 받아 내일 문을 열기로 한다', '단골들의 주문을 기억해 냈다. 제일 먼저 적은 메뉴는 ‘팀플 4인 세트’였다.'),
+    ],
+  },
+  {
+    id: 'claw_handoff', title: '기계 뒷문이 열렸다', scene: 'club', kind: 'chain', ending: 'claw',
+    endingTrigger: state => state.clawWins >= 3,
+    description: '집게가 세 번째로 상품을 놓았다. 기계 주인이 유리 너머로 불러 세웠다. 들고 있는 건 상품이 아니라 당신에게 맞는 작업 장갑이었다.',
+    choices: [
+      pick('작업 장갑을 끼고 상품 배치를 맡는다', '늘 보던 유리 상자 뒷문을 열었다. 오래 걸려서 뽑은 상품 세 개를 다시 떠올렸다.'),
     ],
   },
   {

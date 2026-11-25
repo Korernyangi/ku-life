@@ -21,7 +21,7 @@ function drawCard(canvas, portrait, ending, state, score, gpa) {
   context.lineWidth = 3;
   context.strokeRect(28, 104, 144, 168);
 
-  text(ending.legacy ? '지난 플레이 결과' : ending.special ? '스페셜 엔딩' : '기본 엔딩', 198, 127, 19, '#6e554e');
+  text(ending.legacy ? '지난 플레이 결과' : ending.hidden ? '히든 엔딩' : '기본 엔딩', 198, 127, 19, '#6e554e');
   text(ending.title, 198, 164, 31, '#77253d', 900, 411);
   text(`토탈 스코어 ${score.total.toLocaleString('ko-KR')} / ${score.max.toLocaleString('ko-KR')}`, 198, 207, 23);
   text([ending.major, `${state.semester}학기 · 선택 ${state.history.length}개`].filter(Boolean).join(' · '), 198, 245, 20, '#6e554e', 411);

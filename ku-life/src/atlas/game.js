@@ -1,11 +1,12 @@
 import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, TERM_CALENDAR, cashText } from './config.js';
-import { CAREER_ROUTES, careerOptions, resolveEnding } from './endings.js';
+import { CAREER_ROUTES, careerOptions, normalizeEnding, resolveEnding } from './endings.js';
 import { findMajor } from './majors.js';
 import { EVENTS } from './events.js';
 import { CLAW_ATTEMPT_FEE, ROULETTE, clawBoard, clawHitRadius, clawPrize, rouletteCash } from './arcade.js';
 
 const eventById = Object.fromEntries(EVENTS.map(event => [event.id, event]));
 const recoveryEvents = EVENTS.filter(event => event.kind === 'crisis');
+const endingEvents = EVENTS.filter(event => event.ending);
 const termCount = RULES.termEvents.length;
 const bounded = (value, low, high) => Math.min(high, Math.max(low, value));
 const roundGpa = value => Math.round(bounded(value, 0, RULES.maxGpa) * 100) / 100;
@@ -37,17 +38,22 @@ export class AtlasGame {
     this.random = random;
     this.state = saved ? structuredClone(saved) : newState(majorId);
     const session = this.state.minigame;
+    this.state.clawWins ??= Number(Boolean(session?.kind === 'claw' && session.result?.item));
+    this.state.ending = normalizeEnding(this.state.ending);
     if (session?.kind === 'claw' && !session.result) {
       for (const prize of session.prizes) prize.radius = clawHitRadius(ITEMS[prize.id].price);
     }
     if (!saved) {
       this.advanceEvent();
-    } else if (this.state.semester < termCount && ['event', 'result', 'term'].includes(this.state.phase)
+      return;
+    }
+    if (this.state.semester < termCount && ['event', 'result', 'term'].includes(this.state.phase)
       && this.state.flags.includes('dating') && this.state.eventId !== 'couple_dates'
       && !this.state.history.some(entry => entry.eventId === 'couple_dates')) {
       // Older saves can already be dating without a follow-up in the calendar.
       this.schedule({ id: 'couple_dates', after: 1 });
     }
+    this.openEndingEvent();
   }
 
   get statuses() {
@@ -128,6 +134,7 @@ export class AtlasGame {
   advanceEvent() {
     const s = this.state;
     if (s.stats.hp === 0) return this.finish();
+    if (this.openEndingEvent()) return true;
     const calendar = TERM_CALENDAR[s.semester - 1];
     if (s.termEvents.length >= calendar.length) return this.finishTerm();
 
@@ -149,6 +156,18 @@ export class AtlasGame {
         .map(id => eventById[id]).find(event => this.eligible(event)) ?? eventById.quiet_day;
     }
 
+    return this.openEvent(next);
+  }
+
+  openEndingEvent() {
+    const s = this.state;
+    if (s.phase === 'ended' || s.minigame || s.stats.hp <= 0 || this.event?.ending) return false;
+    const event = endingEvents.find(candidate => (!candidate.endingTrigger || candidate.endingTrigger(s)) && this.eligible(candidate));
+    return event ? this.openEvent(event) : false;
+  }
+
+  openEvent(next) {
+    const s = this.state;
     s.scheduled = s.scheduled.filter(entry => entry.id !== next.id);
     s.termEvents.push(next.id);
     s.eventId = next.id;
@@ -279,7 +298,8 @@ export class AtlasGame {
     const statuses = this.statuses;
     receipt.gained = statuses.filter(id => !oldStatuses.includes(id));
     receipt.cleared = oldStatuses.filter(id => !statuses.includes(id));
-    if (choice.ending) this.finish(null, choice.ending);
+    if (event.ending) this.finish(null, event.ending);
+    else this.openEndingEvent();
     return true;
   }
 
@@ -352,7 +372,7 @@ export class AtlasGame {
     const s = this.state;
     const item = ITEMS[id];
     if (!item || item.type !== 'consumable' || !s.inventory[id]) return '사용할 수 없는 아이템입니다.';
-    if (!['event', 'term'].includes(s.phase) || s.minigame) return '현재 단계에서는 사용할 수 없습니다.';
+    if (!['event', 'term'].includes(s.phase) || s.minigame || this.event?.ending) return '현재 단계에서는 사용할 수 없습니다.';
     if (item.future && s.semester === termCount) return '다음 학기가 없습니다.';
     if (item.nextGpa && s.boosts.nextGpa) return '다음 학기에 적용할 족보가 이미 있습니다.';
     if (item.nextChance && s.boosts.chance) return '아직 사용하지 않은 부적 효과가 있습니다.';
@@ -384,6 +404,7 @@ export class AtlasGame {
     const s = this.state;
     if (s.phase !== 'term' || !s.minigame || s.minigame.kind || s.minigame.id !== id || !this.changeCash(cashDelta)) return false;
     s.minigame = null;
+    this.openEndingEvent();
     return true;
   }
 
@@ -434,7 +455,10 @@ export class AtlasGame {
     }
     const item = clawPrize(session.prizes, session.x, position);
     if (!this.changeCash(-CLAW_ATTEMPT_FEE)) return false;
-    if (item) this.updateInventory(item, 1);
+    if (item) {
+      this.updateInventory(item, 1);
+      s.clawWins++;
+    }
     session.result = { item, y: position, fee: CLAW_ATTEMPT_FEE };
     s.arcadeTerm = s.semester;
     return true;
@@ -444,6 +468,7 @@ export class AtlasGame {
     const s = this.state;
     if (s.phase !== 'term' || !s.minigame?.kind) return false;
     s.minigame = null;
+    this.openEndingEvent();
     return true;
   }
 
