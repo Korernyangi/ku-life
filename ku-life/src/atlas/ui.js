@@ -264,9 +264,12 @@ function showTerm() {
       </div>
       <div class="shop-item-actions">
         <div class="shop-quantity">
-          <input type="number" min="0" step="1" ${item.type === 'consumable' ? '' : 'max="1"'} value="0" inputmode="numeric" aria-label="${escape(item.name)} 선택 수량">
+          <input type="number" min="1" step="1" ${item.type === 'consumable' ? '' : 'max="1" readonly'} value="1" required inputmode="numeric" aria-label="${escape(item.name)} 구매 수량">
           <button type="button" class="secondary" data-action="buy" data-value="${id}"></button>
         </div>
+        <label class="shop-select">
+          <input type="checkbox" aria-label="${escape(item.name)} 함께 구매에 담기"> 담기
+        </label>
         <div class="shop-message"><small class="lock-reason"></small><small class="shop-feedback" role="status"></small></div>
       </div></li>`;
   }).join('');
@@ -290,7 +293,7 @@ function showTerm() {
       <div class="term-actions actions"><button class="primary" data-action="next-term">${semester !== termCount ? '다음 학기' : game.gpa < RULES.graduationGpa ? '최종 결과 보기' : '졸업 후 진로 선택'}</button><button class="secondary" data-action="arcade-menu" ${game.arcadePlayed ? 'disabled' : ''}>${game.arcadePlayed ? '미니게임 완료' : '미니게임'}</button></div>
       <section class="shop" aria-labelledby="shop-title">
         <h2 id="shop-title">학기 말 상점</h2>
-        <p class="muted">여러 상품을 사려면 각 수량을 정하고 목록 아래에서 함께 구매하세요.</p>
+        <p class="muted">여러 상품을 사려면 수량을 정하고 담은 뒤 목록 아래에서 함께 구매하세요.</p>
         <ul class="items">${stock}</ul>
         <div class="shop-checkout">
           <div><strong data-shop-total tabindex="-1"></strong>
@@ -302,6 +305,11 @@ function showTerm() {
     </article>`;
 }
 
+function shopQuantity(input) {
+  const quantity = input.valueAsNumber;
+  return Number.isSafeInteger(quantity) && quantity >= 1 && input.validity.valid ? quantity : null;
+}
+
 function updateShop(shop) {
   const order = {};
   let total = 0;
@@ -309,23 +317,24 @@ function updateShop(shop) {
   let invalid = false;
   for (const row of shop.querySelectorAll('[data-shop-item]')) {
     const id = row.dataset.shopItem;
-    const input = row.querySelector('input');
+    const input = row.querySelector('input[type="number"]');
+    const selection = row.querySelector('input[type="checkbox"]');
     const button = row.querySelector('button');
-    const quantity = input.valueAsNumber;
-    const valid = Number.isSafeInteger(quantity) && input.validity.valid;
-    const directQuantity = valid && quantity > 0 ? quantity : 1;
-    const reason = valid ? game.buyReason(id, directQuantity) : '구매 수량을 확인해 주세요.';
-    input.disabled = quantity === 0 && Boolean(game.buyReason(id));
+    const quantity = shopQuantity(input);
+    const reason = quantity === null ? '1 이상의 정수를 입력해 주세요.' : game.buyReason(id, quantity);
+    const unavailable = Boolean(game.buyReason(id));
+    input.disabled = unavailable;
+    selection.disabled = unavailable && !selection.checked;
     button.disabled = Boolean(reason);
-    button.textContent = `${directQuantity}개 구매`;
+    button.textContent = quantity === null ? '구매' : `${quantity}개 구매`;
     button.setAttribute('aria-label', `${ITEMS[id].name} ${button.textContent}`);
     row.querySelector('.lock-reason').textContent = reason;
-    if (!valid || (quantity > 0 && reason)) invalid = true;
-    if (valid && quantity > 0) {
-      order[id] = quantity;
-      total += ITEMS[id].price * quantity;
-      count += quantity;
-    }
+    if (!selection.checked) continue;
+    if (reason) invalid = true;
+    if (quantity === null) continue;
+    order[id] = quantity;
+    total += ITEMS[id].price * quantity;
+    count += quantity;
   }
   const checkout = shop.querySelector('.shop-checkout');
   const overBudget = total > game.state.cash;
@@ -339,17 +348,20 @@ function purchaseFromShop(button, id) {
   const shop = button.closest('.shop');
   const order = updateShop(shop);
   if (button.disabled) return;
-  const quantity = id ? order[id] ?? 1 : Object.values(order).reduce((sum, count) => sum + count, 0);
+  const area = button.closest(id ? '[data-shop-item]' : '.shop-checkout');
+  const quantity = id ? shopQuantity(area.querySelector('input[type="number"]'))
+    : Object.values(order).reduce((sum, count) => sum + count, 0);
   const purchased = id ? game.buy(id, quantity) : game.buyMany(order);
   if (!purchased) return;
 
   persist();
   clearShopFeedback(shop);
   for (const itemId of id ? [id] : Object.keys(order)) {
-    shop.querySelector(`[data-shop-item="${itemId}"] input`).value = 0;
+    const row = shop.querySelector(`[data-shop-item="${itemId}"]`);
+    row.querySelector('input[type="number"]').value = 1;
+    row.querySelector('input[type="checkbox"]').checked = false;
   }
   root.querySelector('[data-balance]').textContent = cashText(game.state.cash);
-  const area = button.closest(id ? '[data-shop-item]' : '.shop-checkout');
   const message = id ? `${ITEMS[id].name} ${quantity}개 구매 완료.` : `선택한 상품 ${quantity}개 구매 완료.`;
   area.querySelector('.shop-feedback').textContent = [message, storageNotice].filter(Boolean).join(' ');
   updateShop(shop);
@@ -593,6 +605,13 @@ root.addEventListener('input', event => {
   if (shop) {
     clearShopFeedback(shop);
     updateShop(shop);
+  }
+});
+root.addEventListener('focusout', event => {
+  const input = event.target.closest('.shop-quantity input');
+  if (input && shopQuantity(input) === null) {
+    input.value = 1;
+    updateShop(input.closest('.shop'));
   }
 });
 root.addEventListener('keydown', event => {

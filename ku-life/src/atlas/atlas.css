@@ -306,6 +306,14 @@ button:disabled { cursor: default; }
   text-align: center;
 }
 .shop-quantity .secondary { padding-inline: 6px; }
+.shop-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  font-size: .8rem;
+}
+.shop-select input { margin: 0; accent-color: var(--crimson); }
 .shop-message { min-height: 2lh; margin-top: 2px; font-size: .78rem; }
 .shop-message small { margin: 0; font-size: inherit; }
 .shop-message:has(.shop-feedback:not(:empty)) .lock-reason { display: none; }
