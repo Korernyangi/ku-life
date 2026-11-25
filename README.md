@@ -24,6 +24,15 @@ https://ku-life-dqkk.vercel.app/
 4. Vercel의 Supabase 연동으로 공개 URL과 publishable/anon key를 공급합니다. 직접 설정하려면 `VITE_SUPABASE_URL`과 `VITE_SUPABASE_PUBLISHABLE_KEY`를 지정한 뒤 배포합니다. 로컬 테스트에서는 앱 디렉터리의 `.env.local`에 같은 이름을 사용합니다.
 5. 프로젝트 팀 외부 사용자에게도 이메일을 보내려면 사용자 지정 SMTP를 설정합니다.
 
+#### Google 로그인
+
+로그인 창에서 **Google로 로그인**을 선택합니다. `@korea.ac.kr` Google 계정으로 인증한 뒤 첫 로그인에서 닉네임을 설정합니다. 이 경로는 인증 메일 발송 없이 동작합니다. 고려대 계정에서 Google 로그인이 가능해야 하며, 학교 이메일을 제한하는 기존 Auth 훅을 적용합니다.
+
+1. Google Cloud에서 OAuth 웹 애플리케이션을 만들고, Supabase의 Google 제공업체 화면에 표시된 콜백 URL(`https://<project-ref>.supabase.co/auth/v1/callback`)을 Google의 승인된 리디렉션 URI로 추가합니다.
+2. Supabase **Authentication → Sign In / Providers → Google**에서 제공업체를 활성화하고 OAuth 클라이언트 ID와 Secret을 입력합니다. Secret은 Supabase에 저장합니다.
+3. Supabase **Authentication → URL Configuration → Redirect URLs**에 `https://ku-life-dqkk.vercel.app/?account=google`을 추가합니다. Preview와 로컬에서도 사용하는 사이트의 `/?account=google` 주소를 추가합니다.
+4. Google OAuth 앱이 테스트 상태라면 테스트 사용자에 실제 고려대 Google 계정을 추가해 확인합니다. 공개 운영 전 Google Cloud의 게시 설정을 확인합니다.
+
 #### 실제 가입 메일 발송
 
 Supabase **Authentication → SMTP Settings**에서 **Enable Custom SMTP**를 켭니다. SMTP 제공업체에서 인증한 발신 이메일과 연결 정보를 입력합니다. 예를 들어 Resend를 사용하는 경우 다음 값을 설정합니다.
