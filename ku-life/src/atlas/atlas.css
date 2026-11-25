@@ -437,7 +437,25 @@ thead, tfoot { background: #f4e5cb; }
   color: var(--ink);
   font: inherit;
 }
-.account-google { display: block; width: 100%; min-height: 44px; margin-top: 14px; }
+.account-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 8px 12px;
+  border: 1px solid #747775;
+  border-radius: 4px;
+  background: #fff;
+  color: #1f1f1f;
+  font: 500 0.875rem/1.4 Arial, sans-serif;
+}
+.account-google svg { flex: none; }
+.account-google:hover:not(:disabled) { background: #f3f6fc; }
+.account-google:active:not(:disabled) { background: #e8effb; }
+.account-google:disabled { opacity: .65; }
 .account-links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
 .account-email { overflow-wrap: anywhere; }
 .account-form .actions { margin-top: 0; justify-content: flex-end; }
@@ -455,3 +473,10 @@ thead, tfoot { background: #f4e5cb; }
 .challenge-result { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 14px; }
 .challenge-ranking td { overflow-wrap: anywhere; }
 .challenge-ranking th { text-align: left; }
+
+.account-profile { display: grid; gap: 8px; margin: 0; }
+.account-profile > div { display: grid; grid-template-columns: 7em minmax(0, 1fr); gap: 8px; }
+.account-profile dt, .account-record h3 { font-weight: 800; }
+.account-profile dd { margin: 0; }
+.account-record { border-block: 1px solid var(--line); padding: 12px 0; }
+.account-record h3 { margin: 0 0 4px; }

@@ -31,6 +31,12 @@ export function challengeHandler(db) {
         .eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle());
 
       if (req.method === 'GET') {
+        if (req.query?.view === 'profile') {
+          const result = await runs.select('score', { count: 'exact' })
+            .eq('user_id', user.id).not('score', 'is', null).order('score', { ascending: false }).limit(1);
+          const best = requireData(result)[0];
+          return res.status(200).json({ completed: result.count, bestScore: best?.score ?? null });
+        }
         if (req.query?.view === 'ranking') {
           const rows = requireData(await db.from('challenge_ranking')
             .select('rank,public_nickname,major_id,score').order('rank').order('completed_at').limit(50));

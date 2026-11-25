@@ -76,6 +76,17 @@ function redirectTo(mode) {
 }
 
 const emailInput = '<label>고려대 이메일<input type="email" name="email" autocomplete="username" placeholder="example@korea.ac.kr" required></label>';
+const googleButton = label => `<button class="account-google" type="button" data-google-login>
+  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+    <path fill="#4285F4" d="M43.61 24.46c0-1.36-.12-2.66-.34-3.92H24v7.43h11.01c-.47 2.53-1.9 4.68-4.05 6.12v5h6.56c3.83-3.53 6.09-8.72 6.09-14.63z"/>
+    <path fill="#34A853" d="M24 44c5.51 0 10.13-1.83 13.52-4.91l-6.56-5c-1.83 1.22-4.15 1.95-6.96 1.95-5.31 0-9.82-3.59-11.43-8.42H5.8v5.17A20 20 0 0 0 24 44z"/>
+    <path fill="#FBBC05" d="M12.57 27.62a12 12 0 0 1 0-7.24v-5.17H5.8a20 20 0 0 0 0 17.58l6.77-5.17z"/>
+    <path fill="#EA4335" d="M24 11.96c3 0 5.69 1.03 7.81 3.06l5.86-5.86C34.12 5.86 29.5 4 24 4A20 20 0 0 0 5.8 15.21l6.77 5.17C14.18 15.55 18.69 11.96 24 11.96z"/>
+  </svg>
+  <span>${label}</span>
+</button>`;
+
+const nicknameInput = '<label>닉네임<input name="nickname" autocomplete="nickname" maxlength="20" required></label>';
 const newPasswordInput = '<label>새 비밀번호<input type="password" name="password" autocomplete="new-password" minlength="8" required></label>';
 const forms = {
   login: {
@@ -86,8 +97,7 @@ const forms = {
   },
   signup: {
     title: '회원가입',
-    fields: '<p>고려대 메일에서 인증 링크를 열면 닉네임과 비밀번호를 설정할 수 있어요.</p>' + emailInput,
-    submit: '가입 인증 메일 보내기',
+    fields: '<p>@korea.ac.kr Google 계정으로 인증한 뒤 닉네임을 설정하면 가입이 완료됩니다.</p>',
     links: [['login', '로그인']],
   },
   recover: {
@@ -98,27 +108,39 @@ const forms = {
   },
   setup: {
     title: '계정 설정',
-    fields: '<label>닉네임<input name="nickname" autocomplete="nickname" maxlength="20" required></label>' + newPasswordInput,
+    fields: nicknameInput + newPasswordInput,
     submit: '계정 설정 완료',
   },
   nickname: {
     title: '닉네임 설정',
-    fields: '<label>닉네임<input name="nickname" autocomplete="nickname" maxlength="20" required></label>',
+    fields: nicknameInput,
     submit: '닉네임 저장',
   },
   reset: { title: '새 비밀번호 설정', fields: newPasswordInput, submit: '비밀번호 저장' },
-  account: { title: '내 계정', fields: '<p class="account-email"></p>', submit: '로그아웃' },
+  account: {
+    title: '내 계정',
+    fields: `<dl class="account-profile">
+      <div><dt>이메일</dt><dd class="account-email"></dd></div>
+      <div><dt>발견한 엔딩</dt><dd data-account-endings></dd></div>
+    </dl>
+    <section class="account-record" aria-labelledby="account-record-title">
+      <h3 id="account-record-title">도전 전적</h3>
+      <p data-account-record role="status">전적을 불러오는 중…</p>
+    </section>
+    ${nicknameInput}`,
+    submit: '닉네임 저장',
+  },
   unavailable: { title: '로그인', fields: '<p>현재 이메일 로그인을 사용할 수 없습니다.</p>' },
 };
 
-export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : profileMode()) : 'login', message = '') {
+export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : profileMode()) : 'login', message = '', profile = null) {
   if (!client) mode = 'unavailable';
   if (mode === 'reset' && !currentPlayer()) mode = 'setup';
   const view = forms[mode];
   const dialog = document.createElement('dialog');
   dialog.className = 'atlas-dialog account-dialog';
   dialog.setAttribute('aria-labelledby', 'account-title');
-  const emailSent = mode === 'signup' || mode === 'recover';
+  const sendsEmail = mode === 'recover';
   dialog.innerHTML = `
     <form class="account-form">
       <h2 id="account-title">${view.title}</h2>
@@ -129,7 +151,9 @@ export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : p
         ${view.submit ? `<button type="submit" class="primary">${view.submit}</button>` : ''}
       </div>
     </form>
-    ${mode === 'login' ? '<button class="secondary account-google" type="button" data-google-login>Google로 로그인</button>' : ''}
+    ${mode === 'account' ? '<div class="account-links"><button class="secondary" type="button" data-account-logout>로그아웃</button></div>' : ''}
+    ${mode === 'login' ? googleButton('고려대 이메일로 로그인') : ''}
+    ${mode === 'signup' ? googleButton('고려대 이메일로 회원가입') : ''}
     ${view.links ? `<div class="account-links">${view.links.map(([target, label]) =>
         `<button type="button" class="secondary" data-account-view="${target}">${label}</button>`).join('')}</div>` : ''}`;
 
@@ -155,7 +179,36 @@ export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : p
       google.disabled = false;
     }
   });
-  if (mode === 'account') dialog.querySelector('.account-email').textContent = `${user.user_metadata.nickname} · ${user.email}`;
+  const logout = dialog.querySelector('[data-account-logout]');
+  if (mode === 'account') {
+    dialog.querySelector('.account-email').textContent = user.email;
+    form.elements.nickname.value = user.user_metadata.nickname;
+    dialog.querySelector('[data-account-endings]').textContent = profile?.endings ?? '—';
+    const record = dialog.querySelector('[data-account-record]');
+    if (profile) {
+      void profile.loadRecord().then(({ completed, bestScore }) => {
+        record.textContent = completed
+          ? `완료 ${completed.toLocaleString('ko-KR')}회 · 최고 ${bestScore.toLocaleString('ko-KR')}점`
+          : '완료한 도전이 없어요.';
+      }).catch(() => { record.textContent = '도전 전적을 불러오지 못했습니다.'; });
+    } else {
+      record.textContent = '도전 전적을 불러올 수 없습니다.';
+    }
+    logout.addEventListener('click', async () => {
+      logout.disabled = true;
+      submit.disabled = true;
+      try {
+        const { error } = await client.auth.signOut({ scope: 'local' });
+        if (error) throw error;
+        dialog.close();
+      } catch {
+        status.textContent = '로그아웃하지 못했습니다. 다시 시도해 주세요.';
+      } finally {
+        logout.disabled = false;
+        submit.disabled = false;
+      }
+    });
+  }
 
   form.querySelector('[data-account-close]').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => dialog.remove(), { once: true });
@@ -176,28 +229,19 @@ export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : p
       status.textContent = '고려대 이메일(@korea.ac.kr)만 사용할 수 있어요.';
       return;
     }
-    if ((mode === 'setup' || mode === 'nickname') && !nickname) {
+    if ((mode === 'setup' || mode === 'nickname' || mode === 'account') && !nickname) {
       status.textContent = '닉네임을 입력해 주세요.';
       return;
     }
 
     submit.disabled = true;
-    status.textContent = emailSent ? '인증 메일을 보내는 중…' : '처리 중…';
+    if (logout) logout.disabled = true;
+    status.textContent = sendsEmail ? '인증 메일을 보내는 중…' : '처리 중…';
     try {
       let result;
       switch (mode) {
-        case 'account':
-          result = await client.auth.signOut({ scope: 'local' });
-          break;
         case 'login':
           result = await client.auth.signInWithPassword({ email, password });
-          break;
-        case 'signup':
-          result = await client.auth.signUp({
-            email,
-            password: `Aa1!${crypto.randomUUID()}`,
-            options: { emailRedirectTo: redirectTo('setup') },
-          });
           break;
         case 'recover':
           result = await client.auth.resetPasswordForEmail(email, { redirectTo: redirectTo('reset') });
@@ -205,6 +249,7 @@ export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : p
         case 'setup':
           result = await client.auth.updateUser({ password, data: { nickname } });
           break;
+        case 'account':
         case 'nickname':
           result = await client.auth.updateUser({ data: { nickname } });
           break;
@@ -213,12 +258,12 @@ export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : p
           break;
       }
       if (result?.error) throw result.error;
-      if (emailSent) {
-        if (mode === 'signup' && result.data.session) {
-          await client.auth.signOut({ scope: 'local' });
-          status.textContent = '현재 이메일 인증을 사용할 수 없습니다. 운영자에게 문의해 주세요.';
-          return;
-        }
+      if (mode === 'account') {
+        form.elements.nickname.value = nickname;
+        status.textContent = '닉네임을 저장했습니다.';
+        return;
+      }
+      if (sendsEmail) {
         status.textContent = '메일함을 확인하고 인증 링크를 열어 주세요.';
         return;
       }
@@ -228,13 +273,14 @@ export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : p
         openAccount(root, profileMode());
       }
     } catch (error) {
-      status.textContent = emailSent ? emailError(error)
+      status.textContent = sendsEmail ? emailError(error)
         : mode === 'login' ? '이메일과 비밀번호를 확인해 주세요.'
         : error?.code === 'weak_password' ? '비밀번호가 보안 조건을 충족하지 않습니다. 더 강한 비밀번호를 입력해 주세요.'
         : error?.code === 'same_password' ? '기존 비밀번호와 다른 비밀번호를 입력해 주세요.'
         : '처리하지 못했습니다. 잠시 후 다시 시도해 주세요.';
     } finally {
       submit.disabled = false;
+      if (logout) logout.disabled = false;
     }
   });
 

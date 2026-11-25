@@ -763,7 +763,10 @@ root.addEventListener('click', event => {
       void openRanking();
       break;
     case 'account':
-      openAccount(root);
+      openAccount(root, undefined, '', {
+        endings: `${unlockedEndings.size} / ${endingEntries.length}`,
+        loadRecord: () => challengeRequest(null, 'profile'),
+      });
       break;
     case 'archive':
       openArchive();
