@@ -1,5 +1,6 @@
 import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, TERM_CALENDAR, cashText } from './config.js';
-import { CAREER_ROUTES, resolveEnding } from './endings.js';
+import { CAREER_ROUTES, careerOptions, resolveEnding } from './endings.js';
+import { findMajor } from './majors.js';
 import { EVENTS } from './events.js';
 import { CLAW_ATTEMPT_FEE, ROULETTE, clawBoard, clawHitRadius, clawPrize, rouletteCash } from './arcade.js';
 
@@ -20,9 +21,10 @@ function sumChanges(base = {}, extra = {}) {
   return merged;
 }
 
-function newState() {
+function newState(majorId) {
   return {
     version: 1, id: globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
+    majorId: findMajor(majorId)?.id ?? null,
     semester: 1, phase: 'event', stats: { ...RULES.startingStats }, cash: RULES.startingCash,
     streak: { mental: 0, critical: 0, both: 0 }, flags: [], inventory: {}, scheduled: [], history: [],
     grades: [], termEvents: [], eventId: null, receipt: null, gradeNotes: null,
@@ -31,9 +33,9 @@ function newState() {
 }
 
 export class AtlasGame {
-  constructor(saved = null, random = Math.random) {
+  constructor(saved = null, random = Math.random, majorId = null) {
     this.random = random;
-    this.state = saved ? structuredClone(saved) : newState();
+    this.state = saved ? structuredClone(saved) : newState(majorId);
     const session = this.state.minigame;
     if (session?.kind === 'claw' && !session.result) {
       for (const prize of session.prizes) prize.radius = clawHitRadius(ITEMS[prize.id].price);
@@ -437,15 +439,17 @@ export class AtlasGame {
     return true;
   }
 
-  chooseCareer(route) {
+  chooseCareer(route, endingId = null) {
     if (this.state.phase !== 'career' || !Object.hasOwn(CAREER_ROUTES, route)) return false;
-    return this.finish(route);
+    if (endingId && !careerOptions(this.state, this.gpa).some(option =>
+      option.id === endingId && option.route === route && !option.reasons.length)) return false;
+    return this.finish(route, endingId);
   }
 
-  finish(route = null) {
+  finish(route = null, endingId = null) {
     const s = this.state;
     if (s.phase === 'ended') return false;
-    const id = resolveEnding(s, this.gpa, route);
+    const id = endingId ?? resolveEnding(s, this.gpa, route);
     const achievements = id === 'dropout' ? [] : LEGACY_ENDINGS
       .filter(ending => !['dropout', 'no_graduation', 'isolated', 'job_seeker'].includes(ending.id) && !this.conditionReasons(ending).length)
       .map(ending => ending.id);

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { EXPERIENCES, ITEMS, RULES, TERM_CALENDAR } from './config.js';
-import { ENDINGS, endingScore, resolveEnding } from './endings.js';
+import { ENDINGS, careerOptions, endingScore, majorEnding, resolveEnding } from './endings.js';
+import { MAJOR_GROUPS } from './majors.js';
 import { EVENTS } from './events.js';
 import { AtlasGame } from './game.js';
 
@@ -346,6 +347,39 @@ test('graduation choices can reach each basic and special ending and award the c
   assert.equal(resolveEnding(base, 4.5, 'corporate'), 'employee');
   assert.equal(resolveEnding(base, 4.5, 'campus_legend'), 'ordinary');
   assert.equal(resolveEnding({ ...base, flags: ['lab'], history: [{ eventId: 'graduation', choice: '졸업생 연구 제안을 검토한다' }] }, 3.75, 'grad_school'), 'professor');
+});
+
+test('every selectable major has distinct career text and survives a saved game', () => {
+  const majors = MAJOR_GROUPS.flatMap(group => group.majors);
+  assert.equal(new Set(majors.map(major => major.id)).size, majors.length);
+  assert.equal(new Set(majors.map(major => majorEnding('corporate', major.id).description)).size, majors.length);
+  for (const major of majors) {
+    const { state } = new AtlasGame(null, () => 0, major.id);
+    const restored = new AtlasGame(JSON.parse(JSON.stringify(state)));
+    assert.equal(restored.state.majorId, major.id);
+    assert.ok(major.routes.every(id => Object.hasOwn(ENDINGS, id)));
+  }
+  const oldSave = new AtlasGame().state;
+  delete oldSave.majorId;
+  assert.equal(majorEnding('corporate', new AtlasGame(oldSave).state.majorId), ENDINGS.corporate);
+});
+
+test('the displayed career lock is enforced and an eligible basic ending remains selectable', () => {
+  const game = fixture('graduation', {
+    phase: 'career', semester: 8, grades: Array(8).fill(3.7), flags: ['lab'],
+    majorId: 'computer-science',
+  });
+  const options = careerOptions(game.state, game.gpa);
+  const professor = options.find(option => option.id === 'professor');
+  assert.ok(professor.reasons.some(reason => reason.includes('3.75') && reason.includes('3.70')));
+  assert.equal(game.chooseCareer(professor.route, professor.id), false);
+  game.state.grades.fill(4);
+  game.state.flags.push('researchProposal');
+  assert.equal(careerOptions(game.state, game.gpa).find(option => option.id === 'professor').reasons.length, 0);
+  assert.equal(game.chooseCareer('corporate', 'grad_school'), false);
+  assert.equal(game.chooseCareer('grad_school', 'grad_school'), true);
+  assert.equal(game.state.ending.id, 'grad_school');
+  assert.match(majorEnding(game.state.ending.id, game.state.majorId).description, /캠퍼스 안내 앱/);
 });
 
 test('semester grades are rolled once, with higher intelligence improving the odds', () => {

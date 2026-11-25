@@ -24,7 +24,7 @@ function drawCard(canvas, portrait, ending, state, score, gpa) {
   text(ending.legacy ? '지난 플레이 결과' : ending.special ? '스페셜 엔딩' : '기본 엔딩', 198, 127, 19, '#6e554e');
   text(ending.title, 198, 164, 31, '#77253d', 900, 411);
   text(`토탈 스코어 ${score.total.toLocaleString('ko-KR')} / ${score.max.toLocaleString('ko-KR')}`, 198, 207, 23);
-  text(`${state.semester}학기 · 선택 ${state.history.length}개`, 198, 245, 20, '#6e554e');
+  text([ending.major, `${state.semester}학기 · 선택 ${state.history.length}개`].filter(Boolean).join(' · '), 198, 245, 20, '#6e554e', 411);
   context.fillStyle = '#d4ba94';
   context.fillRect(28, 296, 584, 2);
 
@@ -58,8 +58,8 @@ export function showEndingProfile(root, state, gpa, ending, score, portrait) {
 
   const canvas = dialog.querySelector('canvas');
   const rows = drawCard(canvas, portrait, ending, state, score, gpa);
-  canvas.setAttribute('aria-label', [ending.title, `토탈 스코어 ${score.total} / ${score.max}`,
-    ...rows.map(([label, value]) => `${label} ${value}`)].join(' · '));
+  canvas.setAttribute('aria-label', [ending.title, ending.major, `토탈 스코어 ${score.total} / ${score.max}`,
+    ...rows.map(([label, value]) => `${label} ${value}`)].filter(Boolean).join(' · '));
   dialog.addEventListener('close', () => dialog.remove(), { once: true });
   root.append(dialog);
   dialog.showModal();

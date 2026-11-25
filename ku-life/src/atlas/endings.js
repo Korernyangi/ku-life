@@ -1,4 +1,5 @@
-import { RULES } from './config.js';
+import { EXPERIENCES, RULES, STATS, cashText } from './config.js';
+import { findMajor } from './majors.js';
 
 export const ENDINGS = {
   corporate: {
@@ -90,41 +91,119 @@ export const CAREER_ROUTES = {
   ordinary: '쉬면서 다음 길을 천천히 찾는다',
 };
 
-export function resolveEnding({ stats, cash, flags, history }, gpa, route) {
-  const { hp, intelligence, social, mental } = stats;
-  const has = flag => flags.includes(flag);
-  if (hp <= 0) return 'dropout';
-  if (gpa < RULES.graduationGpa) return 'ordinary';
+const endingsForRoute = {
+  corporate: ['top_graduate', 'corporate', 'employee'],
+  grad_school: ['professor', 'grad_school'],
+  startup: ['startup'],
+  ngo: ['ngo'],
+  traveler: ['traveler'],
+  employee: ['employee'],
+  rich_life: ['rich_life'],
+  campus_legend: ['campus_legend'],
+  ordinary: ['ordinary'],
+};
 
-  switch (route) {
-    case 'corporate':
-      if (has('job') && intelligence >= 15 && social >= 12) {
-        return has('internship') && gpa >= 3.85 && intelligence >= 18 && social >= 13
-          ? 'top_graduate' : 'corporate';
-      }
-      return intelligence >= 11 ? 'employee' : 'ordinary';
-    case 'grad_school': {
-      // Older ATLAS saves contain this choice in the history, before it had an experience flag.
-      const reviewedResearch = has('researchProposal') || history.some(entry => entry.eventId === 'graduation'
-        && entry.choice === '졸업생 연구 제안을 검토한다');
-      if (has('lab') && reviewedResearch && gpa >= 3.75) return 'professor';
-      return gpa >= (has('lab') ? 2.4 : 2.75) ? 'grad_school' : 'ordinary';
-    }
-    case 'startup':
-      return has('launched') || (cash >= 950_000 && intelligence >= (has('startup') ? 12 : 14)) ? 'startup' : 'ordinary';
-    case 'ngo':
-      return social >= 16 && (has('friendHelp') || mental >= 15) ? 'ngo' : 'ordinary';
-    case 'traveler':
-      return hp >= 8 && mental >= 13 && cash >= 200_000 ? 'traveler' : 'ordinary';
-    case 'employee':
-      return intelligence >= 11 ? 'employee' : 'ordinary';
-    case 'rich_life':
-      return cash >= 2_500_000 ? 'rich_life' : 'ordinary';
-    case 'campus_legend':
-      return social >= 17 && ['cheerOt', 'koyeonjeon', 'ipselenti'].every(has) ? 'campus_legend' : 'ordinary';
-    default:
-      return 'ordinary';
+const requirements = {
+  corporate: { min: { intelligence: 15, social: 12 }, flags: ['job'] },
+  grad_school: { gpa: 2.75 },
+  startup: { min: { intelligence: 14 }, cash: 950_000 },
+  ngo: { min: { social: 16 } },
+  traveler: { min: { hp: 8, mental: 13 }, cash: 200_000 },
+  employee: { min: { intelligence: 11 } },
+  rich_life: { cash: 2_500_000 },
+  professor: { gpa: 3.75, flags: ['lab', 'researchProposal'] },
+  top_graduate: { gpa: 3.85, min: { intelligence: 18, social: 13 }, flags: ['job', 'internship'] },
+  campus_legend: { min: { social: 17 }, flags: ['cheerOt', 'koyeonjeon', 'ipselenti'] },
+};
+
+function hasExperience(state, id) {
+  if (state.flags.includes(id)) return true;
+  // Saves created before the research proposal had its own flag still record the choice.
+  return id === 'researchProposal' && state.history.some(entry => entry.eventId === 'graduation'
+    && entry.choice === '졸업생 연구 제안을 검토한다');
+}
+
+function careerReasons(state, gpa, id) {
+  if (id === 'ordinary') return [];
+  const reasons = [];
+  const rule = id === 'startup' && hasExperience(state, 'launched') ? {} : requirements[id];
+  const minGpa = id === 'grad_school' && hasExperience(state, 'lab') ? 2.4 : rule.gpa ?? RULES.graduationGpa;
+  if ((gpa ?? 0) < minGpa) reasons.push(`누적 평점 ${minGpa.toFixed(2)} 이상 · 현재 ${gpa?.toFixed(2) ?? '미산출'}`);
+  for (const [key, value] of Object.entries(rule.min ?? {})) {
+    const min = id === 'startup' && hasExperience(state, 'startup') ? 12 : value;
+    if (state.stats[key] < min) reasons.push(`${STATS[key].name} ${min} 이상 · 현재 ${state.stats[key]}`);
   }
+  if (state.cash < rule.cash) reasons.push(`자금 ${cashText(rule.cash)} 이상 · 현재 ${cashText(state.cash)}`);
+  for (const flag of rule.flags ?? []) {
+    if (!hasExperience(state, flag)) reasons.push(`${EXPERIENCES[flag]} 경험 필요`);
+  }
+  if (id === 'ngo' && !hasExperience(state, 'friendHelp') && state.stats.mental < 15) {
+    reasons.push(`친구를 도운 경험 또는 멘탈 15 이상 · 현재 ${state.stats.mental}`);
+  }
+  return reasons;
+}
+
+export function careerOptions(state, gpa) {
+  return Object.keys(ENDINGS).filter(id => id !== 'dropout').map(id => ({
+    id,
+    route: id === 'professor' ? 'grad_school' : id === 'top_graduate' ? 'corporate' : id,
+    reasons: careerReasons(state, gpa, id),
+  }));
+}
+
+export function resolveEnding(state, gpa, route) {
+  if (state.stats.hp <= 0) return 'dropout';
+  const candidates = Object.hasOwn(endingsForRoute, route) ? endingsForRoute[route] : [];
+  return candidates.find(id => !careerReasons(state, gpa, id).length) ?? 'ordinary';
+}
+
+export function majorEnding(id, majorId) {
+  const major = findMajor(majorId);
+  const base = ENDINGS[id];
+  if (!major || !base) return base;
+  const { name, role, topic, terms } = major;
+  const afterStudy = terms ? `${terms}학기 과정을 마친 뒤, ` : '';
+
+  switch (id) {
+    case 'corporate':
+      return { ...base, title: `${role}의 첫 출근`, description: `${afterStudy}안암테크에서 ${role} 명함을 받았다. 첫 회의에서 대학 시절부터 관심을 가졌던 ‘${topic}’ 이야기를 꺼냈다.` };
+    case 'employee':
+      return { ...base, title: `첫 경력 · ${role}`, description: `${afterStudy}작은 팀에 ${role} 자리가 났다. 책상에 붙인 첫 메모에는 ‘${topic}’이라고 적혀 있다. 다음 주, 그 메모가 팀의 첫 기획안이 된다.` };
+    case 'grad_school':
+      return { ...base, title: `${name}에서 대학원으로`, description: `${afterStudy}다시 학생증을 받았다. 첫 세미나에서 발표할 주제는 ‘${topic}’. 예전 수업에서 시작된 질문을 이번에는 끝까지 따라가 보기로 했다.` };
+    case 'startup':
+      return { ...base, title: `${name}에서 시작한 첫 사업`, description: `${afterStudy}‘${topic}’에서 출발한 아이디어를 세상에 내놨다. 밤새 열어 둔 노트북에 첫 고객의 이름이 떴다. 이번엔 팀플 단톡방이 진짜 회사 단톡방이 됐다.` };
+    case 'ngo':
+      return { ...base, title: `동네로 나간 ${name}`, description: `${afterStudy}지역단체의 첫 회의에서 ‘${topic}’을 주제로 주민들과 이야기를 나눴다. 질문을 가장 많이 던진 주민이 다음 프로젝트의 첫 동료가 됐다.` };
+    case 'professor':
+      return { ...base, title: `안암에서 연 첫 강의 · ${name}`, description: `${afterStudy}대학원에 진학한 지 몇 년, 안암으로 돌아와 첫 강의를 열었다. 칠판에 ‘${topic}’을 적자 맨 앞줄의 학생이 손을 들었다.` };
+    case 'top_graduate':
+      return { ...base, title: `수석 졸업 · ${role} 특별 채용`, description: `${afterStudy}졸업식 연단에서 ‘${topic}’을 처음 발표하던 날을 떠올렸다. 안암테크 인턴 때 쓰던 출입증은 이제 ${role} 사원증으로 바뀌었다.` };
+    case 'ordinary':
+      return { ...base, description: `${name}에서 품었던 질문을 다시 적어 봤다. ‘${topic}’. 노트의 제목은 아직 비어 있다. 이번 주에는 동기와 점심을 먹으며 다음 계획을 잡아 보기로 했다.` };
+    default:
+      return { ...base, description: `${name} 친구들과 나눈 마지막 인사가 떠오른다. ${base.description}` };
+  }
+}
+
+const recapExperience = {
+  corporate: ['job', 'internship'],
+  grad_school: ['lab', 'researchProposal'],
+  startup: ['startup', 'launched'],
+  ngo: ['friendHelp', 'club', 'chair'],
+  employee: ['job', 'internship', 'competition', 'reporter'],
+  professor: ['lab', 'researchProposal'],
+  top_graduate: ['job', 'internship'],
+  campus_legend: ['cheerOt', 'koyeonjeon', 'ipselenti'],
+};
+
+export function endingChoices(history, id) {
+  const flags = recapExperience[id] ?? [];
+  const relevant = history.filter(entry => entry.flags?.some(flag => flags.includes(flag))
+    || (flags.includes('researchProposal') && entry.choice === '졸업생 연구 제안을 검토한다')
+    || (['traveler', 'rich_life'].includes(id) && entry.cash > 0));
+  const stats = requirements[id]?.min ?? (id === 'grad_school' ? { intelligence: 1 } : {});
+  return (relevant.length ? relevant : history.filter(entry => Object.keys(stats).some(key => entry.stats?.[key] > 0))).slice(-3);
 }
 
 export function endingScore({ stats, cash }, gpa, id) {
