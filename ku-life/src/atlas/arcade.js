@@ -1,5 +1,7 @@
 export const ROULETTE = [20, -8, 5, 0, -3, 10, -8, 5, 0, -3];
 
+export const CLAW_ATTEMPT_FEE = 50_000;
+
 const prizeSlots = [
   [21, 60], [48, 53], [79, 70], [36, 86], [66, 23],
 ];

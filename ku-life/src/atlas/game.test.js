@@ -170,24 +170,44 @@ test('roulette settles the selected slot against the starting balance once per t
   assert.equal(restored.arcadePlayed, false);
 });
 
-test('the claw awards aligned shop items, while a miss consumes the same term attempt', () => {
-  const game = fixture('walk', { phase: 'term', inventory: { laptop: 1 }, cash: 0 });
+test('the claw charges once when dropped, with or without an item, and cancels for free', () => {
+  const game = fixture('walk', { phase: 'term', inventory: { laptop: 1 }, cash: 100_000 });
   assert.equal(game.beginArcade('claw'), true);
   assert.equal(game.state.minigame.prizes.some(prize => ['laptop', 'charm'].includes(prize.id)), false);
   const notes = game.state.minigame.prizes.find(prize => prize.id === 'notes');
   assert.equal(game.aimClaw(notes.x), true);
+  assert.equal(game.state.cash, 100_000);
   const restored = new AtlasGame(JSON.parse(JSON.stringify(game.state)));
   assert.equal(restored.aimClaw(notes.y), true);
   assert.equal(restored.state.inventory.notes, 1);
-  assert.equal(restored.state.cash, 0);
-  assert.equal(restored.aimClaw(notes.y), false);
+  assert.equal(restored.state.cash, 50_000);
+  const settled = new AtlasGame(JSON.parse(JSON.stringify(restored.state)));
+  assert.equal(settled.aimClaw(notes.y), false);
+  assert.equal(settled.state.cash, 50_000);
 
   assert.equal(game.closeArcade(), true);
+  assert.equal(game.state.cash, 100_000);
   assert.equal(game.beginArcade('claw'), true);
   assert.equal(game.aimClaw(0), true);
   assert.equal(game.aimClaw(0), true);
   assert.equal(game.state.minigame.result.item, null);
+  assert.equal(game.state.cash, 50_000);
   assert.equal(game.arcadePlayed, true);
+});
+
+test('the claw charges a fixed fee and requires enough cash to play', () => {
+  const poor = fixture('walk', { phase: 'term', cash: 49_999 });
+  assert.equal(poor.beginArcade('claw'), false);
+  assert.equal(poor.beginArcade('roulette'), true);
+
+  for (const cash of [50_000, 500_000, 1_000_000]) {
+    const game = fixture('walk', { phase: 'term', cash });
+    assert.equal(game.beginArcade('claw'), true);
+    assert.equal(game.aimClaw(0), true);
+    assert.equal(game.aimClaw(0), true);
+    assert.equal(game.state.minigame.result.fee, 50_000);
+    assert.equal(game.state.cash, cash - 50_000);
+  }
 });
 
 test('each higher-priced claw prize requires a tighter aim, including games resumed from an older save', () => {

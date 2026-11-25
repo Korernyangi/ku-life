@@ -1,7 +1,7 @@
 import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, TERM_CALENDAR, cashText } from './config.js';
 import { CAREER_ROUTES, resolveEnding } from './endings.js';
 import { EVENTS } from './events.js';
-import { ROULETTE, clawBoard, clawHitRadius, clawPrize, rouletteCash } from './arcade.js';
+import { CLAW_ATTEMPT_FEE, ROULETTE, clawBoard, clawHitRadius, clawPrize, rouletteCash } from './arcade.js';
 
 const eventById = Object.fromEntries(EVENTS.map(event => [event.id, event]));
 const recoveryEvents = EVENTS.filter(event => event.kind === 'crisis');
@@ -390,7 +390,10 @@ export class AtlasGame {
   }
 
   beginArcade(kind) {
-    if (this.arcadePlayed || !['roulette', 'claw'].includes(kind) || !this.beginMinigame()) return false;
+    const { cash } = this.state;
+    if (this.arcadePlayed || !['roulette', 'claw'].includes(kind)) return false;
+    if (kind === 'claw' && cash < CLAW_ATTEMPT_FEE) return false;
+    if (!this.beginMinigame()) return false;
     const session = this.state.minigame;
     session.kind = kind;
     if (kind === 'claw') session.prizes = this.arcadePrizes();
@@ -414,13 +417,15 @@ export class AtlasGame {
     const s = this.state;
     const session = s.minigame;
     if (s.phase !== 'term' || session?.kind !== 'claw' || this.arcadePlayed || !Number.isFinite(position) || position < 0 || position > 100) return false;
+    if (s.cash < CLAW_ATTEMPT_FEE) return false;
     if (session.x == null) {
       session.x = position;
       return true;
     }
     const item = clawPrize(session.prizes, session.x, position);
+    if (!this.changeCash(-CLAW_ATTEMPT_FEE)) return false;
     if (item) this.updateInventory(item, 1);
-    session.result = { item, y: position };
+    session.result = { item, y: position, fee: CLAW_ATTEMPT_FEE };
     s.arcadeTerm = s.semester;
     return true;
   }

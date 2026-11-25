@@ -1,4 +1,4 @@
-import { ROULETTE, rouletteCash } from './arcade.js';
+import { CLAW_ATTEMPT_FEE, ROULETTE, rouletteCash } from './arcade.js';
 import { ITEMS, cashText } from './config.js';
 import { itemSprite } from './sprites.js';
 
@@ -30,15 +30,16 @@ function arcadeSound(notes) {
 
 export function arcadeMenu(game) {
   const balance = game.state.cash;
+  const unaffordable = balance < CLAW_ATTEMPT_FEE;
   return `
     <article class="panel arcade-panel">
       <p class="context-label">학기 정산</p>
       <h1 tabindex="-1">미니게임</h1>
       <p>이번 학기에 한 번, 두 게임 중 하나에 도전할 수 있어요.</p>
       <div class="arcade-options">
-        <button class="arcade-option claw-option" data-action="arcade-start" data-value="claw">
+        <button class="arcade-option claw-option" data-action="arcade-start" data-value="claw" ${unaffordable ? 'disabled' : ''}>
           <span class="arcade-option-icon" aria-hidden="true">✦</span>
-          <span><strong>인형뽑기</strong><small>안정성 중간 · 상점 아이템 1개</small></span>
+          <span><strong>인형뽑기</strong><small>참가비 ${cashText(CLAW_ATTEMPT_FEE)} · ${unaffordable ? '보유 자금 부족' : '상점 아이템 1개'}</small></span>
         </button>
         <button class="arcade-option roulette-option" data-action="arcade-start" data-value="roulette">
           <span class="arcade-option-icon" aria-hidden="true">◉</span>
@@ -85,7 +86,10 @@ function clawPerspective(x, depth) {
   return { x: 50 + (x - 50) * (.72 + depth * .0028), y: 58 + depth * .35 };
 }
 
-function clawScreen({ prizes, x, result }) {
+function clawScreen({ balance, prizes, x, result }) {
+  const unaffordable = balance < CLAW_ATTEMPT_FEE;
+  let feeText = `참가비 ${cashText(CLAW_ATTEMPT_FEE)} · ${unaffordable ? '보유 자금 부족' : '집게를 내릴 때 차감'}`;
+  if (result) feeText = result.fee == null ? '' : `사용한 참가비 ${cashText(result.fee)}`;
   const targets = prizes.filter(({ id }) => id !== result?.item).map(prize => {
     const { x: left, y: top } = clawPerspective(prize.x, prize.y);
     return `
@@ -104,6 +108,7 @@ function clawScreen({ prizes, x, result }) {
       <p class="context-label">안정성 중간</p>
       <h1 tabindex="-1">인형뽑기</h1>
       <p>바닥의 조준점을 보고 좌우와 앞뒤를 맞춰요. 비싼 상품일수록 중앙을 정확하게 노려야 해요.</p>
+      <p class="claw-fee" id="claw-fee">${feeText}</p>
       <div class="claw-machine">
         <div class="claw-marquee" aria-hidden="true"></div>
         <div class="claw-glass" aria-hidden="true">
@@ -121,7 +126,7 @@ function clawScreen({ prizes, x, result }) {
         <div class="claw-console">
           <span class="claw-stick" aria-hidden="true"></span>
           <span class="claw-chute">${result?.item ? `${itemSprite(result.item)} 수령 완료` : '상품 출구'}</span>
-          ${result ? '' : `<button class="claw-action" type="button" data-action="claw-aim">${x == null ? '좌우 위치 고정' : '집게 내리기'}</button>`}
+          ${result ? '' : `<button class="claw-action" type="button" data-action="claw-aim" aria-describedby="claw-fee" ${unaffordable ? 'disabled' : ''}>${x == null ? '좌우 위치 고정' : '집게 내리기'}</button>`}
         </div>
         <p class="arcade-status" role="status" tabindex="-1">${resultText ?? ''}</p>
       </div>

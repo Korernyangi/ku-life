@@ -27,7 +27,8 @@
   border: 2px solid #ad727f;
   box-shadow: 3px 3px 0 #211620;
 }
-.arcade-option:hover { background: #684b5e; }
+.arcade-option:not(:disabled):hover { background: #684b5e; }
+.arcade-option:disabled { opacity: .7; }
 .claw-option { border-color: #7da7a0; }
 .arcade-option-icon { font-size: 1.6rem; color: var(--arcade-gold); }
 .arcade-option strong, .arcade-option small { display: block; }
@@ -103,6 +104,8 @@
 }
 .roulette-odds li strong { color: var(--arcade-gold); }
 .roulette-odds small { white-space: nowrap; }
+.claw-fee { margin-top: 8px; color: var(--arcade-gold); }
+.claw-fee:empty { display: none; }
 .claw-machine {
   width: min(100%, 490px);
   margin: 20px auto 0;
