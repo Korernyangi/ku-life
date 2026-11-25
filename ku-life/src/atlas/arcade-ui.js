@@ -1,4 +1,4 @@
-import { CLAW_ATTEMPT_FEE, ROULETTE, rouletteCash } from './arcade.js';
+import { CLAW_ATTEMPT_FEE, ROULETTE, clawDropX, rouletteCash } from './arcade.js';
 import { ITEMS, cashText } from './config.js';
 import { itemSprite } from './sprites.js';
 
@@ -93,8 +93,9 @@ function clawScreen({ balance, prizes, x, result }) {
   const targets = prizes.filter(({ id }) => id !== result?.item).map(prize => {
     const { x: left, y: top } = clawPerspective(prize.x, prize.y);
     return `
-      <div class="claw-prize" data-prize="${prize.id}" style="--left:${left}%; --top:${top}%; --depth:${prize.y}; --hit-area:${prize.radius * 2}%">
-        <span class="claw-target"></span>${itemSprite(prize.id)}
+      <div class="claw-target" style="left:${left}%; top:${top}%; width:${prize.radius * 2 * (.72 + prize.y * .0028)}%; height:${prize.radius * .7}%"></div>
+      <div class="claw-prize" data-prize="${prize.id}" style="--left:${left}%; --top:${top}%; --depth:${prize.y}">
+        ${itemSprite(prize.id)}
       </div>`;
   }).join('');
   const prizeList = prizes.map(({ id }) => `
@@ -102,12 +103,12 @@ function clawScreen({ balance, prizes, x, result }) {
   const resultText = result && (result.item
     ? `${ITEMS[result.item].name} 획득! 인벤토리에 넣었어요.`
     : '집게가 상품을 놓쳤어요.');
-  const cursor = clawPerspective(x ?? 50, result?.y ?? 50);
+  const cursor = clawPerspective(result?.x ?? x ?? 50, result?.y ?? 50);
   return `
     <article class="panel arcade-panel" data-arcade="claw">
       <p class="context-label">안정성 중간</p>
       <h1 tabindex="-1">인형뽑기</h1>
-      <p>바닥의 조준점을 보고 좌우와 앞뒤를 맞춰요. 비싼 상품일수록 중앙을 정확하게 노려야 해요.</p>
+      <p>집게는 중앙에서 빨라지고, 좌우를 고정한 뒤에도 흔들려요. 조준점이 상품의 타원 안에 들어오면 집게를 내려요. 비싼 상품일수록 타원이 작아요.</p>
       <p class="claw-fee" id="claw-fee">${feeText}</p>
       <div class="claw-machine">
         <div class="claw-marquee" aria-hidden="true"></div>
@@ -145,16 +146,16 @@ export function mountClaw(root, session) {
   const board = root.querySelector('.claw-board');
   if (!board || session.result) return;
   const axis = session.x == null ? 'x' : 'y';
-  const period = axis === 'x' ? 3400 : 3000;
+  const sweepMs = axis === 'x' ? 1800 : 1600;
   const rig = board.querySelector('.claw-rig');
   board.dataset.axis = axis;
   const start = performance.now();
   const move = now => {
     if (!board.isConnected || board.dataset.axis !== axis) return;
-    const phase = ((now - start) / period + .5) % 2;
-    const position = 8 + 84 * (1 - Math.abs(phase - 1));
+    const phase = (now - start) / sweepMs * Math.PI + Math.PI / 2;
+    const position = 50 - 42 * Math.cos(phase);
     board.dataset.position = position;
-    const aim = clawPerspective(session.x ?? position, axis === 'x' ? 50 : position);
+    const aim = axis === 'x' ? clawPerspective(position, 50) : clawPerspective(clawDropX(session.x, position), position);
     board.style.setProperty('--aim-x', `${aim.x}%`);
     board.style.setProperty('--aim-y', `${aim.y}%`);
     rig.style.left = `${aim.x}%`;
@@ -193,7 +194,7 @@ export async function animateArcade(panel, session) {
     ).finished;
     return;
   }
-  const { item, y } = session.result;
+  const { item, x, y } = session.result;
   status.textContent = '집게가 내려가는 중…';
   arcadeSound(item ? [[0, 380], [reduced ? .12 : 1.9, 660]] : [[0, 380], [.69, 210]]);
   const board = panel.querySelector('.claw-board');
@@ -201,8 +202,7 @@ export async function animateArcade(panel, session) {
   if (reduced) return;
   const rig = board.querySelector('.claw-rig');
   const prize = item ? board.querySelector(`[data-prize="${item}"]`) : null;
-  const target = item ? session.prizes.find(prize => prize.id === item) : { x: session.x, y };
-  const grip = clawPerspective(target.x, target.y);
+  const grip = clawPerspective(x, y);
   await moveClaw(rig, grip.x, grip.y, 520);
   rig.dataset.closed = 'true';
   await rig.animate([{ opacity: 1 }, { opacity: 1 }], 160).finished;

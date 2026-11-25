@@ -3,7 +3,7 @@ import { CAREER_ROUTES, careerOptions, normalizeEnding, resolveEnding } from './
 import { employmentForEnding } from './employment.js';
 import { findMajor } from './majors.js';
 import { EVENTS } from './events.js';
-import { CLAW_ATTEMPT_FEE, ROULETTE, clawBoard, clawHitRadius, clawPrize, rouletteCash } from './arcade.js';
+import { CLAW_ATTEMPT_FEE, ROULETTE, clawBoard, clawDropX, clawHitRadius, clawPrize, rouletteCash } from './arcade.js';
 
 const eventById = Object.fromEntries(EVENTS.map(event => [event.id, event]));
 const recoveryEvents = EVENTS.filter(event => event.kind === 'crisis');
@@ -353,19 +353,27 @@ export class AtlasGame {
     return Object.keys(ITEMS).filter(id => (ITEMS[id].first ?? 1) <= semester);
   }
 
-  buyReason(id) {
+  buyReason(id, quantity = 1) {
     const item = ITEMS[id];
     if (!item || this.state.phase !== 'term' || this.state.minigame || !this.stock().includes(id)) return '구매할 수 없는 상품입니다.';
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return '구매 수량을 확인해 주세요.';
     if (item.future && this.state.semester === termCount) return '이후 학기에 효과가 적용됩니다.';
     if (item.type !== 'consumable' && this.state.inventory[id]) return '이미 보유 중입니다.';
-    if (this.state.cash < item.price) return '보유 자금이 부족합니다.';
+    if (item.type !== 'consumable' && quantity > 1) return '한 개만 구매할 수 있습니다.';
+    if (this.state.cash < item.price * quantity) return '보유 자금이 부족합니다.';
     return '';
   }
 
-  buy(id) {
-    if (this.buyReason(id)) return false;
-    this.changeCash(-ITEMS[id].price);
-    this.updateInventory(id, 1);
+  buy(id, quantity = 1) {
+    return this.buyMany({ [id]: quantity });
+  }
+
+  buyMany(order) {
+    const lines = Object.entries(order);
+    if (!lines.length || lines.some(([id, quantity]) => this.buyReason(id, quantity))) return false;
+    const total = lines.reduce((sum, [id, quantity]) => sum + ITEMS[id].price * quantity, 0);
+    if (total > this.state.cash || !this.changeCash(-total)) return false;
+    for (const [id, quantity] of lines) this.updateInventory(id, quantity);
     return true;
   }
 
@@ -454,13 +462,14 @@ export class AtlasGame {
       session.x = position;
       return true;
     }
-    const item = clawPrize(session.prizes, session.x, position);
+    const x = clawDropX(session.x, position);
+    const item = clawPrize(session.prizes, x, position);
     if (!this.changeCash(-CLAW_ATTEMPT_FEE)) return false;
     if (item) {
       this.updateInventory(item, 1);
       s.clawWins++;
     }
-    session.result = { item, y: position, fee: CLAW_ATTEMPT_FEE };
+    session.result = { item, x, y: position, fee: CLAW_ATTEMPT_FEE };
     s.arcadeTerm = s.semester;
     return true;
   }

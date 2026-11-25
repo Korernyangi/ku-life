@@ -184,26 +184,29 @@
 }
 .claw-target {
   position: absolute;
-  left: 50%;
-  bottom: 2%;
-  width: calc(58% + var(--hit-area));
-  height: 24%;
-  translate: -50% 0;
+  z-index: 3;
+  translate: -50% -50%;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px #91d6c0;
-  background: #173944;
+  box-shadow: inset 0 0 0 1px #91f2db, 0 0 0 1px #173944;
 }
 .claw-aim-marker {
   position: absolute;
   z-index: 4;
   left: var(--aim-x);
   top: var(--aim-y);
-  width: clamp(18px, 7%, 32px);
+  width: 13px;
   aspect-ratio: 1;
   translate: -50% -50%;
   border: 2px dashed #fff2b7;
   border-radius: 50%;
   filter: drop-shadow(1px 1px #26565c);
+}
+.claw-aim-marker::after {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: #fff2b7;
+  content: '';
 }
 .claw-board[data-axis="done"] .claw-aim-marker { opacity: 0; }
 .claw-rig {
@@ -259,7 +262,7 @@
 .claw-rig[data-closed="true"] .claw-arm { rotate: -26deg; }
 .claw-rig[data-closed="true"] .claw-arm:last-child { rotate: 26deg; }
 .claw-rig .claw-prize { left: 0; top: 100%; z-index: 1; }
-.claw-rig .claw-target { display: none; }
+.claw-board[data-axis="done"] .claw-target { visibility: hidden; }
 .claw-console {
   display: grid;
   grid-template-columns: minmax(38px, .65fr) minmax(54px, 1fr) minmax(86px, .85fr);

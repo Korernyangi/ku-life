@@ -125,7 +125,7 @@ function statPanel() {
       ${major ? `<p class="student-major">${escape(major.name)}</p>` : ''}
       <dl class="stat-list">${rows}</dl>
       <dl class="balances">
-        <div><dt>보유 자금</dt><dd>${cashText(cash)}</dd></div>
+        <div><dt>보유 자금</dt><dd data-balance>${cashText(cash)}</dd></div>
         <div><dt>누적 평점</dt><dd>${gpaText(game.gpa)}</dd></div>
       </dl>
       ${boosts.nextGpa ? '<p class="active-item">다음 학기 평점에 전공 족보 적용 예정</p>' : ''}
@@ -259,12 +259,16 @@ function showTerm() {
   if (screen === 'arcade') return arcadeMenu(game);
   const stock = game.stock().map(id => {
     const item = ITEMS[id];
-    const reason = game.buyReason(id);
-    return `<li><div class="item-info">${itemSprite(id)}
-        <div><h3>${escape(item.name)}</h3><p class="subline">${typeName[item.type]} · ${cashText(item.price)}</p><p>${escape(item.detail)}</p></div>
+    return `<li data-shop-item="${id}"><div class="item-info">${itemSprite(id)}
+        <div><h3 tabindex="-1">${escape(item.name)}</h3><p class="subline">${typeName[item.type]} · ${cashText(item.price)}</p><p>${escape(item.detail)}</p></div>
       </div>
-      <div><button class="secondary" data-action="buy" data-value="${id}" ${reason ? 'disabled' : ''}>구매<span class="sr-only"> ${escape(item.name)}</span></button>
-      ${reason ? `<small class="lock-reason">${escape(reason)}</small>` : ''}</div></li>`;
+      <div class="shop-item-actions">
+        <div class="shop-quantity">
+          <input type="number" min="0" step="1" ${item.type === 'consumable' ? '' : 'max="1"'} value="0" inputmode="numeric" aria-label="${escape(item.name)} 선택 수량">
+          <button type="button" class="secondary" data-action="buy" data-value="${id}"></button>
+        </div>
+        <div class="shop-message"><small class="lock-reason"></small><small class="shop-feedback" role="status"></small></div>
+      </div></li>`;
   }).join('');
   const effects = changeChips(gradeNotes.stats);
   const gradeFactors = [
@@ -286,9 +290,76 @@ function showTerm() {
       <div class="term-actions actions"><button class="primary" data-action="next-term">${semester !== termCount ? '다음 학기' : game.gpa < RULES.graduationGpa ? '최종 결과 보기' : '졸업 후 진로 선택'}</button><button class="secondary" data-action="arcade-menu" ${game.arcadePlayed ? 'disabled' : ''}>${game.arcadePlayed ? '미니게임 완료' : '미니게임'}</button></div>
       <section class="shop" aria-labelledby="shop-title">
         <h2 id="shop-title">학기 말 상점</h2>
+        <p class="muted">여러 상품을 사려면 각 수량을 정하고 목록 아래에서 함께 구매하세요.</p>
         <ul class="items">${stock}</ul>
+        <div class="shop-checkout">
+          <div><strong data-shop-total tabindex="-1"></strong>
+            <div class="shop-message"><small class="lock-reason"></small><small class="shop-feedback" role="status"></small></div>
+          </div>
+          <button type="button" class="primary" data-action="buy-many">함께 구매</button>
+        </div>
       </section>
     </article>`;
+}
+
+function updateShop(shop) {
+  const order = {};
+  let total = 0;
+  let count = 0;
+  let invalid = false;
+  for (const row of shop.querySelectorAll('[data-shop-item]')) {
+    const id = row.dataset.shopItem;
+    const input = row.querySelector('input');
+    const button = row.querySelector('button');
+    const quantity = input.valueAsNumber;
+    const valid = Number.isSafeInteger(quantity) && input.validity.valid;
+    const directQuantity = valid && quantity > 0 ? quantity : 1;
+    const reason = valid ? game.buyReason(id, directQuantity) : '구매 수량을 확인해 주세요.';
+    input.disabled = quantity === 0 && Boolean(game.buyReason(id));
+    button.disabled = Boolean(reason);
+    button.textContent = `${directQuantity}개 구매`;
+    button.setAttribute('aria-label', `${ITEMS[id].name} ${button.textContent}`);
+    row.querySelector('.lock-reason').textContent = reason;
+    if (!valid || (quantity > 0 && reason)) invalid = true;
+    if (valid && quantity > 0) {
+      order[id] = quantity;
+      total += ITEMS[id].price * quantity;
+      count += quantity;
+    }
+  }
+  const checkout = shop.querySelector('.shop-checkout');
+  const overBudget = total > game.state.cash;
+  checkout.querySelector('[data-shop-total]').textContent = `${count.toLocaleString('ko-KR')}개 선택 · ${cashText(total)}`;
+  checkout.querySelector('.lock-reason').textContent = overBudget ? '보유 자금이 부족합니다.' : '';
+  checkout.querySelector('button').disabled = !count || invalid || overBudget;
+  return order;
+}
+
+function purchaseFromShop(button, id) {
+  const shop = button.closest('.shop');
+  const order = updateShop(shop);
+  if (button.disabled) return;
+  const quantity = id ? order[id] ?? 1 : Object.values(order).reduce((sum, count) => sum + count, 0);
+  const purchased = id ? game.buy(id, quantity) : game.buyMany(order);
+  if (!purchased) return;
+
+  persist();
+  clearShopFeedback(shop);
+  for (const itemId of id ? [id] : Object.keys(order)) {
+    shop.querySelector(`[data-shop-item="${itemId}"] input`).value = 0;
+  }
+  root.querySelector('[data-balance]').textContent = cashText(game.state.cash);
+  const area = button.closest(id ? '[data-shop-item]' : '.shop-checkout');
+  const message = id ? `${ITEMS[id].name} ${quantity}개 구매 완료.` : `선택한 상품 ${quantity}개 구매 완료.`;
+  area.querySelector('.shop-feedback').textContent = [message, storageNotice].filter(Boolean).join(' ');
+  updateShop(shop);
+  if (button.disabled) {
+    area.querySelector(id ? 'h3' : '[data-shop-total]').focus({ preventScroll: true });
+  }
+}
+
+function clearShopFeedback(shop) {
+  for (const status of shop.querySelectorAll('.shop-feedback:not(:empty)')) status.textContent = '';
 }
 
 function showInventory() {
@@ -474,6 +545,8 @@ function render(focus = false) {
     </div></main>`;
     paintProfile(root.querySelector('.student-photo'), game.state.id);
     paintSprites(root);
+    const shop = root.querySelector('.shop');
+    if (shop) updateShop(shop);
     if (game.state.minigame?.kind === 'claw') mountClaw(root, game.state.minigame);
   }
   const canvas = root.querySelector('.scene-canvas');
@@ -515,6 +588,13 @@ function restoreStatusTooltip(event) {
 
 root.addEventListener('focusin', restoreStatusTooltip);
 root.addEventListener('pointerover', restoreStatusTooltip);
+root.addEventListener('input', event => {
+  const shop = event.target.closest('.shop');
+  if (shop) {
+    clearShopFeedback(shop);
+    updateShop(shop);
+  }
+});
 root.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
   for (const button of root.querySelectorAll('.status-toggle:is([aria-expanded="true"], :focus-visible, .status-marker:hover > *)')) {
@@ -584,7 +664,8 @@ root.addEventListener('click', event => {
       actionResult(game.chooseCareer(button.dataset.route, value));
       break;
     case 'buy':
-      actionResult(game.buy(value), `${ITEMS[value].name}을 구매했습니다.`);
+    case 'buy-many':
+      purchaseFromShop(button, value);
       break;
     case 'use':
       actionResult(game.use(value), `${ITEMS[value].name}을 사용했습니다.`);
