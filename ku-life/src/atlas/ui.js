@@ -6,6 +6,7 @@ import { ENDINGS, archiveEndingInfo, careerOptions, endingChoices, endingScore, 
 import { findMajor } from './majors.js';
 import { openAdmission } from './admission.js';
 import { showEndingProfile } from './ending-profile.js';
+import { createEndingPreview } from './ending-preview.js';
 import { itemSprite, paintSprites, statSprite } from './sprites.js';
 import { animateArcade, arcadeMenu, arcadeScreen, mountClaw } from './arcade-ui.js';
 import './atlas.css';
@@ -29,8 +30,11 @@ const endingStorageKey = 'ku-life:ending:';
 const variantStorageKey = 'ku-life:ending-major:';
 const unlockedEndings = new Set();
 const endingMajors = new Map(endingEntries.map(([id]) => [id, new Set()]));
-let game;
-let screen = 'title';
+const previewId = import.meta.env.VITE_ENDING_PREVIEW === '1'
+  ? new URLSearchParams(window.location.search).get('ending-preview') : null;
+let game = previewId ? createEndingPreview(previewId) : null;
+const inEndingPreview = Boolean(game);
+let screen = inEndingPreview ? 'game' : 'title';
 let notice = '';
 let storageNotice = '';
 let saved;
@@ -43,6 +47,7 @@ try {
 }
 
 function persist() {
+  if (inEndingPreview) return;
   saved = game.state;
   try {
     localStorage.setItem(storageKey, JSON.stringify(saved));
@@ -350,6 +355,7 @@ function unlockEnding(id, majorId) {
   const firstVariant = findMajor(majorId) && !variants.has(majorId);
   unlockedEndings.add(id);
   if (firstVariant) variants.add(majorId);
+  if (inEndingPreview) return;
   try {
     if (firstEnding) localStorage.setItem(endingStorageKey + id, '1');
     if (firstVariant) localStorage.setItem(variantStorageKey + id + ':' + majorId, '1');
@@ -437,8 +443,10 @@ function render(focus = false) {
   } else {
     const views = { event: showEvent, result: showReceipt, term: showTerm, career: showCareer, ended: showEnding };
     const body = screen === 'inventory' ? showInventory() : screen === 'grades' ? showGrades() : views[game.state.phase]();
+    const storageMessage = inEndingPreview ? '엔딩 테스트 · 진행과 도감은 이 탭에만 기록돼요.' : storageNotice;
+    const messages = [notice, storageMessage].filter(Boolean);
     root.innerHTML = `${gameHeader()}<main class="dashboard">${statPanel()}<div class="workspace">
-      <p class="notice" role="status" ${notice || storageNotice ? '' : 'hidden'}>${[notice, storageNotice].filter(Boolean).map(escape).join(' ')}</p>
+      <p class="notice" role="status" ${messages.length ? '' : 'hidden'}>${messages.map(escape).join(' ')}</p>
       ${body}
     </div></main>`;
     paintProfile(root.querySelector('.student-photo'), game.state.id);
@@ -525,6 +533,11 @@ root.addEventListener('click', event => {
       render(true);
       break;
     case 'title':
+      if (inEndingPreview) {
+        window.location.assign(window.location.pathname);
+        break;
+      }
+      // Fall through to the shared screen navigation.
     case 'game':
     case 'inventory':
     case 'grades':

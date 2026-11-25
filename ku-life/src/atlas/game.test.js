@@ -5,6 +5,7 @@ import { ENDINGS, archiveEndingInfo, careerOptions, endingChoices, endingScore, 
 import { MAJOR_GROUPS } from './majors.js';
 import { EVENTS } from './events.js';
 import { AtlasGame } from './game.js';
+import { createEndingPreview } from './ending-preview.js';
 
 function fixture(eventId, overrides = {}, random = () => .25) {
   const { state } = new AtlasGame();
@@ -410,6 +411,21 @@ test('hidden endings reveal their title and story only after discovery and never
     assert.deepEqual(archiveEndingInfo(ending, false), { icon: '🔒', title: '???', description: '발견하면 공개되는 히든 스페셜 엔딩' });
     assert.equal(archiveEndingInfo(ending, true).title, ending.title);
     assert.equal(archiveEndingInfo(ending, true).description, ending.description);
+  }
+});
+
+test('both ending previews start one real choice away from the requested ending', () => {
+  assert.equal(createEndingPreview('unknown'), null);
+  for (const [id, eventId, choiceIndex] of [['family', 'couple_future', 0], ['recovery', 'mental_crisis', 2]]) {
+    const game = createEndingPreview(id);
+    assert.equal(game.state.phase, 'event', id);
+    assert.equal(game.state.ending, null, id);
+    assert.equal(game.event.id, eventId);
+    assert.ok(game.state.history.length > 0);
+    assert.ok(game.event.choices.some((choice, index) => index !== choiceIndex && !game.choiceReasons(choice).length));
+    play(game, choiceIndex);
+    assert.equal(game.state.phase, 'ended');
+    assert.equal(game.state.ending.id, id);
   }
 });
 
