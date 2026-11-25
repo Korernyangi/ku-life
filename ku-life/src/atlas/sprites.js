@@ -193,3 +193,22 @@ export function paintSprites(root) {
     }
   }
 }
+
+const trophyPixels = [
+  '................', '....KKKKKKKK....', '....KHHGGGGK....', 'KKKKKHHGGGGKKKKK',
+  'KGGGKHHGGGGKGGGK', 'KGKKKHGSGGGKKKGK', 'KGGGKHGSGGGKGGGK', '..KKKGGGGGGKKK..',
+  '....KGGGGGGK....', '.....KKGGKK.....', '.......GG.......', '......KGGK......',
+  '.....KGGGGK.....', '....KHHGGGGK....', '....KKKKKKKK....', '................',
+];
+
+export function paintTrophy(canvas) {
+  const colors = { K: '#693a32', H: '#fff4bc', G: '#e8ad45', S: '#fff8df' };
+  const context = canvas.getContext('2d');
+  for (const [y, row] of trophyPixels.entries()) {
+    for (const [x, pixel] of [...row].entries()) {
+      if (pixel === '.') continue;
+      context.fillStyle = colors[pixel];
+      context.fillRect(x, y, 1, 1);
+    }
+  }
+}
