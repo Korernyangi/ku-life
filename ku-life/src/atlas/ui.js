@@ -168,8 +168,9 @@ function titleScreen() {
       </button>
       <div class="landing-layout">
       <section class="landing-card">
+        <p class="context-label">고려대학교 대학생활 전략 시뮬레이션</p>
         <h1 tabindex="-1">KU-LIFE</h1>
-        <p>고려대학교 대학생활 전략 시뮬레이션</p>
+        <p>공부, 사람, 생활비 사이에서 무엇을 우선할지 정하며 졸업까지 걸어가세요.</p>
       </section>
       <section class="entry-panel" aria-label="게임 시작">
         ${saved ? `<button type="button" class="entry-button entry-primary" data-action="resume" aria-labelledby="resume-label" aria-describedby="resume-details">
@@ -177,21 +178,19 @@ function titleScreen() {
           <span><strong id="resume-label">${saved.phase === 'ended' ? '지난 결과 보기' : '이어하기'}</strong><small id="resume-details">${major ? escape(major.name) + ' · ' : ''}${termLabel(saved.semester)} · ${savedPhase[saved.phase]}</small></span><span aria-hidden="true">→</span>
         </button>` : ''}
         <button type="button" class="entry-button ${saved ? '' : 'entry-primary'}" data-action="new" aria-labelledby="new-label" aria-describedby="new-details">
-          <span><strong id="new-label">입학하기</strong><small id="new-details">학과를 골라 1학년부터 시작</small></span><span aria-hidden="true">→</span>
+          <span><strong id="new-label">입학하기</strong><small id="new-details">${accountId ? '학과를 골라 1학년부터 시작' : '로그인하면 이 브라우저에서 이어할 수 있어요'}</small></span><span aria-hidden="true">→</span>
         </button>
         <button type="button" class="entry-button" data-action="challenge-open">
-          <span><strong>도전모드</strong><small>${accountId ? '무작위 학과 · 낮은 초기 스탯과 자금' : '무작위 학과 · 로그인 필요'}</small></span><span aria-hidden="true">→</span>
+          <span><strong>도전모드</strong><small>${accountId ? '무작위 학과 · 낮은 초기 스탯과 자금' : '고려대 계정으로 로그인 후 플레이'}</small></span><span aria-hidden="true">→</span>
+        </button>
+        <button type="button" class="entry-button entry-trophy" data-action="ranking" aria-label="도전 순위표" title="도전 순위표">
+          <canvas width="16" height="16" aria-hidden="true"></canvas>
         </button>
         <p class="challenge-status notice" role="status"></p>
+        <button type="button" class="entry-button entry-archive" data-action="archive" aria-labelledby="archive-label" aria-describedby="archive-count">
+          <span><strong id="archive-label">엔딩 도감</strong><small>기본 ${basicEndings.length}개 · 히든 ${hiddenEndings.length}개</small></span><span id="archive-count">${unlockedEndings.size} / ${endingEntries.length}</span>
+        </button>
         ${storageNotice ? `<p class="notice" role="status">${escape(storageNotice)}</p>` : ''}
-        <div class="entry-footer">
-          <button type="button" class="entry-archive" data-action="archive" aria-labelledby="archive-label" aria-describedby="archive-count">
-            <strong id="archive-label">엔딩 도감</strong><span id="archive-count">${unlockedEndings.size} / ${endingEntries.length}</span>
-          </button>
-          <button type="button" class="entry-trophy" data-action="ranking" aria-label="도전 순위표" title="도전 순위표">
-            <canvas width="16" height="16" aria-hidden="true"></canvas>
-          </button>
-        </div>
       </section>
       </div>
     </main>`;
