@@ -55,7 +55,7 @@ export const EVENTS = [
     description: '졸업 프로젝트가 초안 수준에 머물러 있다. 도구와 체력을 어떻게 쓸지 결정해야 한다.',
     study: true,
     choices: [
-      pick('내 노트북으로 데이터와 초안을 함께 정리한다', '자료를 재현할 수 있도록 정리했다. 교수님이 마지막 발표를 기대한다고 했다.', { intelligence: 2, hp: -1 }, { requires: { items: ['laptop'], min: { hp: 2 } } }),
+      pick('내 노트북으로 데이터와 초안을 함께 정리한다', '데이터를 분석하고 결과를 그래프로 정리했다. 교수님이 마지막 발표를 기대한다고 했다.', { intelligence: 2, hp: -1 }, { requires: { items: ['laptop'], min: { hp: 2 } }, grant: ['dataAnalysis'] }),
       pick('직접 추가 실험까지 진행한다', '추가 실험을 발표에 넣었다. 마감 직후는 조금 벅찼다.', { intelligence: 3, hp: -3, mental: -1 }, { intensity: 'high', requires: { min: { hp: 5, intelligence: RULES.advancedStudy } } }),
       pick('범위를 줄여 제출 준비를 끝낸다', '한 가지 결과를 확실히 설명할 수 있게 됐다.', { intelligence: 1, mental: 1 }),
     ],

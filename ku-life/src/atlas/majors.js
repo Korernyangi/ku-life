@@ -8,7 +8,7 @@ const creative = ['employee', 'startup'];
 
 export const MAJOR_GROUPS = [
   ['경영대학', employment, [
-    ['business', '경영학과', '기업 기획자', '신사업의 첫 고객을 찾는 방법'],
+    ['business', '경영학과', '사업기획 담당자', '신사업의 첫 고객을 찾는 방법'],
   ]],
   ['문과대학', creative, [
     ['korean', '국어국문학과', '출판 편집자', '오늘의 언어로 읽는 한국 문학'],

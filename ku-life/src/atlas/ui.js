@@ -3,6 +3,7 @@ import { drawPixelStudent } from '../ui/pixel-student.js';
 import { AtlasGame } from './game.js';
 import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, cashText } from './config.js';
 import { ENDINGS, archiveEndingInfo, careerOptions, endingChoices, endingScore, majorEnding, normalizeEnding } from './endings.js';
+import { employmentForEnding } from './employment.js';
 import { findMajor } from './majors.js';
 import { openAdmission } from './admission.js';
 import { showEndingProfile } from './ending-profile.js';
@@ -30,7 +31,7 @@ const hiddenEndings = endingEntries.filter(([, ending]) => ending.hidden);
 const endingStorageKey = 'ku-life:ending:';
 const variantStorageKey = 'ku-life:ending-major:';
 const unlockedEndings = new Set();
-const endingMajors = new Map(endingEntries.map(([id]) => [id, new Set()]));
+const endingVariants = new Map(endingEntries.map(([id]) => [id, new Map()]));
 const previewId = import.meta.env.VITE_ENDING_PREVIEW === '1'
   ? new URLSearchParams(window.location.search).get('ending-preview') : null;
 let game = previewId ? createEndingPreview(previewId) : null;
@@ -134,7 +135,10 @@ function statPanel() {
 
 function titleScreen() {
   loadEndings();
-  if (saved?.phase === 'ended') unlockEnding(normalizeEnding(saved.ending)?.id, saved.majorId);
+  if (saved?.phase === 'ended') {
+    const id = normalizeEnding(saved.ending)?.id;
+    unlockEnding(id, saved.majorId, employmentForEnding(saved, id)?.id);
+  }
   const major = findMajor(saved?.majorId);
   return `
     <main class="landing">
@@ -314,7 +318,7 @@ function showCareer() {
   const major = findMajor(majorId);
   const options = careerOptions(game.state, game.gpa);
   const routes = options.map(({ id, route, reasons }) => {
-    const ending = majorEnding(id, majorId);
+    const ending = majorEnding(id, majorId, employmentForEnding(game.state, id));
     const suggested = id === route && major?.routes.includes(route);
     const description = ending.title !== ENDINGS[id].title ? `<small>${escape(ending.title)}</small>` : '';
     const status = reasons.length
@@ -333,6 +337,17 @@ function showCareer() {
   </article>`;
 }
 
+function recordEndingVariant(id, majorId, employerId) {
+  const variants = endingVariants.get(id);
+  if (!variants || (majorId && !findMajor(majorId))) return null;
+  const employer = employmentForEnding({ majorId, ending: { id, employerId } }, id);
+  if ((employerId && employer?.id !== employerId) || (!majorId && !employer)) return null;
+  const key = employer ? `${majorId ?? ''}:${employer.id}` : majorId;
+  if (variants.has(key)) return null;
+  variants.set(key, { majorId, employer });
+  return key;
+}
+
 function loadEndings() {
   try {
     for (const [id] of endingEntries) {
@@ -341,27 +356,23 @@ function loadEndings() {
     for (let index = 0; index < localStorage.length; index++) {
       const key = localStorage.key(index);
       if (!key?.startsWith(variantStorageKey)) continue;
-      const [id, majorId] = key.slice(variantStorageKey.length).split(':');
-      if (!endingMajors.has(id) || !findMajor(majorId)) continue;
-      endingMajors.get(id).add(majorId);
-      unlockedEndings.add(id);
+      const [id, majorId, employerId] = key.slice(variantStorageKey.length).split(':');
+      if (recordEndingVariant(id, majorId, employerId)) unlockedEndings.add(id);
     }
   } catch {
     // Discovered endings are still available for the current session.
   }
 }
 
-function unlockEnding(id, majorId) {
-  if (!endingMajors.has(id)) return;
+function unlockEnding(id, majorId, employerId) {
+  if (!endingVariants.has(id)) return;
   const firstEnding = !unlockedEndings.has(id);
-  const variants = endingMajors.get(id);
-  const firstVariant = findMajor(majorId) && !variants.has(majorId);
+  const newVariant = recordEndingVariant(id, majorId, employerId);
   unlockedEndings.add(id);
-  if (firstVariant) variants.add(majorId);
   if (inEndingPreview) return;
   try {
     if (firstEnding) localStorage.setItem(endingStorageKey + id, '1');
-    if (firstVariant) localStorage.setItem(variantStorageKey + id + ':' + majorId, '1');
+    if (newVariant) localStorage.setItem(variantStorageKey + id + ':' + newVariant, '1');
   } catch {
     // The main save path reports unavailable browser storage.
   }
@@ -383,10 +394,12 @@ function openArchive() {
       return `<section><h3>${title} <span>${count} / ${entries.length}</span></h3><ul>${entries.map(([id, ending]) => {
         const unlocked = unlockedEndings.has(id);
         const { icon, title, description } = archiveEndingInfo(ending, unlocked);
-        const variants = unlocked ? [...endingMajors.get(id)].map(majorId => {
+        const variants = unlocked ? [...endingVariants.get(id).values()].map(({ majorId, employer }) => {
           const major = findMajor(majorId);
-          const variant = majorEnding(id, majorId);
-          return `<details><summary>${escape(major.name)}</summary><p><strong>${escape(variant.title)}</strong></p><p>${escape(variant.description)}</p></details>`;
+          const variant = majorEnding(id, majorId, employer);
+          const label = employer ? [major?.name, variant.title].filter(Boolean).join(' · ') : major.name;
+          const heading = employer ? '' : `<p><strong>${escape(variant.title)}</strong></p>`;
+          return `<details><summary>${escape(label)}</summary>${heading}<p>${escape(variant.description)}</p></details>`;
         }).join('') : '';
         return `<li class="${unlocked ? '' : 'locked'}"><span aria-hidden="true">${icon}</span><div>
           <strong>${escape(title)}</strong> <span class="archive-state">${unlocked ? '발견' : '미발견'}</span>
@@ -402,7 +415,8 @@ function openArchive() {
 function currentEnding() {
   const { ending, majorId } = game.state;
   const legacy = !Object.hasOwn(ending, 'route');
-  const info = (legacy ? LEGACY_ENDINGS.find(item => item.id === ending.id) : majorEnding(ending.id, majorId)) ?? ENDINGS.ordinary;
+  const info = (legacy ? LEGACY_ENDINGS.find(item => item.id === ending.id)
+    : majorEnding(ending.id, majorId, employmentForEnding(game.state, ending.id))) ?? ENDINGS.ordinary;
   return { ...info, id: ending.id, legacy, major: findMajor(majorId)?.name };
 }
 
@@ -411,7 +425,7 @@ function showEnding() {
   const main = currentEnding();
   const score = endingScore(game.state, game.gpa, main.id);
   const missedGraduation = !main.legacy && !ending.route && main.id === 'ordinary';
-  unlockEnding(main.id, majorId);
+  unlockEnding(main.id, majorId, main.employer?.id);
   const achievements = (ending.achievements ?? []).map(id => LEGACY_ENDINGS.find(outcome => outcome.id === id)?.title).filter(Boolean);
   const recap = endingChoices(history, main.id);
   const record = history.map(entry => `<li><strong>${termLabel(entry.semester)} · ${escape(entry.title)}</strong><p>${escape(entry.choice)}</p></li>`).join('');

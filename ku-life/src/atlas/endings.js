@@ -1,12 +1,13 @@
 import { EXPERIENCES, RULES, STATS, cashText } from './config.js';
 import { findMajor } from './majors.js';
+import { employmentForEnding } from './employment.js';
 
 export const ENDINGS = {
   corporate: {
-    title: '안암테크 입사',
+    title: '기업 취업',
     icon: '🏢',
     keepsake: { label: '신입사원 단톡방', text: '내일 회의실 예약도 수강신청처럼 정각에 열리나요?' },
-    description: '첫 명함에 안암테크 직인이 찍혔다. 면접 단골 질문이었던 팀플 이야기는 이제 신입 연수의 아이스브레이커다.',
+    description: '첫 명함을 받았다. 면접 때 물어봤던 팀플 이야기는 이제 신입 연수의 아이스브레이커다.',
     hint: '기업 공채에 지원하고 최종 면접 합격, 지능 15, 사회성 12 이상을 달성하세요.',
   },
   grad_school: {
@@ -38,11 +39,11 @@ export const ENDINGS = {
     hint: '배낭여행을 떠날 때 체력 8, 멘탈 13, 자금 20만원 이상이 필요해요.',
   },
   employee: {
-    title: '오후문구 신입사원',
+    title: '전공 실무 취업',
     icon: '💼',
-    keepsake: { label: '신제품 첫 주문', text: '공책 이름을 ‘마감 직전’으로 하면 제가 한 박스 삽니다.' },
-    description: '동네 문구 회사에 입사해 신제품 노트를 맡았다. 수업 시간에 그리던 낙서가 이번 시즌 한정판 표지가 됐다.',
-    hint: '오후문구에 지원할 때 지능 11 이상이 필요해요. 안암테크 공채 준비 중에도 제안을 받을 수 있어요.',
+    keepsake: { label: '출근 첫날 메모', text: '출입증 받기, 이름표 붙이기, 동기들한테 점심 메뉴 물어보기.' },
+    description: '새 일터에서 첫 업무를 맡았다. 수업 시간에 적어 둔 메모를 꺼내 보니 그대로 써먹을 한 줄이 있다.',
+    hint: '지능 11 이상으로 전공 실무직에 지원하세요.',
   },
   rich_life: {
     title: '통장으로 산 안식년',
@@ -69,8 +70,8 @@ export const ENDINGS = {
   family: {
     title: '새벽 네 시의 수강신청',
     icon: '🍼',
-    keepsake: { label: '가족 단톡방 · 오전 4:07', text: '분유 실습 출석 완료. 오늘도 수강 철회 불가.' },
-    description: '휴학을 신청한 지 1년, 두 사람에게 아기가 태어났다. 새벽 네 시. 수강신청 알람 대신 아기 울음소리에 둘이 동시에 눈을 뜬다.\n\n“오늘 첫 수업은?” “분유 실습. 출석은 둘 다 했어.”',
+    keepsake: { label: '가족 포털 · 수강 내역', text: '기저귀 교체실습 1분반 / 담당 교수 생후 6개월 / 수강생 둘, 대기 0명.' },
+    description: '휴학 1년 뒤, 둘 사이에 아기가 태어났다. 새벽 네 시에 울음소리가 나자 두 사람은 반사적으로 노트북부터 켰다. 가족 단톡방에 ‘기저귀 교체실습 1분반’ 신청 링크가 올라왔다.\n\n신청 버튼을 피하려 했지만 둘 다 이미 자동 수강 중이었다. 아기는 자기 강의평가에 별 다섯 개 대신 손가락 다섯 개를 통째로 입에 넣었다.',
     special: true,
     hidden: true,
     early: true,
@@ -78,8 +79,8 @@ export const ENDINGS = {
   recovery: {
     title: '시간표를 비워 둔 학기',
     icon: '🌿',
-    keepsake: { label: '복학을 기다리는 친구', text: '창가 자리는 비워 둘게. 커피는 네가 오면 시키자.' },
-    description: '휴학계를 냈다. 진료를 받고 의료진과 상의해 잠시 정신건강의학과 병동에 머물렀다. 아침에 커튼을 열고, 식사를 하고, 가끔 친구의 안부에 답했다.\n\n몇 달 뒤, 복학 안내 메일이 왔다. 답장을 쓰기 전에 자주 가던 카페가 아직 있는지 친구에게 먼저 물었다.',
+    keepsake: { label: '창가 자리 수강편람', text: '공강으로 인정되는 공강 / 주교재 카페 메뉴판 / 과제 0개.' },
+    description: '휴학계를 냈다. 의료진과 상의해 잠시 정신건강의학과 병동에서 치료를 받았다. 시간을 두고 생활 리듬을 되찾으면서 친구들과 안부를 나눴다.\n\n몇 달 뒤 복학 일정을 알아보는데 동기가 카페 창가 자리를 잡아 줬다. 테이블에는 ‘공강으로 인정되는 공강, 1학점’이라는 수강편람이 붙어 있었다. 출석만 하고 아무것도 안 했더니 친구가 오늘 수업은 A+라고 했다.',
     special: true,
     hidden: true,
     early: true,
@@ -87,8 +88,8 @@ export const ENDINGS = {
   cafe: {
     title: '영수증으로 찍는 출석',
     icon: '☕',
-    description: '주말마다 지키던 카페를 이어받았다. 개강날부터 단골들이 테이블마다 전공 스터디를 열었다. 예약표에 방 번호를 붙이고 보니 웬만한 강의실보다 출석률이 좋다.\n\n가게 첫 질문은 “사장님, 따뜻한 아메리카노도 분반 있나요?”였다.',
-    keepsake: { label: '카페 영수증', text: '아메리카노 1잔 · 0학점 / 스탬프 1개' },
+    description: '주말마다 일하던 카페를 이어받아 콘센트 자리를 예약제로 바꿨다. 정각에 손님이 몰리면서 에스프레소 머신의 시계로 서버 시간을 맞추기 시작했다.\n\n다음 날 동기들이 예약표를 강의 시간표로 착각해 왔다. 결국 메뉴를 분반으로 바꿨다. 첫 학기 폐강 위기에 놓인 과목은 디카페인 심화였다.',
+    keepsake: { label: '영수증 겸 수강증', text: '아메리카노 3분반 / 샷 추가 0.5학점 / 텀블러 제출 시 출석 인정.' },
     special: true,
     hidden: true,
     early: true,
@@ -96,8 +97,8 @@ export const ENDINGS = {
   newspaper: {
     title: '고양이 학번은 비공개',
     icon: '📰',
-    description: '입실렌티와 고연전 사진의 같은 구석에 고양이 한 마리가 앉아 있었다. 취재를 시작한 뒤 20년 전 신문에서 똑같은 구도를 발견했다. 사진 속 고양이는 서로 다른 녀석이었다. 같은 자리를 이어받는 당번이 있었던 것이다.\n\n당신의 호외가 나간 날, 도서관 앞 빈 상자에 ‘다음 당번 면접 장소’ 팻말이 붙었다.',
-    keepsake: { label: '고대신문 호외', text: '축제장 고양이 당번 교대 포착. 학번과 학과는 비공개.' },
+    description: '입실렌티와 고연전 사진 속 고양이를 따라갔다가 캠퍼스 고양이들의 당번 인수인계 현장을 취재했다. 회의 자료에는 ‘인간의 호들갑 관리’가 첫 번째 안건으로 적혀 있었다.\n\n호외가 나가자 고양이들이 정정 보도를 요청했다. 이유는 직함 오기. ‘도서관 앞 고양이’의 정식 직함은 ‘도서관 앞 박스 운영관리위원장’이었다.',
+    keepsake: { label: '위원장실 보도자료', text: '질의응답은 츄르 제출 순. 학번 대신 발바닥 도장으로 본인 확인.' },
     special: true,
     hidden: true,
     early: true,
@@ -105,8 +106,8 @@ export const ENDINGS = {
   claw: {
     title: '집게가 잡은 건 내 진로',
     icon: '🕹️',
-    description: '세 번째 상품을 뽑자 기계 옆에 구경선이 생겼다. 다음 날 기계 주인이 당신에게 새 상품 배치를 부탁했다. 이번에는 유리 반대편에서 집게를 움직이게 됐다.\n\n신입생 오픈 첫날, 아무도 못 뽑던 구석에 상품이 하나씩 들어찼다. 당신은 그걸 발견하는 학생 얼굴을 보는 일이 제일 좋았다.',
-    keepsake: { label: '새 기계 옆 안내문', text: '한 번은 감각, 두 번은 실력, 세 번은 직원 채용.' },
+    description: '세 번째 상품을 뽑았더니 인형 밑에서 작은 합격 통지서가 구겨져 나왔다. 기계 주인이 작업 장갑을 건넸다. 최종 면접관 위치에는 방금 뽑힌 곰 인형이 걸터앉아 있었다.\n\n상품 배치를 맡은 첫날, 곰 인형 셋이 결석한 자리에는 조별 과제 무임승차 방지 안내문을 붙였다. 이튿날 셋 다 뽑기 통로를 막고 누워서 재배치를 요구했다.',
+    keepsake: { label: '유리 안쪽 인사 공지', text: '올해 신입 3명, 전원 곰. 팀장 채용은 집게 수리 후 재개.' },
     special: true,
     hidden: true,
     early: true,
@@ -131,12 +132,12 @@ export function normalizeEnding(ending) {
 }
 
 export const CAREER_ROUTES = {
-  corporate: '안암테크 공채에 지원한다',
+  corporate: '기업 공채에 지원한다',
   grad_school: '연구를 이어가기 위해 대학원에 지원한다',
   startup: '공강마다 만들던 서비스를 출시한다',
   ngo: '지역단체의 새 프로젝트에 합류한다',
   traveler: '배낭여행을 떠날 편도 티켓을 끊는다',
-  employee: '동네 문구 회사 오후문구에 지원한다',
+  employee: '전공 실무직에 지원한다',
   rich_life: '모아 둔 생활비로 1년을 쉰다',
   ordinary: '쉬면서 다음 길을 천천히 찾는다',
 };
@@ -197,18 +198,23 @@ export function resolveEnding(state, gpa, route) {
   return candidates.find(id => !careerReasons(state, gpa, id).length) ?? 'ordinary';
 }
 
-export function majorEnding(id, majorId) {
+export function majorEnding(id, majorId, employer = employmentForEnding({ majorId }, id)) {
   const major = findMajor(majorId);
   const base = ENDINGS[id];
-  if (!major || !base) return base;
-  const { name, role, topic, terms } = major;
-  const afterStudy = terms ? `${terms}학기 과정을 마친 뒤, ` : '';
+  if (!base) return undefined;
+  const afterStudy = major?.terms ? `${major.terms}학기 과정을 마친 뒤, ` : '';
+  if (employer) {
+    const topic = major?.topic ?? '새로 맡은 일에서 처음 발견한 질문';
+    const firstDay = id === 'corporate'
+      ? `첫 회의에서 대학 시절부터 관심을 가졌던 ‘${topic}’ 이야기를 꺼냈다.`
+      : `첫 업무를 받자 ‘${topic}’이라고 적어 둔 수업 노트를 꺼냈다. 옆자리 동료가 그 메모를 회의에 가져가자고 했다.`;
+    const start = major?.id === 'cyber-defense' ? '복무를 마친 뒤, ' : afterStudy;
+    return { ...base, employer, title: `${employer.company} · ${employer.role}`, description: `${start}${employer.company}에서 첫 명함을 받았다. ${firstDay}` };
+  }
+  if (!major) return base;
+  const { name, topic } = major;
 
   switch (id) {
-    case 'corporate':
-      return { ...base, title: `${role}의 첫 출근`, description: `${afterStudy}안암테크에서 ${role} 명함을 받았다. 첫 회의에서 대학 시절부터 관심을 가졌던 ‘${topic}’ 이야기를 꺼냈다.` };
-    case 'employee':
-      return { ...base, title: `첫 경력 · ${role}`, description: `${afterStudy}작은 팀에 ${role} 자리가 났다. 책상에 붙인 첫 메모에는 ‘${topic}’이라고 적혀 있다. 다음 주, 그 메모가 팀의 첫 기획안이 된다.` };
     case 'grad_school':
       return { ...base, title: `${name}에서 대학원으로`, description: `${afterStudy}다시 학생증을 받았다. 첫 세미나에서 발표할 주제는 ‘${topic}’. 예전 수업에서 시작된 질문을 이번에는 끝까지 따라가 보기로 했다.` };
     case 'startup':
@@ -218,20 +224,20 @@ export function majorEnding(id, majorId) {
     case 'ordinary':
       return { ...base, description: `${name}에서 품었던 질문을 다시 적어 봤다. ‘${topic}’. 노트의 제목은 아직 비어 있다. 이번 주에는 동기와 점심을 먹으며 다음 계획을 잡아 보기로 했다.` };
     case 'family':
-      return { ...base, description: `${base.description}\n\n아기 사진을 본 ${name} 동기가 답했다. “조별 과제면 나도 분유 한 통 보낼게.”` };
+      return { ...base, description: `${base.description}\n\n아기 사진을 본 ${name} 동기가 답했다. “분유 한 통 보냈다. 이제 조별 과제 이름에 나도 넣어 줘.”` };
     case 'recovery':
-      return { ...base, description: `${base.description}\n\n${name} 동기가 답했다. “그대로야. 우리 늘 앉던 창가 자리도.”` };
+      return { ...base, description: `${base.description}\n\n${name} 동기가 답했다. “다음엔 우리 학과 공강 실습 분반도 열자.”` };
     default:
       return { ...base, description: `${name} 친구들과 나눈 마지막 인사가 떠오른다. ${base.description}` };
   }
 }
 
 const recapExperience = {
-  corporate: ['job', 'internship'],
+  corporate: ['job', 'internship', 'dataAnalysis', 'lab', 'published', 'competition'],
   grad_school: ['lab', 'researchProposal'],
   startup: ['startup', 'launched'],
   ngo: ['friendHelp', 'club', 'chair'],
-  employee: ['job', 'internship', 'competition', 'reporter'],
+  employee: ['job', 'internship', 'dataAnalysis', 'lab', 'published', 'competition'],
   newspaper: ['reporter', 'published', 'koyeonjeon', 'ipselenti'],
   family: ['dating', 'coupleTime', 'familyPlan'],
   recovery: ['recoveryLeave'],

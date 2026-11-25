@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { EXPERIENCES, ITEMS, RULES, TERM_CALENDAR } from './config.js';
 import { ENDINGS, archiveEndingInfo, careerOptions, endingChoices, endingScore, majorEnding, resolveEnding } from './endings.js';
+import { employmentForEnding, employmentOptions } from './employment.js';
 import { MAJOR_GROUPS } from './majors.js';
 import { EVENTS } from './events.js';
 import { AtlasGame } from './game.js';
@@ -484,10 +485,41 @@ test('every selectable major has distinct career text and survives a saved game'
     const restored = new AtlasGame(JSON.parse(JSON.stringify(state)));
     assert.equal(restored.state.majorId, major.id);
     assert.ok(major.routes.every(id => Object.hasOwn(ENDINGS, id)));
+    const [standard, alternate] = employmentOptions(major.id);
+    assert.notEqual(standard.company, alternate.company, major.id);
+    assert.notEqual(standard.role, alternate.role, major.id);
+    assert.ok(EXPERIENCES[alternate.experience], major.id);
+    assert.equal(employmentForEnding({ majorId: major.id, flags: [alternate.experience] }, 'corporate').company, alternate.company);
   }
   const oldSave = new AtlasGame().state;
   delete oldSave.majorId;
-  assert.equal(majorEnding('corporate', new AtlasGame(oldSave).state.majorId), ENDINGS.corporate);
+  assert.match(majorEnding('corporate', new AtlasGame(oldSave).state.majorId).title, /CJ제일제당/);
+});
+
+test('the same major can see different real employers in the same ending and keeps the result after reload', () => {
+  const senior = {
+    phase: 'career', semester: 8, grades: Array(8).fill(3.5), flags: ['job'],
+    majorId: 'computer-science', stats: { intelligence: 16, social: 14 },
+  };
+  const standard = fixture('graduation', senior);
+  assert.equal(standard.chooseCareer('corporate', 'corporate'), true);
+  assert.equal(standard.state.ending.id, 'corporate');
+  assert.equal(employmentForEnding(standard.state, 'corporate').company, '네이버');
+
+  const project = fixture('capstone', { semester: 7, majorId: senior.majorId, inventory: { laptop: 1 } });
+  play(project, 0);
+  assert.ok(project.state.flags.includes('dataAnalysis'));
+  const portfolio = fixture('graduation', { ...senior, flags: [...senior.flags, ...project.state.flags] });
+  assert.equal(portfolio.chooseCareer('corporate', 'corporate'), true);
+  assert.equal(portfolio.state.ending.id, 'corporate');
+  assert.equal(portfolio.state.ending.employerId, 'alternate');
+  const restored = new AtlasGame(JSON.parse(JSON.stringify(portfolio.state)));
+  const job = employmentForEnding(restored.state, restored.state.ending.id);
+  assert.equal(majorEnding('corporate', restored.state.majorId, job).title, '카카오 · 데이터 분석가');
+  assert.equal(employmentForEnding({ majorId: senior.majorId, history: [{ eventId: 'capstone',
+    choice: '내 노트북으로 데이터와 초안을 함께 정리한다' }] }, 'corporate').company, '카카오');
+  assert.equal(employmentForEnding({ majorId: 'business', flags: [] }, 'employee').company, 'CJ제일제당');
+  assert.equal(employmentForEnding({ majorId: 'business', flags: ['internship'] }, 'employee').company, '삼성물산');
 });
 
 test('the displayed career lock is enforced and an eligible basic ending remains selectable', () => {

@@ -1,5 +1,6 @@
 import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, TERM_CALENDAR, cashText } from './config.js';
 import { CAREER_ROUTES, careerOptions, normalizeEnding, resolveEnding } from './endings.js';
+import { employmentForEnding } from './employment.js';
 import { findMajor } from './majors.js';
 import { EVENTS } from './events.js';
 import { CLAW_ATTEMPT_FEE, ROULETTE, clawBoard, clawHitRadius, clawPrize, rouletteCash } from './arcade.js';
@@ -487,6 +488,8 @@ export class AtlasGame {
       .filter(ending => !['dropout', 'no_graduation', 'isolated', 'job_seeker'].includes(ending.id) && !this.conditionReasons(ending).length)
       .map(ending => ending.id);
     s.ending = { id, route, achievements };
+    const employer = employmentForEnding(s, id);
+    if (employer) s.ending.employerId = employer.id;
     s.phase = 'ended';
     return true;
   }

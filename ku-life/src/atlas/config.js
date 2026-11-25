@@ -69,6 +69,7 @@ export const EXPERIENCES = {
   startup: '창업 팀 결성', launched: '서비스 출시', reporter: '고대신문 취재', published: '고대신문 특집 발행',
   chair: '동아리 회장', friendHelp: '친구와 나눈 도움', job: '취업 면접 합격', photos: '졸업사진 촬영',
   researchProposal: '졸업생 연구 제안 검토',
+  dataAnalysis: '졸업 프로젝트 데이터 분석',
 };
 
 export const ITEMS = {
