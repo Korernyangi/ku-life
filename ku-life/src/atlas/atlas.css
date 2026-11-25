@@ -89,8 +89,10 @@ button:disabled { cursor: default; }
 .landing-card > p:not(.context-label, .notice) { color: #5b4445; }
 .entry-panel {
   display: grid;
-  gap: 10px;
-  padding: clamp(12px, 2vw, 20px);
+  gap: 9px;
+  width: 100%;
+  max-width: 390px;
+  padding: 16px;
   border: 3px solid var(--ink);
   background: var(--dark);
   box-shadow: 6px 6px 0 #271a24a8;
@@ -114,10 +116,26 @@ button:disabled { cursor: default; }
 .entry-button.entry-primary { border-color: #e2b582; background: var(--crimson); color: #fff8e9; }
 .entry-button.entry-primary:hover { background: #903a56; }
 .entry-primary small { color: #f3d8bf; }
-.entry-trophy { justify-content: center; }
+.entry-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid #aa7781;
+}
+.entry-archive, .entry-trophy {
+  min-height: 48px;
+  background: #ead9b9;
+  color: #452c3e;
+  border: 2px solid #d5aa7e;
+  box-shadow: 0 3px #211620;
+}
+.entry-archive:hover, .entry-trophy:hover { background: #fff0ca; }
+.entry-archive { display: flex; justify-content: space-between; align-items: center; padding: 0 12px; }
+.entry-archive span { color: #723952; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.entry-trophy { display: grid; place-items: center; }
 .entry-trophy canvas { width: 32px; height: 32px; image-rendering: pixelated; }
-.entry-archive { background: #eedec2; }
-.entry-archive > span:last-child { color: var(--crimson); font-variant-numeric: tabular-nums; }
 .save-portrait { width: 39px; height: auto; image-rendering: pixelated; border: 2px solid #eed4a8; }
 .atlas-dialog {
   width: min(630px, calc(100% - 32px));
