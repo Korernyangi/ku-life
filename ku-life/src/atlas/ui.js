@@ -10,6 +10,7 @@ import { showEndingProfile } from './ending-profile.js';
 import { createEndingPreview } from './ending-preview.js';
 import { itemSprite, paintSprites, statSprite } from './sprites.js';
 import { animateArcade, arcadeMenu, arcadeScreen, mountClaw } from './arcade-ui.js';
+import { currentPlayer, openAccount, watchPlayer } from './auth.js';
 import './atlas.css';
 import './arcade.css';
 
@@ -143,6 +144,9 @@ function titleScreen() {
   return `
     <main class="landing">
       <div class="landing-art"><canvas class="scene-canvas" width="640" height="360" aria-hidden="true"></canvas></div>
+      <button type="button" class="landing-account secondary" data-action="account">
+        <strong>${currentPlayer() ? '내 계정' : '로그인 · 회원가입'}</strong>
+      </button>
       <div class="landing-layout">
       <section class="landing-card">
         <p class="context-label">고려대학교 대학생활 전략 시뮬레이션</p>
@@ -221,10 +225,9 @@ function changeChips(changes) {
 function receiptList(receipt) {
   const changes = changeChips(receipt.stats) + changeChips(receipt.items);
   const cash = receipt.cash ? `<li class="${receipt.cash > 0 ? 'gain' : 'loss'}">자금 ${signedCash(receipt.cash)}</li>` : '';
-  const flags = receipt.flags.map(id => `<li class="gain">경험 · ${escape(EXPERIENCES[id])}</li>`).join('');
   const status = receipt.gained.map(id => `<li class="loss">발생 · ${escape(STATUSES[id].name)}</li>`).join('')
     + receipt.cleared.map(id => `<li class="gain">해제 · ${escape(STATUSES[id].name)}</li>`).join('');
-  const content = changes + cash + flags + status;
+  const content = changes + cash + status;
   return content ? `<ul class="changes">${content}</ul>` : '<p class="muted">기록에 남는 수치 변화가 없어요.</p>';
 }
 
@@ -533,6 +536,9 @@ root.addEventListener('click', event => {
   if (!button || button.disabled) return;
   const { action, value, token } = button.dataset;
   switch (action) {
+    case 'account':
+      openAccount(root);
+      break;
     case 'archive':
       openArchive();
       break;
@@ -620,3 +626,8 @@ root.addEventListener('click', event => {
 });
 
 render();
+
+watchPlayer(() => {
+  const label = root.querySelector('[data-action="account"] strong');
+  if (label) label.textContent = currentPlayer() ? '내 계정' : '로그인 · 회원가입';
+});

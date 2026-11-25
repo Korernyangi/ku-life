@@ -51,7 +51,7 @@ button:disabled { cursor: default; }
   display: grid;
   align-items: center;
   min-height: 100svh;
-  padding: clamp(22px, 7vw, 100px);
+  padding: max(76px, 7vw) clamp(22px, 7vw, 100px) clamp(22px, 7vw, 100px);
   background: #48343d;
   overflow: hidden;
 }
@@ -384,4 +384,28 @@ thead, tfoot { background: #f4e5cb; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; }
+}
+
+.account-dialog { max-width: 440px; }
+.account-form { display: grid; gap: 12px; }
+.account-form h2, .account-form p { margin: 0; }
+.account-form label { display: grid; gap: 4px; font-weight: 750; }
+.account-form input {
+  width: 100%;
+  min-height: 42px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  background: #fffdf7;
+  color: var(--ink);
+  font: inherit;
+}
+.account-email { overflow-wrap: anywhere; }
+.account-form .actions { margin-top: 0; justify-content: flex-end; }
+
+.landing-account {
+  position: absolute;
+  z-index: 1;
+  top: clamp(14px, 3vw, 28px);
+  right: clamp(16px, 4vw, 48px);
+  min-height: 44px;
 }
