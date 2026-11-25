@@ -400,7 +400,7 @@ export const EVENTS = [
   {
     id: 'couple_future', title: '우리의 다음 시간표', scene: 'parttime', kind: 'chain', ending: 'family',
     requires: { flags: ['dating', 'coupleTime'] },
-    description: '공강마다 만나던 카페에서 둘이 정리한 계획을 다시 펼쳤다. 같이 살 집과 서로 나눌 일까지 적혀 있다. 이제 계획표를 덮고 첫 일정을 시작할 차례다.',
+    description: '공강마다 만나던 카페에서 둘이 적어 둔 계획을 다시 펼쳤다. 같이 살 집과 생활비 부담, 학교를 쉬는 동안 맡을 일이 적혀 있다. 어려운 점도 확인한 뒤, 준비를 시작하기로 서로 뜻을 모았다.',
     choices: [
       pick('한 학기 쉬고 둘이 세운 가족 계획을 시작한다', '휴학 신청서를 내고, 둘이 그려 둔 생활을 준비하기 시작했다.', {}, { grant: ['familyPlan'] }),
     ],
@@ -408,26 +408,26 @@ export const EVENTS = [
   {
     id: 'newspaper_extra', title: '인쇄소 마감 3분 전', scene: 'study', kind: 'chain', ending: 'newspaper',
     requires: { flags: ['published', 'ipselenti', 'koyeonjeon'] },
-    description: '입실렌티 사진과 고연전 사진을 같은 책상에 펼쳤다. 두 장의 오른쪽 아래를 번갈아 본 후배 기자가 인쇄소에 전화를 걸었다. “한 장만 더 뽑을게요.”',
+    description: '특집을 낸 뒤 입실렌티와 고연전 사진을 정리하다 두 장에 비슷한 고양이가 찍힌 걸 발견했다. 후배 기자가 주변 학생들에게 다른 사진이 있는지 물어보기로 했다.',
     choices: [
-      pick('사진 두 장으로 호외를 인쇄한다', '기자단 채팅방에 지면을 올렸다. 교수님보다 댓글이 먼저 도착했다. “그 고양이 저희 조에도 있어요.”'),
+      pick('두 사진을 바탕으로 추가 취재를 시작한다', '기자단 채팅방에 사진을 올렸다. 첫 댓글은 “저희 조 사진에도 있어요”였다.'),
     ],
   },
   {
     id: 'cafe_keys', title: '맨 마지막 교대 근무', scene: 'parttime', kind: 'chain', ending: 'cafe',
     requires: { cash: 1_650_000 },
     endingTrigger: state => state.history.filter(entry => entry.eventId === 'parttime' && entry.cash >= 250_000).length >= 3,
-    description: '주말마다 맡던 카페에서 마감 정산을 했다. 사장님이 늘 앉던 자리에 열쇠와 단골의 주문 노트가 놓여 있다. “내일부터 여기 이름은 네가 정해.”',
+    description: '주말 근무가 끝나자 사장님이 잠시 자리를 비우게 됐다고 말했다. 단골 주문과 마감 정산에 익숙해진 당신에게 몇 달간 매장을 맡아 달라고 부탁했다.',
     choices: [
-      pick('가게 열쇠를 받아 내일 문을 열기로 한다', '단골들의 주문을 기억해 냈다. 제일 먼저 적은 메뉴는 ‘팀플 4인 세트’였다.'),
+      pick('가게 열쇠를 받아 내일 문을 열기로 한다', '근무 시간과 급여를 정리하고 열쇠를 받았다. 당장 모아 둔 생활비가 있어 당분간 이 일에 시간을 쓰기로 했다.'),
     ],
   },
   {
     id: 'claw_handoff', title: '기계 뒷문이 열렸다', scene: 'club', kind: 'chain', ending: 'claw',
     endingTrigger: state => state.clawWins >= 3,
-    description: '집게가 세 번째로 상품을 놓았다. 기계 주인이 유리 너머로 불러 세웠다. 들고 있는 건 상품이 아니라 당신에게 맞는 작업 장갑이었다.',
+    description: '세 번째 상품이 떨어질 때 곰 인형의 팔이 기계 한쪽에 끼는 걸 봤다. 그동안 눈여겨본 다른 칸의 문제도 알려 주자 운영자가 같이 배치를 바꿔 보자고 했다.',
     choices: [
-      pick('작업 장갑을 끼고 상품 배치를 맡는다', '늘 보던 유리 상자 뒷문을 열었다. 오래 걸려서 뽑은 상품 세 개를 다시 떠올렸다.'),
+      pick('작업 장갑을 끼고 상품 배치를 맡는다', '운영자와 함께 유리 상자 뒷문을 열었다. 먼저 곰 인형의 팔이 걸리는 칸부터 살펴봤다.'),
     ],
   },
   {

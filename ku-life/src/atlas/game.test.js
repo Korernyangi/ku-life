@@ -7,7 +7,7 @@ import { MAJOR_GROUPS } from './majors.js';
 import { EVENTS } from './events.js';
 import { AtlasGame } from './game.js';
 import { createEndingPreview } from './ending-preview.js';
-import { endingMemories } from './ending-replay.js';
+import { endingFilm, endingMemories } from './ending-replay.js';
 
 function fixture(eventId, overrides = {}, random = () => .25) {
   const { state } = new AtlasGame();
@@ -467,6 +467,24 @@ test('the pixel scene reflects a festival choice and supports an older receipt w
   assert.equal(attended.title, event.title);
   assert.equal(stayedAtLibrary.scene, 'study');
   assert.equal(stayedAtLibrary.result, '');
+});
+
+test('the ending film uses recorded choices and each outcome has its own closing shot', () => {
+  for (const [id, place, prop] of [['family', 'home', 'crib'], ['recovery', 'parttime', 'cup']]) {
+    const game = createEndingPreview(id);
+    play(game, 0);
+    const ending = { ...majorEnding(id, game.state.majorId), id };
+    const film = endingFilm(game.state, ending);
+    assert.deepEqual(film.slice(0, -1).map(shot => shot.choice), endingMemories(game.state.history, id).map(memory => memory.choice));
+    assert.equal(film.at(-1).title, ending.title);
+    assert.equal(film.at(-1).scene, place);
+    assert.equal(film.at(-1).prop, prop);
+    assert.equal(film.at(-1).finale, true);
+    assert.ok(film.at(-1).duration > film[0].duration);
+  }
+  const old = endingFilm({ history: [], semester: 8 }, { ...ENDINGS.ordinary, id: 'ordinary' });
+  assert.equal(old.length, 1);
+  assert.equal(old[0].title, ENDINGS.ordinary.title);
 });
 
 test('work, newspaper, and arcade achievements each lead to one ending choice', () => {
