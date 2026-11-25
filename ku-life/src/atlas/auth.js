@@ -133,6 +133,34 @@ const forms = {
   unavailable: { title: '로그인', fields: '<p>현재 이메일 로그인을 사용할 수 없습니다.</p>' },
 };
 
+async function signInWithSchoolGoogle() {
+  const { error } = await client.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectTo('google'),
+      queryParams: { hd: 'korea.ac.kr', prompt: 'select_account' },
+    },
+  });
+  if (error) throw error;
+}
+
+export async function openLandingAccount(root, button, profile) {
+  if (user || !client) {
+    openAccount(root, undefined, '', profile);
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    await signInWithSchoolGoogle();
+  } catch {
+    button.disabled = false;
+    if (button.isConnected) {
+      openAccount(root, 'login', 'Google 로그인을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }
+  }
+}
+
 export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : profileMode()) : 'login', message = '', profile = null) {
   if (!client) mode = 'unavailable';
   if (mode === 'reset' && !currentPlayer()) mode = 'setup';
@@ -166,14 +194,7 @@ export function openAccount(root, mode = user ? (currentPlayer() ? 'account' : p
     google.disabled = true;
     status.textContent = 'Google 로그인으로 이동 중…';
     try {
-      const { error } = await client.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectTo('google'),
-          queryParams: { hd: 'korea.ac.kr', prompt: 'select_account' },
-        },
-      });
-      if (error) throw error;
+      await signInWithSchoolGoogle();
     } catch {
       status.textContent = 'Google 로그인을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.';
       google.disabled = false;

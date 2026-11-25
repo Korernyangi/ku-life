@@ -10,7 +10,7 @@ import { showEndingProfile } from './ending-profile.js';
 import { createEndingPreview } from './ending-preview.js';
 import { itemSprite, paintSprites, paintTrophy, statSprite } from './sprites.js';
 import { animateRoulette, arcadeMenu, arcadeScreen, mountClaw, playClaw } from './arcade-ui.js';
-import { currentPlayer, openAccount, openAccountCallback, playerAccessToken, watchPlayer } from './auth.js';
+import { currentPlayer, openAccount, openAccountCallback, openLandingAccount, playerAccessToken, watchPlayer } from './auth.js';
 import './atlas.css';
 import './arcade.css';
 
@@ -763,7 +763,7 @@ root.addEventListener('click', event => {
       void openRanking();
       break;
     case 'account':
-      openAccount(root, undefined, '', {
+      void openLandingAccount(root, button, {
         endings: `${unlockedEndings.size} / ${endingEntries.length}`,
         loadRecord: () => challengeRequest(null, 'profile'),
       });
