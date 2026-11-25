@@ -26,6 +26,7 @@ const eventType = { fixed: '학기 일정', special: '특별 이벤트', campus:
 const savedPhase = { event: '이벤트 진행 중', result: '선택 결과', term: '학기 결산', career: '졸업 진로 선택', ended: '플레이 완료' };
 const endingEntries = Object.entries(ENDINGS);
 const basicEndings = endingEntries.filter(([, ending]) => !ending.hidden);
+const hiddenEndings = endingEntries.filter(([, ending]) => ending.hidden);
 const endingStorageKey = 'ku-life:ending:';
 const variantStorageKey = 'ku-life:ending-major:';
 const unlockedEndings = new Set();
@@ -135,7 +136,6 @@ function titleScreen() {
   loadEndings();
   if (saved?.phase === 'ended') unlockEnding(normalizeEnding(saved.ending)?.id, saved.majorId);
   const major = findMajor(saved?.majorId);
-  const basicCount = basicEndings.filter(([id]) => unlockedEndings.has(id)).length;
   return `
     <main class="landing">
       <div class="landing-art"><canvas class="scene-canvas" width="640" height="360" aria-hidden="true"></canvas></div>
@@ -154,7 +154,7 @@ function titleScreen() {
           <span><strong id="new-label">입학하기</strong><small id="new-details">학과를 골라 1학년부터 시작</small></span><span aria-hidden="true">→</span>
         </button>
         <button type="button" class="entry-button entry-archive" data-action="archive" aria-labelledby="archive-label" aria-describedby="archive-count">
-          <span><strong id="archive-label">엔딩 도감</strong><small>기본 엔딩</small></span><span id="archive-count">${basicCount} / ${basicEndings.length}</span>
+          <span><strong id="archive-label">엔딩 도감</strong><small>기본 ${basicEndings.length}개 · 히든 ${hiddenEndings.length}개</small></span><span id="archive-count">${unlockedEndings.size} / ${endingEntries.length}</span>
         </button>
         ${storageNotice ? `<p class="notice" role="status">${escape(storageNotice)}</p>` : ''}
       </section>
@@ -369,17 +369,18 @@ function unlockEnding(id, majorId) {
 
 function openArchive() {
   loadEndings();
-  const discoveredHidden = endingEntries.filter(([id, ending]) => ending.hidden && unlockedEndings.has(id));
-  const groups = [{ title: '기본 엔딩', entries: basicEndings, total: basicEndings.length }];
-  if (discoveredHidden.length) groups.push({ title: '히든 엔딩', entries: discoveredHidden });
+  const groups = [
+    { title: '기본 엔딩', entries: basicEndings },
+    { title: '히든 엔딩', entries: hiddenEndings },
+  ];
   const dialog = document.createElement('dialog');
   dialog.className = 'atlas-dialog ending-archive';
   dialog.setAttribute('aria-labelledby', 'archive-title');
   dialog.innerHTML = `<button type="button" class="secondary dialog-close" data-action="close-dialog" aria-label="엔딩 도감 닫기" autofocus>×</button>
     <h2 id="archive-title">엔딩 도감</h2>
-    ${groups.map(({ title, entries, total }) => {
+    ${groups.map(({ title, entries }) => {
       const count = entries.filter(([id]) => unlockedEndings.has(id)).length;
-      return `<section><h3>${title} <span>${total ? `${count} / ${total}` : `${count}개 발견`}</span></h3><ul>${entries.map(([id, ending]) => {
+      return `<section><h3>${title} <span>${count} / ${entries.length}</span></h3><ul>${entries.map(([id, ending]) => {
         const unlocked = unlockedEndings.has(id);
         const { icon, title, description } = archiveEndingInfo(ending, unlocked);
         const variants = unlocked ? [...endingMajors.get(id)].map(majorId => {
@@ -389,7 +390,7 @@ function openArchive() {
         }).join('') : '';
         return `<li class="${unlocked ? '' : 'locked'}"><span aria-hidden="true">${icon}</span><div>
           <strong>${escape(title)}</strong> <span class="archive-state">${unlocked ? '발견' : '미발견'}</span>
-          <p>${escape(description)}</p>${variants ? `<div class="archive-variants">${variants}</div>` : ''}
+          ${description ? `<p>${escape(description)}</p>` : ''}${variants ? `<div class="archive-variants">${variants}</div>` : ''}
         </div></li>`;
       }).join('')}</ul></section>`;
     }).join('')}`;

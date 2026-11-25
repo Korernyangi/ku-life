@@ -414,7 +414,7 @@ test('a saved treatment threshold leaves one ending choice while moderate distre
   assert.equal(endingScore(leave.state, leave.gpa, leave.state.ending.id).bonus, 100);
 });
 
-test('hidden endings have no archive data until discovery and never appear in career choices', () => {
+test('hidden endings show only question marks in the archive until discovery and stay out of career choices', () => {
   const { state } = new AtlasGame();
   const routes = careerOptions(state, 4.5).map(option => option.id);
   const hidden = Object.entries(ENDINGS).filter(([, ending]) => ending.hidden);
@@ -422,7 +422,7 @@ test('hidden endings have no archive data until discovery and never appear in ca
   for (const [id, ending] of hidden) {
     assert.equal(ending.special, true);
     assert.equal(routes.includes(id), false);
-    assert.equal(archiveEndingInfo(ending, false), null);
+    assert.deepEqual(archiveEndingInfo(ending, false), { icon: '🔒', title: '???', description: '' });
     assert.equal(archiveEndingInfo(ending, true).title, ending.title);
     assert.equal(archiveEndingInfo(ending, true).description, ending.description);
   }

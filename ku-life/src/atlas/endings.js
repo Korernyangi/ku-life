@@ -114,7 +114,7 @@ export const ENDINGS = {
 };
 
 export function archiveEndingInfo(ending, unlocked) {
-  if (!unlocked && ending.hidden) return null;
+  if (!unlocked && ending.hidden) return { icon: '🔒', title: '???', description: '' };
   return {
     icon: unlocked ? ending.icon : '🔒',
     title: ending.title,
