@@ -358,19 +358,20 @@ export class AtlasGame {
     return Object.keys(ITEMS).filter(id => (ITEMS[id].first ?? 1) <= semester);
   }
 
-  buyReason(id) {
+  buyReason(id, quantity = 1) {
     const item = ITEMS[id];
     if (!item || this.state.phase !== 'term' || this.state.minigame || !this.stock().includes(id)) return '구매할 수 없는 상품입니다.';
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return '구매 수량을 확인해 주세요.';
     if (item.future && this.state.semester === termCount) return '이후 학기에 효과가 적용됩니다.';
     if (item.type !== 'consumable' && this.state.inventory[id]) return '이미 보유 중입니다.';
-    if (this.state.cash < item.price) return '보유 자금이 부족합니다.';
+    if (item.type !== 'consumable' && quantity > 1) return '한 개만 구매할 수 있습니다.';
+    if (this.state.cash < item.price * quantity) return '보유 자금이 부족합니다.';
     return '';
   }
 
-  buy(id) {
-    if (this.buyReason(id)) return false;
-    this.changeCash(-ITEMS[id].price);
-    this.updateInventory(id, 1);
+  buy(id, quantity = 1) {
+    if (this.buyReason(id, quantity) || !this.changeCash(-ITEMS[id].price * quantity)) return false;
+    this.updateInventory(id, quantity);
     return true;
   }
 

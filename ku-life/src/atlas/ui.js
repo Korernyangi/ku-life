@@ -144,7 +144,7 @@ function statPanel() {
       ${major ? `<p class="student-major">${escape(major.name)}</p>` : ''}
       <dl class="stat-list">${rows}</dl>
       <dl class="balances">
-        <div><dt>보유 자금</dt><dd>${cashText(cash)}</dd></div>
+        <div><dt>보유 자금</dt><dd data-balance>${cashText(cash)}</dd></div>
         <div><dt>누적 평점</dt><dd>${gpaText(game.gpa)}</dd></div>
       </dl>
       ${boosts.nextGpa ? '<p class="active-item">다음 학기 평점에 전공 족보 적용 예정</p>' : ''}
@@ -283,12 +283,16 @@ function showTerm() {
   if (screen === 'arcade') return arcadeMenu(game);
   const stock = game.stock().map(id => {
     const item = ITEMS[id];
-    const reason = game.buyReason(id);
-    return `<li><div class="item-info">${itemSprite(id)}
-        <div><h3>${escape(item.name)}</h3><p class="subline">${typeName[item.type]} · ${cashText(item.price)}</p><p>${escape(item.detail)}</p></div>
+    return `<li data-shop-item="${id}"><div class="item-info">${itemSprite(id)}
+        <div><h3 tabindex="-1">${escape(item.name)}</h3><p class="subline">${typeName[item.type]} · ${cashText(item.price)}</p><p>${escape(item.detail)}</p></div>
       </div>
-      <div><button class="secondary" data-action="buy" data-value="${id}" ${reason ? 'disabled' : ''}>구매<span class="sr-only"> ${escape(item.name)}</span></button>
-      ${reason ? `<small class="lock-reason">${escape(reason)}</small>` : ''}</div></li>`;
+      <div class="shop-item-actions">
+        <div class="shop-quantity">
+          <input type="number" min="1" step="1" ${item.type === 'consumable' ? '' : 'max="1" readonly'} value="1" required inputmode="numeric" aria-label="${escape(item.name)} 구매 수량">
+          <button type="button" class="secondary" data-action="buy" data-value="${id}"></button>
+        </div>
+        <div class="shop-message"><small class="lock-reason"></small><small class="shop-feedback" role="status"></small></div>
+      </div></li>`;
   }).join('');
   const effects = changeChips(gradeNotes.stats);
   const gradeFactors = [
@@ -313,6 +317,47 @@ function showTerm() {
         <ul class="items">${stock}</ul>
       </section>
     </article>`;
+}
+
+function shopQuantity(input) {
+  const quantity = input.valueAsNumber;
+  return Number.isSafeInteger(quantity) && quantity >= 1 && input.validity.valid ? quantity : null;
+}
+
+function updateShop(shop) {
+  for (const row of shop.querySelectorAll('[data-shop-item]')) {
+    const id = row.dataset.shopItem;
+    const input = row.querySelector('input[type="number"]');
+    const button = row.querySelector('button');
+    const quantity = shopQuantity(input);
+    const reason = quantity === null ? '1 이상의 정수를 입력해 주세요.' : game.buyReason(id, quantity);
+    input.disabled = Boolean(game.buyReason(id));
+    button.disabled = Boolean(reason);
+    button.textContent = quantity === null ? '구매' : `${quantity}개 구매`;
+    button.setAttribute('aria-label', `${ITEMS[id].name} ${button.textContent}`);
+    row.querySelector('.lock-reason').textContent = reason;
+  }
+}
+
+function purchaseFromShop(button, id) {
+  const shop = button.closest('.shop');
+  const row = button.closest('[data-shop-item]');
+  const input = row.querySelector('input[type="number"]');
+  const quantity = shopQuantity(input);
+  if (quantity === null || !game.buy(id, quantity)) return;
+
+  persist();
+  clearShopFeedback(shop);
+  input.value = 1;
+  root.querySelector('[data-balance]').textContent = cashText(game.state.cash);
+  const message = `${ITEMS[id].name} ${quantity}개 구매 완료.`;
+  row.querySelector('.shop-feedback').textContent = [message, storageNotice].filter(Boolean).join(' ');
+  updateShop(shop);
+  if (button.disabled) row.querySelector('h3').focus({ preventScroll: true });
+}
+
+function clearShopFeedback(shop) {
+  for (const status of shop.querySelectorAll('.shop-feedback:not(:empty)')) status.textContent = '';
 }
 
 function showInventory() {
@@ -509,6 +554,8 @@ function render(focus = false) {
     </div></main>`;
     paintProfile(root.querySelector('.student-photo'), game.state.id);
     paintSprites(root);
+    const shop = root.querySelector('.shop');
+    if (shop) updateShop(shop);
     if (game.state.minigame?.kind === 'claw') mountClaw(root, game.state.minigame);
   }
   const canvas = root.querySelector('.scene-canvas');
@@ -658,6 +705,20 @@ function restoreStatusTooltip(event) {
 
 root.addEventListener('focusin', restoreStatusTooltip);
 root.addEventListener('pointerover', restoreStatusTooltip);
+root.addEventListener('input', event => {
+  const shop = event.target.closest('.shop');
+  if (shop) {
+    clearShopFeedback(shop);
+    updateShop(shop);
+  }
+});
+root.addEventListener('focusout', event => {
+  const input = event.target.closest('.shop-quantity input');
+  if (input && shopQuantity(input) === null) {
+    input.value = 1;
+    updateShop(input.closest('.shop'));
+  }
+});
 root.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
   for (const button of root.querySelectorAll('.status-toggle:is([aria-expanded="true"], :focus-visible, .status-marker:hover > *)')) {
@@ -682,6 +743,7 @@ root.addEventListener('click', event => {
   if (challengeRun && ['choose', 'next-event', 'next-term', 'career', 'buy', 'use', 'challenge-publish'].includes(action)) {
     challengeMove(action === 'challenge-publish' ? 'publish' : action, {
       value: action === 'choose' ? Number(value) : value, token, route: button.dataset.route,
+      quantity: action === 'buy' ? shopQuantity(button.closest('[data-shop-item]').querySelector('input')) : undefined,
     });
     return;
   }
@@ -745,7 +807,7 @@ root.addEventListener('click', event => {
       actionResult(game.chooseCareer(button.dataset.route, value));
       break;
     case 'buy':
-      actionResult(game.buy(value), `${ITEMS[value].name}을 구매했습니다.`);
+      purchaseFromShop(button, value);
       break;
     case 'use':
       actionResult(game.use(value), `${ITEMS[value].name}을 사용했습니다.`);

@@ -160,6 +160,21 @@ test('minigames receive a current balance and cannot double-settle or create deb
   assert.equal(game.state.cash, 50_000);
 });
 
+test('a shop purchase validates quantity and charges for every unit of the selected item', () => {
+  const game = fixture('walk', { phase: 'term', semester: 3, cash: 210_000 });
+  for (const [id, quantity] of [['vitamins', 0], ['vitamins', -1], ['vitamins', 1.5], ['jacket', 2], ['vitamins', 3]]) {
+    assert.equal(game.buy(id, quantity), false);
+    assert.equal(game.state.cash, 210_000);
+    assert.deepEqual(game.state.inventory, {});
+  }
+  assert.equal(game.buy('vitamins', 2), true);
+  assert.equal(game.state.cash, 10_000);
+  const restored = new AtlasGame(game.state);
+  assert.deepEqual(restored.state.inventory, { vitamins: 2 });
+  assert.equal(restored.buy('vitamins', 2), false);
+  assert.equal(restored.state.cash, 10_000);
+});
+
 test('roulette settles the selected slot against the starting balance once per term, even after reload', () => {
   const game = fixture('walk', { phase: 'term', cash: 100_001 }, () => .15);
   assert.equal(game.beginArcade('roulette'), true);

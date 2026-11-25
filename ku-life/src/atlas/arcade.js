@@ -7,7 +7,7 @@ const prizeSlots = [
 ];
 
 export function clawHitRadius(price) {
-  return Math.max(4, Math.min(14, 13 - 8 * Math.log10(price / 100_000)));
+  return 8 * (100_000 / price) ** .4;
 }
 
 export function clawBoard(ids, items, semester) {

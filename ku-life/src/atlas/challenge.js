@@ -14,13 +14,13 @@ export function createChallenge(random = Math.random) {
   return new AtlasGame(null, random, major.id, { stats, cash });
 }
 
-export function applyChallengeAction(game, { action, value, token, route }) {
+export function applyChallengeAction(game, { action, value, token, route, quantity = 1 }) {
   switch (action) {
     case 'choose': return Number.isSafeInteger(value) && game.choose(value, token);
     case 'next-event': return game.nextEvent();
     case 'next-term': return game.nextTerm();
     case 'career': return typeof route === 'string' && typeof value === 'string' && game.chooseCareer(route, value);
-    case 'buy': return typeof value === 'string' && Object.hasOwn(ITEMS, value) && game.buy(value);
+    case 'buy': return typeof value === 'string' && Object.hasOwn(ITEMS, value) && game.buy(value, quantity);
     case 'use': return typeof value === 'string' && Object.hasOwn(ITEMS, value) && game.use(value);
     default: return false;
   }
