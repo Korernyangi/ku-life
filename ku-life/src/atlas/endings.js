@@ -55,6 +55,7 @@ export const ENDINGS = {
     icon: '🍂',
     description: '몸과 마음을 돌보기 위해 학업을 멈췄다. 이번 주 달력에서 가장 중요한 약속은 충분히 쉬는 것이다.',
     hint: '재학 중 체력이 0이 되면 학업을 멈춰요.',
+    early: true,
   },
   professor: {
     title: '돌아온 안암 교수님',
@@ -77,7 +78,34 @@ export const ENDINGS = {
     hint: '응원 OT, 정기 고연전, 입실렌티에 모두 참가하고 사회성 17 이상으로 졸업생 응원 무대에 오르세요.',
     special: true,
   },
+  family: {
+    title: '새벽 네 시의 수강신청',
+    icon: '🍼',
+    description: '휴학을 신청한 지 1년, 두 사람에게 아기가 태어났다. 새벽 네 시. 수강신청 알람 대신 아기 울음소리에 둘이 동시에 눈을 뜬다.\n\n“오늘 첫 수업은?” “분유 실습. 출석은 둘 다 했어.”',
+    special: true,
+    hidden: true,
+    early: true,
+  },
+  recovery: {
+    title: '시간표를 비워 둔 학기',
+    icon: '🌿',
+    description: '휴학계를 냈다. 진료를 받고 의료진과 상의해 잠시 정신건강의학과 병동에 머물렀다. 아침에 커튼을 열고, 식사를 하고, 가끔 친구의 안부에 답했다.\n\n몇 달 뒤, 복학 안내 메일이 왔다. 답장을 쓰기 전에 자주 가던 카페가 아직 있는지 친구에게 먼저 물었다.',
+    special: true,
+    hidden: true,
+    early: true,
+  },
 };
+
+export function archiveEndingInfo(ending, unlocked) {
+  if (!unlocked && ending.hidden) {
+    return { icon: '🔒', title: '???', description: '발견하면 공개되는 히든 스페셜 엔딩' };
+  }
+  return {
+    icon: unlocked ? ending.icon : '🔒',
+    title: ending.title,
+    description: unlocked ? ending.description : ending.hint,
+  };
+}
 
 export const CAREER_ROUTES = {
   corporate: '안암테크 공채에 지원한다',
@@ -144,7 +172,7 @@ function careerReasons(state, gpa, id) {
 }
 
 export function careerOptions(state, gpa) {
-  return Object.keys(ENDINGS).filter(id => id !== 'dropout').map(id => ({
+  return Object.entries(ENDINGS).filter(([, ending]) => !ending.early).map(([id]) => ({
     id,
     route: id === 'professor' ? 'grad_school' : id === 'top_graduate' ? 'corporate' : id,
     reasons: careerReasons(state, gpa, id),
@@ -181,6 +209,10 @@ export function majorEnding(id, majorId) {
       return { ...base, title: `수석 졸업 · ${role} 특별 채용`, description: `${afterStudy}졸업식 연단에서 ‘${topic}’을 처음 발표하던 날을 떠올렸다. 안암테크 인턴 때 쓰던 출입증은 이제 ${role} 사원증으로 바뀌었다.` };
     case 'ordinary':
       return { ...base, description: `${name}에서 품었던 질문을 다시 적어 봤다. ‘${topic}’. 노트의 제목은 아직 비어 있다. 이번 주에는 동기와 점심을 먹으며 다음 계획을 잡아 보기로 했다.` };
+    case 'family':
+      return { ...base, description: `${base.description}\n\n아기 사진을 본 ${name} 동기가 답했다. “조별 과제면 나도 분유 한 통 보낼게.”` };
+    case 'recovery':
+      return { ...base, description: `${base.description}\n\n${name} 동기가 답했다. “그대로야. 우리 늘 앉던 창가 자리도.”` };
     default:
       return { ...base, description: `${name} 친구들과 나눈 마지막 인사가 떠오른다. ${base.description}` };
   }
@@ -195,12 +227,15 @@ const recapExperience = {
   professor: ['lab', 'researchProposal'],
   top_graduate: ['job', 'internship'],
   campus_legend: ['cheerOt', 'koyeonjeon', 'ipselenti'],
+  family: ['dating', 'coupleTime', 'familyPlan'],
+  recovery: ['recoveryLeave'],
 };
 
 export function endingChoices(history, id) {
   const flags = recapExperience[id] ?? [];
   const relevant = history.filter(entry => entry.flags?.some(flag => flags.includes(flag))
     || (flags.includes('researchProposal') && entry.choice === '졸업생 연구 제안을 검토한다')
+    || (id === 'recovery' && entry.stats?.mental < 0)
     || (['traveler', 'rich_life'].includes(id) && entry.cash > 0));
   const stats = requirements[id]?.min ?? (id === 'grad_school' ? { intelligence: 1 } : {});
   return (relevant.length ? relevant : history.filter(entry => Object.keys(stats).some(key => entry.stats?.[key] > 0))).slice(-3);

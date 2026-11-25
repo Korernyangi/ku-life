@@ -40,7 +40,14 @@ export class AtlasGame {
     if (session?.kind === 'claw' && !session.result) {
       for (const prize of session.prizes) prize.radius = clawHitRadius(ITEMS[prize.id].price);
     }
-    if (!saved) this.advanceEvent();
+    if (!saved) {
+      this.advanceEvent();
+    } else if (this.state.semester < termCount && ['event', 'result', 'term'].includes(this.state.phase)
+      && this.state.flags.includes('dating') && this.state.eventId !== 'couple_dates'
+      && !this.state.history.some(entry => entry.eventId === 'couple_dates')) {
+      // Older saves can already be dating without a follow-up in the calendar.
+      this.schedule({ id: 'couple_dates', after: 1 });
+    }
   }
 
   get statuses() {
@@ -272,6 +279,7 @@ export class AtlasGame {
     const statuses = this.statuses;
     receipt.gained = statuses.filter(id => !oldStatuses.includes(id));
     receipt.cleared = oldStatuses.filter(id => !statuses.includes(id));
+    if (choice.ending) this.finish(null, choice.ending);
     return true;
   }
 

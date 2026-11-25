@@ -254,8 +254,26 @@ export const EVENTS = [
     id: 'dating', title: '동기와의 약속', scene: 'campus', kind: 'random', terms: [2, 3, 4, 5, 6],
     description: '자주 함께 공부하던 동기가 따로 만나자고 한다. 서로의 속도를 존중하며 답할 차례다.',
     choices: [
-      pick('카페에서 서로의 마음을 확인한다', '서두르지 않고 함께 시간을 보내 보기로 했다.', { social: 2, mental: 2 }, { cash: -35_000, grant: ['dating'] }),
+      pick('카페에서 서로의 마음을 확인한다', '서두르지 않고 함께 시간을 보내 보기로 했다.', { social: 2, mental: 2 }, { cash: -35_000, grant: ['dating'], schedule: { id: 'couple_dates', after: 1 } }),
       pick('친구로 지내자는 마음을 전한다', '솔직한 대화 덕분에 다음 스터디도 편하게 잡았다.', { social: 1, mental: 1 }),
+    ],
+  },
+  {
+    id: 'couple_dates', title: '공강마다 만나는 카페', scene: 'parttime', kind: 'chain',
+    requires: { flags: ['dating'] },
+    description: '둘이 자주 앉던 창가 자리에 다음 학기 시간표를 펼쳤다. 빈칸마다 둘의 약속부터 잡을지 고민된다.',
+    choices: [
+      pick('공강마다 둘의 약속부터 잡는다', '달력에 둘의 약속을 먼저 써 넣었다. 다음 학기에는 학교 밖에서의 생활도 함께 얘기해 보기로 했다.', { social: 1, mental: 3, intelligence: -1 }, { grant: ['coupleTime'], schedule: { id: 'couple_future', after: 1 } }),
+      pick('수업과 약속을 번갈아 챙긴다', '둘의 시간도 각자 하고 싶은 일도 이어갈 수 있게 시간을 나눴다.', { intelligence: 1, mental: 1 }),
+    ],
+  },
+  {
+    id: 'couple_future', title: '우리의 다음 시간표', scene: 'parttime', kind: 'chain',
+    requires: { flags: ['dating', 'coupleTime'] },
+    description: '둘이 같이 살고 언젠가 아이를 키우는 모습을 그려 본다. 생활비와 돌봄을 어떻게 나눌지 적어 놓으니, 학교 일정도 다시 짜야 할 것 같다.',
+    choices: [
+      pick('한 학기 쉬고 둘이 세운 가족 계획을 시작한다', '휴학 신청서를 내고, 둘이 그려 둔 생활을 준비하기 시작했다.', {}, { grant: ['familyPlan'], ending: 'family' }),
+      pick('학교를 다니며 계획을 천천히 준비한다', '오늘 적은 종이를 집에 가져왔다. 다음 학기도 함께 걸을 길이 많다.', { mental: 2 }),
     ],
   },
   {
@@ -378,6 +396,9 @@ export const EVENTS = [
     choices: [
       pick('상담 시간을 잡고 당분간 쉬어 간다', '부담을 말로 정리하고 할 일을 두 가지로 줄였다.', { mental: 7, hp: 2 }, { resetMental: true }),
       pick('믿을 만한 동기와 짧게 산책한다', '대화가 길어지지는 않았지만 혼자 가진 부담은 줄었다.', { mental: 4, social: 1, hp: 2 }),
+      pick('휴학하고 진료와 회복에 시간을 쓰기로 한다', '상담 선생님과 진료 일정을 잡았다. 이번 학기 시간표에서 가장 먼저 비운 칸은 내일 아침이다.', {}, {
+        requires: { anyStatuses: ['depression'] }, grant: ['recoveryLeave'], ending: 'recovery',
+      }),
     ],
   },
   {
@@ -431,6 +452,7 @@ export const EVENTS = [
       pick('기출 문제를 실전처럼 풀어 본다', '틀린 문제를 표시했더니 마지막 복습 순서가 분명해졌다.', { intelligence: 2, hp: -2 }, { requires: { min: { hp: 5 } } }),
       pick('동기와 서로 한 문제씩 설명한다', '설명하다 놓쳤던 개념을 알아차렸다.', { intelligence: 1, social: 1, hp: -1 }, { requires: { min: { hp: 3 } } }),
       pick('핵심 개념만 확인하고 일찍 잔다', '아침 시험 전에 충분히 쉴 수 있었다.', { hp: 2, mental: 1 }),
+      pick('휴식 시간을 줄여 시험 범위를 전부 끝낸다', '시험 범위는 끝냈다. 긴장이 풀리지 않아 도서관 밖에서도 시험 문제가 맴돌았다.', { intelligence: 4, hp: -2, mental: -5 }, { intensity: 'high', requires: { min: { hp: 6 } } }),
     ],
   },
   {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { EXPERIENCES, ITEMS, RULES, TERM_CALENDAR } from './config.js';
-import { ENDINGS, careerOptions, endingScore, majorEnding, resolveEnding } from './endings.js';
+import { ENDINGS, archiveEndingInfo, careerOptions, endingChoices, endingScore, majorEnding, resolveEnding } from './endings.js';
 import { MAJOR_GROUPS } from './majors.js';
 import { EVENTS } from './events.js';
 import { AtlasGame } from './game.js';
@@ -246,6 +246,7 @@ test('event content always offers a fallback and references registered items, fl
       for (const id of option.grant ?? []) assert.ok(EXPERIENCES[id], id);
       for (const id of Object.keys(option.items ?? {})) assert.ok(ITEMS[id], id);
       if (option.schedule) assert.ok(ids.has(option.schedule.id), option.schedule.id);
+      if (option.ending) assert.ok(ENDINGS[option.ending]?.early, option.ending);
     }
     assert.ok(event.choices.some(choice => !healthy.choiceReasons(choice).length), event.id);
   }
@@ -340,13 +341,76 @@ test('graduation choices can reach each basic and special ending and award the c
     assert.equal(resolveEnding({ ...base, flags }, 4.5, route), id);
     assert.equal(endingScore(base, 4.5, id).total, ENDINGS[id].special ? 1000 : 970);
   }
-  assert.equal(new Set([...cases.map(([, id]) => id), 'dropout']).size, Object.keys(ENDINGS).length);
+  assert.equal(new Set([...cases.map(([, id]) => id), 'dropout']).size, Object.values(ENDINGS).filter(ending => !ending.hidden).length);
   assert.equal(resolveEnding({ ...base, stats: { ...stats, hp: 0 } }, null, 'corporate'), 'dropout');
   assert.equal(endingScore({ ...base, cash: 0 }, null, 'dropout').total, 600);
   assert.equal(resolveEnding(base, 1.99, 'corporate'), 'ordinary');
   assert.equal(resolveEnding(base, 4.5, 'corporate'), 'employee');
   assert.equal(resolveEnding(base, 4.5, 'campus_legend'), 'ordinary');
   assert.equal(resolveEnding({ ...base, flags: ['lab'], history: [{ eventId: 'graduation', choice: '졸업생 연구 제안을 검토한다' }] }, 3.75, 'grad_school'), 'professor');
+});
+
+test('choosing the relationship milestones in consecutive semesters can end a fresh game early', () => {
+  const game = new AtlasGame(null, () => .99, 'computer-science');
+  const milestones = ['dating', 'couple_dates', 'couple_future'];
+  for (let step = 0; step < 180 && !['ended', 'career'].includes(game.state.phase); step++) {
+    if (game.state.phase === 'term') {
+      assert.equal(game.nextTerm(), true);
+    } else if (game.state.phase === 'result') {
+      assert.equal(game.nextEvent(), true);
+    } else {
+      const choices = game.event.choices.map((choice, index) => ({ choice, index }))
+        .filter(({ choice }) => !game.choiceReasons(choice).length);
+      const preferred = milestones.includes(game.event.id) ? choices.find(({ index }) => index === 0) : null;
+      choices.sort((a, b) => (b.choice.stats.hp ?? 0) - (a.choice.stats.hp ?? 0));
+      play(game, (preferred ?? choices[0]).index);
+    }
+  }
+  assert.equal(game.state.phase, 'ended');
+  assert.equal(game.state.ending.id, 'family');
+  const recap = endingChoices(game.state.history, 'family');
+  assert.deepEqual(recap.map(entry => entry.eventId), milestones);
+  assert.ok(recap[0].semester < recap[1].semester && recap[1].semester < recap[2].semester);
+  assert.equal(new AtlasGame(JSON.parse(JSON.stringify(game.state))).state.ending.id, 'family');
+  assert.equal(game.nextEvent(), false);
+
+  const balanced = fixture('couple_dates', { semester: 4, flags: ['dating'] });
+  play(balanced, 1);
+  assert.equal(balanced.state.phase, 'result');
+  assert.deepEqual(balanced.state.scheduled, []);
+
+  const oldSave = fixture('walk', { semester: 4, flags: ['dating'] }).state;
+  oldSave.scheduled = [];
+  assert.deepEqual(new AtlasGame(oldSave).state.scheduled, [{ id: 'couple_dates', semester: 5 }]);
+});
+
+test('sustained critical mental opens a treatment ending alongside the regular recovery choices', () => {
+  const recent = fixture('mental_crisis', { stats: { mental: 2 }, streak: { mental: 1, critical: 1, both: 0 } });
+  assert.equal(recent.choose(2, recent.eventToken), false);
+  const crisis = { stats: { mental: 2 }, streak: { mental: 3, critical: 2, both: 0 } };
+  const regular = fixture('mental_crisis', crisis);
+  play(regular, 0);
+  assert.equal(regular.state.phase, 'result');
+  assert.equal(regular.state.streak.critical, 0);
+  const leave = fixture('mental_crisis', { ...crisis, semester: 3 });
+  play(leave, 2);
+  assert.equal(leave.state.phase, 'ended');
+  assert.equal(leave.state.ending.id, 'recovery');
+  assert.ok(leave.state.history.at(-1).flags.includes('recoveryLeave'));
+  assert.equal(endingScore(leave.state, leave.gpa, leave.state.ending.id).bonus, 100);
+});
+
+test('hidden endings reveal their title and story only after discovery and never appear in career choices', () => {
+  const { state } = new AtlasGame();
+  const routes = careerOptions(state, 4.5).map(option => option.id);
+  for (const id of ['family', 'recovery']) {
+    const ending = ENDINGS[id];
+    assert.equal(ending.special, true);
+    assert.equal(routes.includes(id), false);
+    assert.deepEqual(archiveEndingInfo(ending, false), { icon: '🔒', title: '???', description: '발견하면 공개되는 히든 스페셜 엔딩' });
+    assert.equal(archiveEndingInfo(ending, true).title, ending.title);
+    assert.equal(archiveEndingInfo(ending, true).description, ending.description);
+  }
 });
 
 test('every selectable major has distinct career text and survives a saved game', () => {

@@ -310,6 +310,8 @@ table { width: 100%; margin-top: 14px; border-collapse: collapse; }
 td, th { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; }
 thead, tfoot { background: #f4e5cb; }
 .ending h1 { color: var(--crimson); }
+.hidden-ending { border-top: 5px solid var(--crimson); }
+.hidden-ending .event-description, .ending-archive li p { white-space: pre-line; }
 .student-major { margin: 4px 0 8px; color: var(--crimson); font-weight: 800; }
 .career-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .career-choices button { height: 100%; }

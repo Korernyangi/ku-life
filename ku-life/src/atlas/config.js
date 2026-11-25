@@ -2,7 +2,7 @@ export const TERM_CALENDAR = [
   ['orientation', 'registration', 'cheer_ot', { followUp: 'fresh_market' }, 'midterm', 'ipselenti', { support: ['sabal', 'walk'] }, 'club', 'finals'],
   ['night_review', 'syllabus', 'boarding', { followUp: 'parttime' }, 'midterm', 'koyeonjeon', { support: ['reporter', 'dating', 'scholarship', 'walk'] }, 'library_shift', 'finals'],
   ['teamwork', 'registration', 'club', { followUp: 'study_group' }, 'midterm', 'ipselenti', { support: ['double_major', 'representative', 'dating', 'chamsari', 'walk'] }, 'community_center', 'finals'],
-  ['night_review', 'syllabus', 'department_talk', { followUp: 'library_shift' }, 'midterm', 'koyeonjeon', { support: ['club_chair', 'exchange', 'pub', 'laptop_fault', 'walk'] }, 'reading_room', 'finals'],
+  ['night_review', 'syllabus', 'department_talk', { followUp: 'library_shift' }, 'midterm', 'koyeonjeon', { support: ['dating', 'club_chair', 'exchange', 'pub', 'laptop_fault', 'walk'] }, 'reading_room', 'finals'],
   ['career_plan', 'registration', 'competition', { followUp: 'parttime' }, 'midterm', 'ipselenti', { support: ['reporter', 'double_major', 'dating', 'scholarship', 'walk'] }, 'career_fair', 'finals'],
   ['night_review', 'syllabus', 'prep_interview', { followUp: 'department_talk' }, 'midterm', 'koyeonjeon', { support: ['exchange', 'club_chair', 'pub', 'scholarship', 'laptop_fault', 'walk'] }, 'alumni_mentoring', 'finals'],
   ['capstone', 'registration', 'portfolio_review', { followUp: 'competition' }, 'midterm', 'ipselenti', { support: ['lab_offer', 'scholarship', 'walk'] }, 'parttime', 'finals'],
@@ -64,6 +64,7 @@ export const STATUSES = {
 export const EXPERIENCES = {
   orientation: '새내기 배움터 참가', senior: '친한 선배', seniorBond: '선배와의 유대', cheerOt: '응원 OT 참가',
   club: '동아리 활동', koyeonjeon: '정기 고연전 참가', ipselenti: '입실렌티 참가', dating: '연애',
+  coupleTime: '둘의 시간을 우선함', familyPlan: '가족을 꾸리기로 함', recoveryLeave: '휴학하고 치료를 받기로 함',
   doubleMajor: '이중전공 합격', lab: '학부연구생', internship: '인턴', competition: '공모전 수상',
   startup: '창업 팀 결성', launched: '서비스 출시', reporter: '고대신문 취재', published: '고대신문 특집 발행',
   chair: '동아리 회장', friendHelp: '친구와 나눈 도움', job: '취업 면접 합격', photos: '졸업사진 촬영',

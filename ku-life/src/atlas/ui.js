@@ -2,7 +2,7 @@ import { drawPixelBackground } from '../ui/pixel-backgrounds.js';
 import { drawPixelStudent } from '../ui/pixel-student.js';
 import { AtlasGame } from './game.js';
 import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, cashText } from './config.js';
-import { ENDINGS, careerOptions, endingChoices, endingScore, majorEnding } from './endings.js';
+import { ENDINGS, archiveEndingInfo, careerOptions, endingChoices, endingScore, majorEnding } from './endings.js';
 import { findMajor } from './majors.js';
 import { openAdmission } from './admission.js';
 import { showEndingProfile } from './ending-profile.js';
@@ -24,6 +24,7 @@ const typeName = { consumable: '소모형', permanent: '영구형', conditional:
 const eventType = { fixed: '학기 일정', special: '특별 이벤트', campus: '학교 행사', random: '일상', conditional: '조건부', chain: '후속 사건', crisis: '위기', academic: '학업', fallback: '일상' };
 const savedPhase = { event: '이벤트 진행 중', result: '선택 결과', term: '학기 결산', career: '졸업 진로 선택', ended: '플레이 완료' };
 const endingEntries = Object.entries(ENDINGS);
+const specialEndingCount = endingEntries.filter(([, ending]) => ending.special).length;
 const endingStorageKey = 'ku-life:ending:';
 const variantStorageKey = 'ku-life:ending-major:';
 const unlockedEndings = new Set();
@@ -147,7 +148,7 @@ function titleScreen() {
           <span><strong id="new-label">입학하기</strong><small id="new-details">학과를 골라 1학년부터 시작</small></span><span aria-hidden="true">→</span>
         </button>
         <button type="button" class="entry-button entry-archive" data-action="archive" aria-labelledby="archive-label" aria-describedby="archive-count">
-          <span><strong id="archive-label">엔딩 도감</strong><small>기본 9개 · 스페셜 3개</small></span><span id="archive-count">${unlockedEndings.size} / ${endingEntries.length}</span>
+          <span><strong id="archive-label">엔딩 도감</strong><small>기본 ${endingEntries.length - specialEndingCount}개 · 스페셜 ${specialEndingCount}개</small></span><span id="archive-count">${unlockedEndings.size} / ${endingEntries.length}</span>
         </button>
         ${storageNotice ? `<p class="notice" role="status">${escape(storageNotice)}</p>` : ''}
       </section>
@@ -370,14 +371,15 @@ function openArchive() {
       const count = group.filter(([id]) => unlockedEndings.has(id)).length;
       return `<section><h3>${special ? '스페셜' : '기본'} 엔딩 <span>${count} / ${group.length}</span></h3><ul>${group.map(([id, ending]) => {
         const unlocked = unlockedEndings.has(id);
-        const variants = [...endingMajors.get(id)].map(majorId => {
+        const { icon, title, description } = archiveEndingInfo(ending, unlocked);
+        const variants = unlocked ? [...endingMajors.get(id)].map(majorId => {
           const major = findMajor(majorId);
           const variant = majorEnding(id, majorId);
           return `<details><summary>${escape(major.name)}</summary><p><strong>${escape(variant.title)}</strong></p><p>${escape(variant.description)}</p></details>`;
-        }).join('');
-        return `<li class="${unlocked ? '' : 'locked'}"><span aria-hidden="true">${unlocked ? ending.icon : '🔒'}</span><div>
-          <strong>${escape(ending.title)}</strong> <span class="archive-state">${unlocked ? '발견' : '미발견'}</span>
-          <p>${escape(unlocked ? ending.description : ending.hint)}</p>${variants ? `<div class="archive-variants">${variants}</div>` : ''}
+        }).join('') : '';
+        return `<li class="${unlocked ? '' : 'locked'}"><span aria-hidden="true">${icon}</span><div>
+          <strong>${escape(title)}</strong> <span class="archive-state">${unlocked ? '발견' : '미발견'}</span>
+          <p>${escape(description)}</p>${variants ? `<div class="archive-variants">${variants}</div>` : ''}
         </div></li>`;
       }).join('')}</ul></section>`;
     }).join('')}`;
@@ -403,11 +405,12 @@ function showEnding() {
   const recap = endingChoices(history, main.id);
   const record = history.map(entry => `<li><strong>${termLabel(entry.semester)} · ${escape(entry.title)}</strong><p>${escape(entry.choice)}</p></li>`).join('');
   return `${sceneMarkup()}
-    <article class="panel ending">
-      <p class="context-label">${main.legacy ? '지난 플레이 결과' : main.special ? '스페셜 엔딩' : '기본 엔딩'}</p>
+    <article class="panel ending${main.hidden ? ' hidden-ending' : ''}">
+      <p class="context-label">${main.legacy ? '지난 플레이 결과' : main.hidden ? '히든 스페셜 엔딩' : main.special ? '스페셜 엔딩' : '기본 엔딩'}</p>
       <h1 tabindex="-1">${escape(main.title)}</h1>
       ${main.major ? `<p class="student-major">${escape(main.major)}</p>` : ''}
       <p class="event-description">${escape(missedGraduation && !main.major ? '졸업 사정표에 아직 채워야 할 칸이 남았다. 학사지원팀과 다음 계획을 세운다.' : main.description)}</p>
+      ${main.hidden ? `<p class="subline">${termLabel(game.state.semester)}에 플레이 종료</p>` : ''}
       ${ending.route ? `<p class="subline">진로 · ${escape(ENDINGS[main.id]?.title)}</p>` : ''}
       ${missedGraduation ? `<p class="subline">누적 평점이 ${RULES.graduationGpa.toFixed(2)} 미만이라 졸업 요건을 채우지 못했습니다.</p>` : ''}
       <section class="ending-score" aria-labelledby="score-title">
