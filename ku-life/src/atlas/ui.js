@@ -533,31 +533,91 @@ function openNewEndingFilm() {
   return screen === 'game' && game?.state.phase === 'ended' && openEndingFilm(currentEnding());
 }
 
+function festivalFilmMemory(endingId, history) {
+  if (endingId !== 'newspaper') return '';
+  const memories = Object.keys(festivalPhotoLabels).map(id => history.find(receipt =>
+    receipt.eventId === id && receipt.flags?.includes(id)
+    && Number.isInteger(receipt.semester) && receipt.semester >= 1 && receipt.semester <= termCount));
+  if (memories.some(receipt => !receipt)) return '';
+  return `<div class="film-memory" aria-label="이번 플레이의 축제 관람 기록">${memories.map(receipt => `
+    <span>${termLabel(receipt.semester)} · ${festivalPhotoLabels[receipt.eventId]}</span>`).join('')}</div>`;
+}
+
 function openEndingFilm(ending) {
   const url = endingFilms.get(ending.id);
   if (!url) return false;
   root.innerHTML = `<main class="ending-cinema" aria-labelledby="film-title">
     <h1 id="film-title" tabindex="-1">${escape(ending.title)}</h1>
-    <video src="${escape(url)}" controls muted playsinline preload="metadata" aria-label="픽셀 엔딩 영상"></video>
-    <div class="film-actions"><button type="button" class="secondary">결과 보기</button></div>
+    <div class="film-frame">
+      <video src="${escape(url)}" muted playsinline preload="metadata" aria-label="픽셀 엔딩 영상"></video>
+      ${festivalFilmMemory(ending.id, game.state.history)}
+    </div>
+    <div class="film-actions">
+      <button type="button" class="secondary" data-film-play>재생</button>
+      <input type="range" min="0" max="1" step=".1" value="0" aria-label="영상 재생 위치" disabled>
+      <span class="film-time" aria-hidden="true">0:00</span>
+      <button type="button" class="secondary" data-film-sound>소리 켜기</button>
+      <button type="button" class="secondary" data-film-expand aria-label="전체 화면" title="전체 화면" hidden>⛶</button>
+      <button type="button" class="secondary" data-film-finish>결과 보기</button>
+    </div>
   </main>`;
   const video = root.querySelector('video');
+  video.muted = true;
+  const cinema = root.querySelector('.ending-cinema');
+  const playback = root.querySelector('[data-film-play]');
+  const sound = root.querySelector('[data-film-sound]');
+  const memory = root.querySelector('.film-memory');
+  const expand = root.querySelector('[data-film-expand]');
+  const position = root.querySelector('.film-actions input');
+  const time = root.querySelector('.film-time');
+  const play = () => { void video.play().catch(() => {}); };
+  const timeText = value => `${Math.floor(value / 60)}:${String(Math.floor(value) % 60).padStart(2, '0')}`;
+  const updatePlayback = () => {
+    playback.textContent = video.paused ? '재생' : '일시정지';
+    if (memory) memory.hidden = video.currentTime >= 3.2;
+    if (Number.isFinite(video.duration) && video.duration > 0) {
+      position.disabled = false;
+      position.max = video.duration;
+      position.value = video.currentTime;
+      const elapsed = timeText(video.currentTime);
+      time.textContent = elapsed;
+      position.setAttribute('aria-valuetext', `${timeText(video.duration)} 중 ${elapsed}`);
+    }
+  };
   const finish = (message = '') => {
     if (!root.contains(video)) return;
     video.pause();
     notice = message;
     render(true);
   };
-  root.querySelector('.film-actions button').addEventListener('click', () => finish());
-  root.querySelector('.ending-cinema').addEventListener('keydown', event => {
+  playback.addEventListener('click', () => video.paused ? play() : video.pause());
+  sound.addEventListener('click', () => { video.muted = !video.muted; });
+  video.addEventListener('volumechange', () => {
+    sound.textContent = video.muted ? '소리 켜기' : '음소거';
+  });
+  position.addEventListener('input', () => { video.currentTime = position.valueAsNumber; });
+  if (document.fullscreenEnabled && cinema.requestFullscreen) {
+    expand.hidden = false;
+    expand.addEventListener('click', () => {
+      const request = document.fullscreenElement === cinema ? document.exitFullscreen() : cinema.requestFullscreen();
+      void request.catch(() => {});
+    });
+  } else if (video.webkitEnterFullscreen) {
+    expand.hidden = false;
+    expand.addEventListener('click', () => { if (video.readyState > 0) video.webkitEnterFullscreen(); });
+  }
+  root.querySelector('[data-film-finish]').addEventListener('click', () => finish());
+  cinema.addEventListener('keydown', event => {
     if (event.key === 'Escape') finish();
   });
   video.addEventListener('ended', () => finish(), { once: true });
   video.addEventListener('error', () => finish('엔딩 영상을 불러오지 못했어요.'), { once: true });
+  for (const event of ['loadedmetadata', 'timeupdate', 'play', 'pause']) {
+    video.addEventListener(event, updatePlayback);
+  }
   root.querySelector('#film-title').focus();
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    // Native controls remain available if the browser blocks autoplay.
-    void video.play().catch(() => {});
+    play();
   }
   return true;
 }

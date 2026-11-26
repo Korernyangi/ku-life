@@ -28,7 +28,14 @@ export function drawPixelStudent(ctx, state, x, y, scale = 1) {
   else {r(4,3,3,8,hair);r(15,3,3,8,hair)}
   r(5,2,12,5,hair);r(6,3,8,1,hairLight);r(5,5,3,5,hair);r(8,6,5,2,hair);r(14,5,3,4,hair);r(9,7,5,1,hairLight);
   // bright eyes and a small smile give the portrait a readable expression
-  r(7,9,2,2,'#28252a');r(13,9,2,2,'#28252a');r(7,9,1,1,'#fff4df');r(13,9,1,1,'#fff4df');
+  const gaze = state?.gaze ?? 0;
+  for (const eye of [7, 13]) {
+    if (state?.blink) r(eye + gaze, 10, 2, 1, '#493139');
+    else {
+      r(eye + gaze, 9, 2, 2, '#28252a');
+      r(eye + gaze, 9, 1, 1, '#fff4df');
+    }
+  }
   r(9,13,4,1,'#984b4b');r(10,12,2,1,skinLight);
   // personality / aptitude-linked accessories
   if(look.accessory==='glasses'){r(6,8,5,1,'#352d2d');r(6,9,1,3,'#352d2d');r(10,10,2,1,'#352d2d');r(12,8,5,1,'#352d2d');r(16,9,1,3,'#352d2d')}

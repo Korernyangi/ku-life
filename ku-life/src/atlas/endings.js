@@ -2,6 +2,10 @@ import { EXPERIENCES, RULES, STATS, cashText } from './config.js';
 import { findMajor } from './majors.js';
 import { employmentForEnding } from './employment.js';
 
+function recoveryDescription(classmate = '동기') {
+  return `상담센터의 도움으로 진료 일정을 잡고 한 학기 쉬기로 했다. 단톡방에 새 시간표가 올라오던 날, 사진 대신 “나 이번 학기는 쉬어”라고 보냈다. 잠시 뒤 ${classmate}에게 따로 메시지가 왔다. “그럼 커피는 언제 마실까?”\n\n몇 달 뒤 같은 창가에 앉았다. 예전엔 내 휴대폰에서 울리던 수업 알람이 오늘은 동기 쪽에서 울렸다. 동기가 가방을 챙겨 학교 쪽으로 걸어가는 동안 테이블엔 컵 두 잔이 남아 있었다.\n\n빗소리 사이로 휴대폰이 한 번 울렸다. “다음 주에도 이 자리 어때?” 비어 있는 목요일에 ‘커피’라고 적었다.`;
+}
+
 export const ENDINGS = {
   corporate: {
     title: '기업 취업',
@@ -79,8 +83,8 @@ export const ENDINGS = {
   recovery: {
     title: '시간표를 비워 둔 학기',
     icon: '🌿',
-    keepsake: { label: '동기의 메시지', text: '다음 주도 창가 자리 어때? 커피만 마시고 가도 돼.' },
-    description: '상담센터의 도움으로 진료를 받았다. 한 학기 휴학하고 의료진과 상의해 치료와 휴식에 시간을 썼다. 커피 약속을 미뤘던 동기는 가끔 학교 앞 소식을 전하며 안부를 물었다.\n\n몇 달 뒤 그 동기와 카페 창가에 앉았다. 예전 같으면 연달아 울렸을 수업 알람이 오늘은 울리지 않았다. 복학 시기는 몸 상태를 보며 정하기로 하고, 커피를 다 마신 뒤에도 창가에 조금 더 앉아 있었다.',
+    keepsake: { label: '다음 주 달력', text: '목요일 · 창가에서 커피.' },
+    description: recoveryDescription(),
     special: true,
     hidden: true,
     early: true,
@@ -226,7 +230,7 @@ export function majorEnding(id, majorId, employer = employmentForEnding({ majorI
     case 'family':
       return { ...base, description: `${base.description}\n\n아기 사진을 본 ${name} 동기가 이번 주말에 들르기로 했다.` };
     case 'recovery':
-      return { ...base, description: `${base.description}\n\n${name} 동기가 답했다. “창가 자리 비워 둘게.”` };
+      return { ...base, description: recoveryDescription(`${name} 동기`) };
     default:
       return base;
   }

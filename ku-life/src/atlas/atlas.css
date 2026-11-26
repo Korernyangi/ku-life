@@ -359,6 +359,7 @@ thead, tfoot { background: #f4e5cb; }
 .career-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .career-choices button { height: 100%; }
 .ending-cinema {
+  --film-width: min(100%, 1120px, max(280px, calc(178svh - 260px)));
   min-height: 100svh;
   display: grid;
   align-content: center;
@@ -370,15 +371,52 @@ thead, tfoot { background: #f4e5cb; }
   text-align: center;
 }
 .ending-cinema h1 { font-size: clamp(1.25rem, 3.6vw, 2rem); }
+.film-frame { position: relative; width: var(--film-width); }
 .ending-cinema video {
   display: block;
-  width: min(100%, 960px, max(280px, calc(178svh - 230px)));
+  width: 100%;
   aspect-ratio: 16 / 9;
   background: #15101b;
   border: 1px solid #714e62;
-  image-rendering: pixelated;
 }
-.film-actions { display: flex; justify-content: center; }
+.film-memory:not([hidden]) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  justify-items: center;
+  gap: 5px;
+  position: absolute;
+  top: 10%;
+  inset-inline: 5%;
+  pointer-events: none;
+}
+.film-memory span {
+  padding: 2px 6px;
+  background: #211927e8;
+  border: 1px solid #a28d86;
+  color: #fff1d9;
+  font-size: clamp(.68rem, 1.7vw, .9rem);
+  font-weight: 700;
+}
+.film-actions {
+  display: grid;
+  grid-template-columns: auto minmax(32px, 1fr) repeat(3, auto);
+  align-items: center;
+  gap: clamp(5px, 1.4vw, 12px);
+  width: var(--film-width);
+}
+.film-actions:has([data-film-expand]:not([hidden])) { grid-template-columns: auto minmax(32px, 1fr) repeat(4, auto); }
+.ending-cinema:fullscreen { --film-width: min(100%, 1728px, max(280px, calc(178svh - 260px))); }
+.film-actions input { width: 100%; min-width: 0; accent-color: #ebbf9a; }
+.film-actions button { min-height: 42px; padding: 6px 9px; font-size: .875rem; }
+.film-time { color: #e9cdba; font-size: .875rem; font-variant-numeric: tabular-nums; }
+@media (max-width: 440px) {
+  .film-actions, .film-actions:has([data-film-expand]:not([hidden])) {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+  }
+  .film-actions input { grid-row: 1; grid-column: 1 / 4; }
+  .film-time { grid-row: 1; grid-column: 4; text-align: right; }
+  .film-actions [data-film-finish] { grid-column: 4; }
+}
 .major-route { color: var(--crimson); font-size: .82rem; font-weight: 850; }
 .ending-score {
   display: flex;
