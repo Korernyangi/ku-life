@@ -616,7 +616,13 @@ async function updateChallenge(request) {
   }
   const owner = accountId;
   challengeBusy = true;
-  challengeStatus('도전 기록을 불러오는 중…');
+  if (!request || request.action === 'start') {
+    challengeStatus('도전을 준비하는 중…');
+  } else if (request.action === 'choose') {
+    challengeStatus('선택의 결과를 확인하는 중…');
+  } else {
+    challengeStatus('진행 상황을 반영하는 중…');
+  }
   try {
     const result = request ? await challengeRequest(request) : await challengeRequest();
     if (owner !== accountId) return;
