@@ -1,6 +1,7 @@
 import { CLAW_ATTEMPT_FEE, ROULETTE, rouletteCash } from './arcade.js';
 import { ITEMS, cashText } from './config.js';
 import { itemSprite } from './sprites.js';
+import { drawClueBear } from '../ui/ending-clues.js';
 
 const wheelColors = ['#e9bd65', '#9e3e58', '#396767', '#554263', '#87364c', '#467f6d', '#9e3e58', '#396767', '#554263', '#87364c'];
 const percentText = value => value > 0 ? `+${value}%` : value < 0 ? `−${-value}%` : '0%';
@@ -109,6 +110,7 @@ function clawScreen({ prizes, x, result }) {
           <div class="claw-board" style="--aim-x:${x ?? 50}%">
             <div class="claw-floor"></div>
             <div class="claw-drop-slot"></div>
+            <canvas class="claw-wall-bear" width="38" height="35"></canvas>
             ${targets}
             ${result ? '' : '<div class="claw-aim-marker"></div>'}
             <div class="claw-rig" style="left:${x ?? 50}%; height:${railHeight}%">
@@ -127,6 +129,7 @@ function clawScreen({ prizes, x, result }) {
         </div>
         <p class="arcade-status" role="status" tabindex="-1">${resultText ?? ''}</p>
       </div>
+      <p class="claw-wall-note">오른쪽 구석 곰 인형의 팔이 선반과 벽 사이에 끼어 있어요.</p>
       <div class="claw-footer">
         <details class="claw-catalog"><summary>상품 목록</summary><ul class="claw-prizes">${prizeList}</ul></details>
         <button class="secondary" data-action="arcade-close">${result ? '학기 정산으로' : '게임 선택으로'}</button>
@@ -140,7 +143,15 @@ export function arcadeScreen(session) {
 
 export function mountClaw(root, session) {
   const board = root.querySelector('.claw-board');
-  if (!board || session.result) return;
+  if (!board) return;
+  const bear = board.querySelector('.claw-wall-bear').getContext('2d');
+  if (bear) {
+    drawClueBear(bear, 0, 0, '#c68d70');
+    bear.fillStyle = '#759e9c';
+    bear.fillRect(32, 11, 6, 24);
+    bear.fillRect(0, 31, 38, 4);
+  }
+  if (session.result) return;
   const rig = board.querySelector('.claw-rig');
   const start = performance.now();
   const move = now => {

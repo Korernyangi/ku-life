@@ -280,6 +280,10 @@ button:disabled { cursor: default; }
 .panel .subline { color: var(--muted); font-weight: 675; }
 .event-description { margin: 10px 0 16px; color: #4f393c; }
 .choices, .items, .changes { padding: 0; list-style: none; }
+.festival-photos { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 12px; }
+.festival-photos figure { flex: 0 1 158px; margin: 0; padding: 5px; background: #f4e3be; border: 1px solid var(--line); }
+.festival-photos canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.festival-photos figcaption { padding: 4px 0 1px; font-size: .875rem; color: var(--muted); text-align: center; }
 .choices { display: grid; gap: 8px; }
 .choices button {
   display: block;
@@ -354,6 +358,27 @@ thead, tfoot { background: #f4e5cb; }
 .student-major { margin: 4px 0 8px; color: var(--crimson); font-weight: 800; }
 .career-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .career-choices button { height: 100%; }
+.ending-cinema {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: clamp(10px, 2vh, 18px);
+  padding: clamp(12px, 3vw, 30px);
+  background: #211627;
+  color: #ffebce;
+  text-align: center;
+}
+.ending-cinema h1 { font-size: clamp(1.25rem, 3.6vw, 2rem); }
+.ending-cinema video {
+  display: block;
+  width: min(100%, 960px, max(280px, calc(178svh - 230px)));
+  aspect-ratio: 16 / 9;
+  background: #15101b;
+  border: 1px solid #714e62;
+  image-rendering: pixelated;
+}
+.film-actions { display: flex; justify-content: center; }
 .major-route { color: var(--crimson); font-size: .82rem; font-weight: 850; }
 .ending-score {
   display: flex;

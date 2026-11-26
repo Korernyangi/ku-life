@@ -245,8 +245,8 @@ export const EVENTS = [
     id: 'parttime', title: '안암 카페 아르바이트', scene: 'parttime', kind: 'random', terms: [1, 2, 3, 4, 5, 6, 7, 8], repeat: true,
     description: '카페에서 이번 주말에 근무해 줄 학생을 찾는다. 추가 수입과 주말 휴식 중 하나를 고른다.',
     choices: [
-      pick('주말 두 타임을 맡는다', '주말 근무를 마치고 약속한 수당을 받았다.', { hp: -3 }, { cash: 250_000, requires: { min: { hp: 4 } } }),
-      pick('저녁 한 타임만 맡는다', '잠깐 근무한 뒤 돌아왔다.', { hp: -1 }, { cash: 90_000, requires: { min: { hp: 2 } } }),
+      pick('주말 두 타임을 맡는다', '창가 단골 조가 오늘도 세 잔만 먼저 주문했다. “나머지 한 명은 또 늦어요.” 네 번째 주문을 받고 마감 정산까지 마쳤다.', { hp: -3 }, { cash: 250_000, requires: { min: { hp: 4 } } }),
+      pick('저녁 한 타임만 맡는다', '창가의 세 학생이 조별 과제를 시작했다. 빈 의자 하나를 가리키며 친구가 올 때 한 잔 더 시키겠다고 했다.', { hp: -1 }, { cash: 90_000, requires: { min: { hp: 2 } } }),
       pick('이번 주말은 쉬기로 한다', '쉬기로 한 주말에는 밀린 수면을 채웠다.', { hp: 4, mental: 2 }),
     ],
   },
@@ -254,7 +254,7 @@ export const EVENTS = [
     id: 'dating', title: '동기와의 약속', scene: 'campus', kind: 'random', terms: [2, 3, 4, 5, 6],
     description: '자주 함께 공부하던 동기가 따로 만나자고 한다. 서로의 속도를 존중하며 답할 차례다.',
     choices: [
-      pick('카페에서 서로의 마음을 확인한다', '서두르지 않고 함께 시간을 보내 보기로 했다.', { social: 2, mental: 2 }, { cash: -35_000, grant: ['dating'], schedule: { id: 'couple_dates', after: 1 } }),
+      pick('카페에서 서로의 마음을 확인한다', '서두르지 않고 함께 시간을 보내 보기로 했다. 다음 약속은 둘 다 수업이 비는 시간에 잡았다.', { social: 2, mental: 2 }, { cash: -35_000, grant: ['dating'], schedule: { id: 'couple_dates', after: 1 } }),
       pick('친구로 지내자는 마음을 전한다', '솔직한 대화 덕분에 다음 스터디도 편하게 잡았다.', { social: 1, mental: 1 }),
     ],
   },
@@ -263,7 +263,7 @@ export const EVENTS = [
     requires: { flags: ['dating'] },
     description: '둘이 자주 앉던 창가 자리에 다음 학기 시간표를 펼쳤다. 빈칸마다 둘의 약속부터 잡을지 고민된다.',
     choices: [
-      pick('공강마다 둘의 약속부터 잡는다', '달력에 둘의 약속을 먼저 써 넣었다. 다음 학기에는 학교 밖에서의 생활도 함께 얘기해 보기로 했다.', { social: 1, mental: 3, intelligence: -1 }, { grant: ['coupleTime'], schedule: { id: 'couple_future', after: 1 } }),
+      pick('공강마다 둘의 약속부터 잡는다', '두 시간표에서 겹치는 공강에 동그라미를 쳤다. 다음 학기에는 둘이 학교 밖에서 어떻게 지낼지도 이야기해 보기로 했다.', { social: 1, mental: 3, intelligence: -1 }, { grant: ['coupleTime'], schedule: { id: 'couple_future', after: 1 } }),
       pick('수업과 약속을 번갈아 챙긴다', '둘의 시간도 각자 하고 싶은 일도 이어갈 수 있게 시간을 나눴다.', { intelligence: 1, mental: 1 }),
     ],
   },
@@ -392,7 +392,7 @@ export const EVENTS = [
   {
     id: 'recovery_leave', title: '상담센터에서 온 연락', scene: 'campus', kind: 'crisis', ending: 'recovery',
     requires: { anyStatuses: ['depression'] },
-    description: '몸과 마음이 버거운 날이 이어졌다. 상담 선생님과 이야기를 나누고, 이번 학기의 일정을 비워 치료에 시간을 내기로 한다.',
+    description: '동기가 학교 앞 카페에서 커피를 마시자고 했지만, 수업과 마감에 쫓겨 약속을 미뤄 왔다. 버거운 날이 이어지자 상담 선생님과 상의해 이번 학기는 쉬면서 치료에 시간을 내기로 했다.',
     choices: [
       pick('휴학하고 진료와 회복에 시간을 쓰기로 한다', '상담 선생님과 진료 일정을 잡았다. 이번 학기 시간표에서 가장 먼저 비운 칸은 내일 아침이다.', {}, { grant: ['recoveryLeave'] }),
     ],
@@ -400,34 +400,34 @@ export const EVENTS = [
   {
     id: 'couple_future', title: '우리의 다음 시간표', scene: 'parttime', kind: 'chain', ending: 'family',
     requires: { flags: ['dating', 'coupleTime'] },
-    description: '공강마다 만나던 카페에서 둘이 정리한 계획을 다시 펼쳤다. 같이 살 집과 서로 나눌 일까지 적혀 있다. 이제 계획표를 덮고 첫 일정을 시작할 차례다.',
+    description: '공강에 만나던 카페에서 두 사람이 생활 계획을 펼쳤다. 같이 살 집과 생활비를 정리하고, 장보기와 집안일은 번갈아 맡기로 했다.',
     choices: [
       pick('한 학기 쉬고 둘이 세운 가족 계획을 시작한다', '휴학 신청서를 내고, 둘이 그려 둔 생활을 준비하기 시작했다.', {}, { grant: ['familyPlan'] }),
     ],
   },
   {
-    id: 'newspaper_extra', title: '인쇄소 마감 3분 전', scene: 'study', kind: 'chain', ending: 'newspaper',
+    id: 'newspaper_extra', title: '사진에 찍힌 두 앞발', scene: 'study', kind: 'chain', ending: 'newspaper',
     requires: { flags: ['published', 'ipselenti', 'koyeonjeon'] },
-    description: '입실렌티 사진과 고연전 사진을 같은 책상에 펼쳤다. 두 장의 오른쪽 아래를 번갈아 본 후배 기자가 인쇄소에 전화를 걸었다. “한 장만 더 뽑을게요.”',
+    description: '입실렌티 사진과 고연전 사진에서 닮은 고양이가 똑같은 자세로 앉아 있다. 사진을 나란히 놓고 확대하자 한 마리의 앞발만 하얗다. 다른 사진을 더 모아 두 마리인지 확인해 보기로 했다.',
     choices: [
-      pick('사진 두 장으로 호외를 인쇄한다', '기자단 채팅방에 지면을 올렸다. 교수님보다 댓글이 먼저 도착했다. “그 고양이 저희 조에도 있어요.”'),
+      pick('사진을 더 모아 두 고양이를 확인한다', '기자단 채팅방에 사진을 올렸다. 캠퍼스 고양이를 돌보는 봉사자에게도 연락했다.'),
     ],
   },
   {
     id: 'cafe_keys', title: '맨 마지막 교대 근무', scene: 'parttime', kind: 'chain', ending: 'cafe',
     requires: { cash: 1_650_000 },
     endingTrigger: state => state.history.filter(entry => entry.eventId === 'parttime' && entry.cash >= 250_000).length >= 3,
-    description: '주말마다 맡던 카페에서 마감 정산을 했다. 사장님이 늘 앉던 자리에 열쇠와 단골의 주문 노트가 놓여 있다. “내일부터 여기 이름은 네가 정해.”',
+    description: '오늘도 창가의 단골 조는 늦는 친구 몫을 빼고 세 잔을 먼저 시켰다. 마감 뒤 사장님이 몇 달간 자리를 비운다며, 그동안 단골 주문과 정산을 잘 아는 당신에게 매장을 맡아 달라고 했다.',
     choices: [
-      pick('가게 열쇠를 받아 내일 문을 열기로 한다', '단골들의 주문을 기억해 냈다. 제일 먼저 적은 메뉴는 ‘팀플 4인 세트’였다.'),
+      pick('가게 열쇠를 받아 내일 문을 열기로 한다', '사장님과 근무 시간, 급여, 문제가 생겼을 때 연락할 방법을 정했다.'),
     ],
   },
   {
     id: 'claw_handoff', title: '기계 뒷문이 열렸다', scene: 'club', kind: 'chain', ending: 'claw',
     endingTrigger: state => state.clawWins >= 3,
-    description: '집게가 세 번째로 상품을 놓았다. 기계 주인이 유리 너머로 불러 세웠다. 들고 있는 건 상품이 아니라 당신에게 맞는 작업 장갑이었다.',
+    description: '세 번째 상품을 꺼내고 보니 옆 칸 곰 인형의 팔이 벽에 끼어 있었다. 운영자에게 알려 주자 장갑을 건네며 같이 배치를 바꿔 보자고 했다.',
     choices: [
-      pick('작업 장갑을 끼고 상품 배치를 맡는다', '늘 보던 유리 상자 뒷문을 열었다. 오래 걸려서 뽑은 상품 세 개를 다시 떠올렸다.'),
+      pick('작업 장갑을 끼고 곰 인형을 가운데로 옮긴다', '운영자가 기계 뒷문을 열었다. 다음 손님이 들어오기 전에 곰이 놓인 칸을 정리했다.'),
     ],
   },
   {
@@ -481,7 +481,7 @@ export const EVENTS = [
       pick('기출 문제를 실전처럼 풀어 본다', '틀린 문제를 표시했더니 마지막 복습 순서가 분명해졌다.', { intelligence: 2, hp: -2 }, { requires: { min: { hp: 5 } } }),
       pick('동기와 서로 한 문제씩 설명한다', '설명하다 놓쳤던 개념을 알아차렸다.', { intelligence: 1, social: 1, hp: -1 }, { requires: { min: { hp: 3 } } }),
       pick('핵심 개념만 확인하고 일찍 잔다', '아침 시험 전에 충분히 쉴 수 있었다.', { hp: 2, mental: 1 }),
-      pick('휴식 시간을 줄여 시험 범위를 전부 끝낸다', '시험 범위는 끝냈다. 긴장이 풀리지 않아 도서관 밖에서도 시험 문제가 맴돌았다.', { intelligence: 4, hp: -2, mental: -5 }, { intensity: 'high', requires: { min: { hp: 6 } } }),
+      pick('휴식 시간을 줄여 시험 범위를 전부 끝낸다', '시험 범위는 끝냈지만 긴장이 풀리지 않았다. 커피 한 잔 하자는 동기에게 시험이 끝나면 보자고 답했다.', { intelligence: 4, hp: -2, mental: -5 }, { intensity: 'high', requires: { min: { hp: 6 } } }),
     ],
   },
   {

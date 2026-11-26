@@ -206,6 +206,16 @@
   filter: drop-shadow(1px 0 #fff0ce) drop-shadow(-1px 0 #fff0ce)
     drop-shadow(0 1px #fff0ce) drop-shadow(0 3px #153742);
 }
+.claw-wall-bear {
+  position: absolute;
+  top: 55%;
+  right: 3px;
+  width: 12%;
+  height: auto;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.claw-wall-note { margin-top: 8px; color: var(--arcade-muted); font-size: .875rem; }
 .claw-aim-marker {
   position: absolute;
   left: var(--aim-x);

@@ -1,5 +1,6 @@
 import { drawPixelBackground } from '../ui/pixel-backgrounds.js';
 import { drawPixelStudent } from '../ui/pixel-student.js';
+import { drawFestivalPhoto } from '../ui/ending-clues.js';
 import { AtlasGame } from './game.js';
 import { EXPERIENCES, ITEMS, LEGACY_ENDINGS, RULES, STATS, STATUSES, cashText } from './config.js';
 import { ENDINGS, archiveEndingInfo, careerOptions, endingChoices, endingScore, majorEnding, normalizeEnding } from './endings.js';
@@ -8,6 +9,11 @@ import { findMajor } from './majors.js';
 import { openAdmission } from './admission.js';
 import { showEndingProfile } from './ending-profile.js';
 import { createEndingPreview } from './ending-preview.js';
+import familyFilm from '../assets/ending-films/family.mp4?url';
+import recoveryFilm from '../assets/ending-films/recovery.mp4?url';
+import cafeFilm from '../assets/ending-films/cafe.mp4?url';
+import newspaperFilm from '../assets/ending-films/newspaper.mp4?url';
+import clawFilm from '../assets/ending-films/claw.mp4?url';
 import { itemSprite, paintSprites, paintTrophy, statSprite } from './sprites.js';
 import { animateRoulette, arcadeMenu, arcadeScreen, mountClaw, playClaw } from './arcade-ui.js';
 import { currentPlayer, openAccount, openAccountCallback, openLandingAccount, playerAccessToken, watchPlayer } from './auth.js';
@@ -29,6 +35,10 @@ const savedPhase = { event: '이벤트 진행 중', result: '선택 결과', ter
 const endingEntries = Object.entries(ENDINGS);
 const basicEndings = endingEntries.filter(([, ending]) => !ending.hidden);
 const hiddenEndings = endingEntries.filter(([, ending]) => ending.hidden);
+const endingFilms = new Map([
+  ['family', familyFilm], ['recovery', recoveryFilm], ['cafe', cafeFilm],
+  ['newspaper', newspaperFilm], ['claw', clawFilm],
+]);
 const endingStorageKey = 'ending:';
 const variantStorageKey = 'ending-major:';
 const unlockedEndings = new Set();
@@ -82,6 +92,7 @@ function persist() {
 function present(message = '') {
   notice = message;
   persist();
+  if (openNewEndingFilm()) return;
   render(true);
 }
 
@@ -225,6 +236,16 @@ function sceneMarkup() {
   return '<div class="event-art"><canvas class="scene-canvas" width="640" height="360" aria-hidden="true"></canvas></div>';
 }
 
+const festivalPhotoLabels = { ipselenti: '입실렌티 사진', koyeonjeon: '고연전 사진' };
+
+function festivalPhotos(ids) {
+  return `<div class="festival-photos">${ids.map(id => `
+    <figure>
+      <canvas width="96" height="56" data-festival-photo="${id}" role="img" aria-label="행사 사진 구석에 앉은 주황색 고양이"></canvas>
+      <figcaption>${festivalPhotoLabels[id]}</figcaption>
+    </figure>`).join('')}</div>`;
+}
+
 function showEvent() {
   const event = game.event;
   return `${sceneMarkup()}
@@ -232,6 +253,7 @@ function showEvent() {
       <p class="context-label">${event.ending ? '마지막 선택' : eventType[event.kind]}</p>
       <h1 tabindex="-1">${escape(event.title)}</h1>
       <p class="event-description">${escape(event.description)}</p>
+      ${event.id === 'newspaper_extra' ? festivalPhotos(Object.keys(festivalPhotoLabels)) : ''}
       <ul class="choices">${event.choices.map((choice, index) => {
         const reasons = game.choiceReasons(choice);
         return `<li><button data-action="choose" data-value="${index}" data-token="${game.eventToken}" ${reasons.length ? 'disabled' : ''}>${escape(choice.text)}${choice.chance ? '<small>결과가 달라질 수 있어요</small>' : ''}${reasons.length ? `<small class="lock-reason">${reasons.map(escape).join(' · ')}</small>` : ''}</button></li>`;
@@ -262,12 +284,14 @@ function receiptList(receipt) {
 function showReceipt() {
   const receipt = game.state.receipt;
   const lastEvent = game.state.termEvents.length === RULES.termEvents[game.state.semester - 1];
+  const firstFestivalVisit = Object.hasOwn(festivalPhotoLabels, receipt.eventId) && receipt.flags?.includes(receipt.eventId);
   return `${sceneMarkup()}
     <article class="panel">
       <p class="context-label">선택 결과${receipt.chance ? ` · ${receipt.chance.won ? '성공' : '실패'}` : ''}</p>
       <h1 tabindex="-1">${escape(receipt.title)}</h1>
       <p class="subline">${escape(receipt.choice)}</p>
       <p class="event-description">${escape(receipt.message)}</p>
+      ${firstFestivalVisit ? festivalPhotos([receipt.eventId]) : ''}
       ${receiptList(receipt)}
       <div class="actions"><button class="primary" data-action="next-event">${lastEvent ? '학기 평점 확인' : '다음 이벤트'}</button></div>
     </article>`;
@@ -495,7 +519,47 @@ function currentEnding() {
   const legacy = !Object.hasOwn(ending, 'route');
   const info = (legacy ? LEGACY_ENDINGS.find(item => item.id === ending.id)
     : majorEnding(ending.id, majorId, employmentForEnding(game.state, ending.id))) ?? ENDINGS.ordinary;
+  if (!legacy && ending.id === 'ordinary' && !ending.route) {
+    return {
+      ...info, id: ending.id, legacy, major: findMajor(majorId)?.name,
+      description: '졸업 사정표를 보니 누적 평점이 졸업 기준에 못 미쳤다. 학사지원팀에 연락해 다음 학기에 어떤 과목을 다시 들을지 정했다.',
+      keepsake: { label: '다음 학기 메모', text: '재수강 가능한 과목과 정정 기간부터 확인하기.' },
+    };
+  }
   return { ...info, id: ending.id, legacy, major: findMajor(majorId)?.name };
+}
+
+function openNewEndingFilm() {
+  return screen === 'game' && game?.state.phase === 'ended' && openEndingFilm(currentEnding());
+}
+
+function openEndingFilm(ending) {
+  const url = endingFilms.get(ending.id);
+  if (!url) return false;
+  root.innerHTML = `<main class="ending-cinema" aria-labelledby="film-title">
+    <h1 id="film-title" tabindex="-1">${escape(ending.title)}</h1>
+    <video src="${escape(url)}" controls muted playsinline preload="metadata" aria-label="픽셀 엔딩 영상"></video>
+    <div class="film-actions"><button type="button" class="secondary">결과 보기</button></div>
+  </main>`;
+  const video = root.querySelector('video');
+  const finish = (message = '') => {
+    if (!root.contains(video)) return;
+    video.pause();
+    notice = message;
+    render(true);
+  };
+  root.querySelector('.film-actions button').addEventListener('click', () => finish());
+  root.querySelector('.ending-cinema').addEventListener('keydown', event => {
+    if (event.key === 'Escape') finish();
+  });
+  video.addEventListener('ended', () => finish(), { once: true });
+  video.addEventListener('error', () => finish('엔딩 영상을 불러오지 못했어요.'), { once: true });
+  root.querySelector('#film-title').focus();
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // Native controls remain available if the browser blocks autoplay.
+    void video.play().catch(() => {});
+  }
+  return true;
 }
 
 function showEnding() {
@@ -512,7 +576,7 @@ function showEnding() {
       <p class="context-label">${main.legacy ? '지난 플레이 결과' : main.hidden ? '히든 엔딩' : '기본 엔딩'}</p>
       <h1 tabindex="-1">${escape(main.title)}</h1>
       ${main.major ? `<p class="student-major">${escape(main.major)}</p>` : ''}
-      <p class="event-description">${escape(missedGraduation && !main.major ? '졸업 사정표에 아직 채워야 할 칸이 남았다. 학사지원팀과 다음 계획을 세운다.' : main.description)}</p>
+      <p class="event-description">${escape(main.description)}</p>
       ${main.keepsake ? `<figure class="ending-keepsake"><figcaption>${escape(main.keepsake.label)}</figcaption><blockquote>${escape(main.keepsake.text)}</blockquote></figure>` : ''}
       ${main.hidden ? `<p class="subline">${termLabel(game.state.semester)}에 플레이 종료</p>` : ''}
       ${ending.route ? `<p class="subline">진로 · ${escape(ENDINGS[main.id]?.title)}</p>` : ''}
@@ -521,7 +585,12 @@ function showEnding() {
         <div><h2 id="score-title">토탈 스코어</h2><p><strong>${score.total.toLocaleString('ko-KR')}</strong> / ${score.max.toLocaleString('ko-KR')}</p></div>
         <dl><div><dt>스탯 · 평점 · 자금</dt><dd>${score.base} / ${score.statsMax}</dd></div><div><dt>엔딩 보너스</dt><dd>${score.bonus} / ${score.bonusMax}</dd></div></dl>
       </section>
-      <div class="actions ending-actions"><button class="primary" data-action="profile">프로필 보기</button><button class="secondary" data-action="archive">엔딩 도감</button><button class="secondary" data-action="title">시작 화면</button></div>
+      <div class="actions ending-actions">
+        <button class="primary" data-action="profile">프로필 보기</button>
+        ${endingFilms.has(main.id) ? '<button class="secondary" data-action="ending-film">영상 다시 보기</button>' : ''}
+        <button class="secondary" data-action="archive">엔딩 도감</button>
+        <button class="secondary" data-action="title">시작 화면</button>
+      </div>
       ${challengeRun ? `<section class="challenge-result" aria-label="도전모드 결과">
         <p>${challengeRun.published ? '순위표에 공개된 기록입니다.' : '기록을 공개하면 닉네임, 학과, 점수가 순위표에 표시됩니다.'}</p>
         <div class="actions">
@@ -568,6 +637,10 @@ function render(focus = false) {
     const context = canvas.getContext('2d');
     context.scale(2, 2);
     drawPixelBackground(context, screen === 'title' ? 'campus' : game.event?.scene ?? 'campus', screen === 'title' ? 1 : game.state.semester);
+  }
+  for (const photo of root.querySelectorAll('[data-festival-photo]')) {
+    const context = photo.getContext('2d');
+    if (context) drawFestivalPhoto(context, photo.dataset.festivalPhoto === 'ipselenti');
   }
   if (focus) root.querySelector('h1')?.focus();
 }
@@ -633,10 +706,12 @@ async function updateChallenge(request) {
       if (!started.run) throw new Error('도전을 시작하지 못했습니다.');
       result.run = started.run;
     }
+    const endingJustReached = request?.action === 'choose' && !result.stale && game?.state.phase !== 'ended';
     challengeRun = result.run;
     game = new AtlasGame(challengeRun.state);
     if (screen !== 'inventory' || request?.action !== 'use') screen = 'game';
     notice = result.stale ? '다른 탭의 최신 도전 기록을 불러왔어요.' : '';
+    if (endingJustReached && openNewEndingFilm()) return;
     render(true);
   } catch (error) {
     if (owner === accountId) challengeStatus(error.message);
@@ -793,6 +868,9 @@ root.addEventListener('click', event => {
       break;
     case 'archive':
       openArchive();
+      break;
+    case 'ending-film':
+      openNewEndingFilm();
       break;
     case 'profile': {
       const ending = currentEnding();
