@@ -20,6 +20,10 @@ import clawFilm from '../assets/ending-films/claw.mp4?url';
 import { itemSprite, paintSprites, paintTrophy, statSprite } from './sprites.js';
 import { animateRoulette, arcadeMenu, arcadeScreen, mountClaw, playClaw } from './arcade-ui.js';
 import { currentPlayer, openAccount, openAccountCallback, openLandingAccount, playerAccessToken, watchPlayer } from './auth.js';
+import { availableRewindSemesters, firstChangedChoice, recordSemesterStart, rewindStateAt } from './rewind.js';
+import { createRewindAccess, readRewindStorage } from './rewind-access.js';
+import { rewindCheckoutPreview, rewindComparisonMarkup, rewindPicker } from './rewind-ui.js';
+import { createRewindPreview } from './rewind-preview.js';
 import './atlas.css';
 import './arcade.css';
 
@@ -47,17 +51,23 @@ const endingStorageKey = 'ending:';
 const variantStorageKey = 'ending-major:';
 const unlockedEndings = new Set();
 const endingVariants = new Map(endingEntries.map(([id]) => [id, new Map()]));
+const rewindPage = new URLSearchParams(location.search).get('rewind');
+const rewindPreview = import.meta.env.VITE_REWIND_PREVIEW === '1'
+  && ['preview', 'preview-checkout', 'preview-return'].includes(rewindPage);
+const rewindEnabled = import.meta.env.VITE_REWIND_ENABLED === '1' || rewindPreview;
+const rewindClient = createRewindAccess(playerAccessToken, rewindPreview ? sessionStorage : null);
 const previewId = import.meta.env.VITE_ENDING_PREVIEW === '1'
   ? new URLSearchParams(window.location.search).get('ending-preview') : null;
 const clawPreview = (import.meta.env.DEV || import.meta.env.VITE_CLAW_PREVIEW === '1')
   && (window.location.protocol === 'file:' || new URLSearchParams(window.location.search).get('preview') === 'claw');
-let game = previewId ? createEndingPreview(previewId) : null;
-if (clawPreview) {
+let game = rewindPreview ? createRewindPreview() : previewId ? createEndingPreview(previewId) : null;
+if (clawPreview && !rewindPreview) {
   const { state } = new AtlasGame();
   game = new AtlasGame({ ...state, phase: 'term' });
   game.beginArcade('claw');
 }
 const inPreview = Boolean(game);
+const rewindPreviewSource = rewindPreview ? game.state : null;
 let screen = inPreview ? 'game' : 'title';
 let notice = '';
 let storageNotice = '';
@@ -65,6 +75,9 @@ let saved;
 let accountId = null;
 let challengeRun = null;
 let challengeBusy = false;
+let rewindPanel = null;
+let rewindSession = null;
+let rewindPlaying = false;
 
 function accountStorageKey(part) {
   return `${storageKey}:${accountId}:${part}`;
@@ -83,7 +96,18 @@ function loadSave() {
 }
 
 function persist() {
+  if (rewindPlaying) {
+    rewindSession.state = game.state;
+    try {
+      (rewindPreview ? sessionStorage : localStorage).setItem(rewindStorageKey('branch'), JSON.stringify(rewindSession));
+      storageNotice = '';
+    } catch {
+      storageNotice = '이 브라우저에서 치팅모드 회차를 저장하지 못했어요.';
+    }
+    return;
+  }
   if (inPreview || !accountId || challengeRun) return;
+  if (rewindEnabled && !game.event?.ending) recordSemesterStart(game.state);
   saved = game.state;
   try {
     localStorage.setItem(accountStorageKey('game'), JSON.stringify(saved));
@@ -102,6 +126,131 @@ function present(message = '') {
 
 function termLabel(semester) {
   return `${Math.ceil(semester / 2)}학년 ${semester % 2 ? '1' : '2'}학기`;
+}
+
+function rewindStorageKey(part) {
+  return rewindPreview ? `ku-life:rewind-preview:${part}` : accountStorageKey(`rewind:${part}`);
+}
+
+function rewindSource() {
+  return rewindPreviewSource ?? saved;
+}
+
+function loadRewindBranch() {
+  rewindSession = rewindEnabled && (rewindPreview || accountId)
+    ? readRewindStorage(rewindPreview ? sessionStorage : localStorage, rewindStorageKey('branch')) : null;
+}
+
+function hasRewindBranch() {
+  const source = rewindSource();
+  return source?.phase === 'ended' && rewindSession?.sourceId === source.id
+    && rewindSession.state?.version === 1 && Object.hasOwn(savedPhase, rewindSession.state.phase);
+}
+
+function readRewindDraft() {
+  const draft = readRewindStorage(sessionStorage, rewindStorageKey('draft'));
+  return draft && draft.sourceId === rewindSource()?.id && availableRewindSemesters(rewindSource()).includes(draft.semester)
+    ? draft : null;
+}
+
+function saveRewindDraft(semester) {
+  const previous = readRewindDraft();
+  if (previous?.semester === semester) return previous;
+  const draft = { sourceId: rewindSource().id, semester, requestId: crypto.randomUUID() };
+  sessionStorage.setItem(rewindStorageKey('draft'), JSON.stringify(draft));
+  return draft;
+}
+
+function clearRewindQuery() {
+  const url = new URL(location.href);
+  if (rewindPreview) url.searchParams.set('rewind', 'preview');
+  else url.searchParams.delete('rewind');
+  history.replaceState(history.state, '', url);
+}
+
+async function refreshRewindAccess({ focus = false } = {}) {
+  const panel = rewindPanel;
+  panel.busy = true;
+  panel.message = '이용권을 확인하는 중이에요.';
+  render(focus);
+  try {
+    panel.status = await rewindClient.access();
+    panel.message = panel.returning && panel.status === 'purchase_required'
+      ? '결제 확인 중이에요. 잠시 뒤 이용권을 다시 확인해 주세요.' : '';
+    if (panel.status === 'unlimited') panel.returning = false;
+  } catch (error) {
+    panel.message = error.message;
+  } finally {
+    panel.busy = false;
+    if (rewindPanel === panel && screen === 'rewind-picker') render(focus);
+  }
+}
+
+function openRewindPicker(returning = false) {
+  const source = rewindSource();
+  const semesters = availableRewindSemesters(source);
+  if (!semesters.length) return;
+  rewindPlaying = false;
+  rewindPanel = { semester: readRewindDraft()?.semester ?? semesters.at(-1), status: null, returning };
+  screen = 'rewind-picker';
+  void refreshRewindAccess({ focus: true });
+}
+
+function showOriginalEnding() {
+  const source = rewindSource();
+  if (!source || rewindPanel?.busy) return;
+  rewindPlaying = false;
+  rewindPanel = null;
+  game = new AtlasGame(source);
+  screen = 'game';
+  notice = '';
+  render(true);
+}
+
+function resumeRewindBranch() {
+  if (!hasRewindBranch()) return;
+  rewindPlaying = true;
+  rewindPanel = null;
+  game = new AtlasGame(rewindSession.state);
+  screen = 'game';
+  notice = '';
+  render(true);
+}
+
+async function startRewind() {
+  const panel = rewindPanel;
+  if (!panel || panel.busy || !panel.status || (panel.returning && panel.status === 'purchase_required')) return;
+  const source = rewindSource();
+  const state = rewindStateAt(source, panel.semester);
+  if (!state) return;
+  panel.busy = true;
+  panel.message = panel.status === 'purchase_required' ? '결제창을 여는 중이에요.' : '학기 시작 상태를 불러오는 중이에요.';
+  render();
+  try {
+    const draft = saveRewindDraft(panel.semester);
+    if (panel.status === 'purchase_required') {
+      const checkoutUrl = await rewindClient.checkout();
+      if (rewindPanel === panel) location.assign(checkoutUrl);
+      return;
+    }
+    const { branchId } = await rewindClient.start(draft);
+    if (rewindPanel !== panel) return;
+    if (!branchId) {
+      panel.status = 'purchase_required';
+      panel.message = '';
+      return;
+    }
+    rewindSession = { branchId, sourceId: source.id, semester: panel.semester, state };
+    resumeRewindBranch();
+    persist();
+    if (storageNotice) render(true);
+    else sessionStorage.removeItem(rewindStorageKey('draft'));
+  } catch (error) {
+    panel.message = error.message;
+  } finally {
+    panel.busy = false;
+    if (rewindPanel === panel && screen === 'rewind-picker') render();
+  }
 }
 
 function statIcons(key, value) {
@@ -192,6 +341,9 @@ function titleScreen() {
           <canvas class="save-portrait" width="96" height="112" aria-hidden="true"></canvas>
           <span><strong id="resume-label">${saved.phase === 'ended' ? '지난 결과 보기' : '이어하기'}</strong><small id="resume-details">${major ? escape(major.name) + ' · ' : ''}${termLabel(saved.semester)} · ${savedPhase[saved.phase]}</small></span><span aria-hidden="true">→</span>
         </button>` : ''}
+        ${hasRewindBranch() ? `<button type="button" class="entry-button" data-action="rewind-resume">
+          <span><strong>치팅모드 ${rewindSession.state.phase === 'ended' ? '결과 보기' : '이어하기'}</strong><small>${termLabel(rewindSession.semester)}에서 시작한 회차</small></span>
+        </button>` : ''}
         <button type="button" class="entry-button ${saved ? '' : 'entry-primary'}" data-action="new" aria-labelledby="new-label" aria-describedby="new-details">
           <span><strong id="new-label">입학하기</strong><small id="new-details">학과를 골라 1학년부터 시작</small></span><span aria-hidden="true">→</span>
         </button>
@@ -225,10 +377,11 @@ function gameHeader() {
     <header class="atlas-header game-header">
       <button class="wordmark" data-action="title" aria-label="KU-LIFE 시작 화면">KU-LIFE</button>
       <div class="progress-panel">
-        <strong>${challengeRun ? '도전모드 · ' : ''}${termLabel(semester)}</strong><span>${progressLabel}</span>
+        <strong>${challengeRun ? '도전모드 · ' : rewindPlaying ? '치팅모드 · ' : ''}${termLabel(semester)}</strong><span>${progressLabel}</span>
         <progress max="${overall}" value="${history.length}" aria-label="전체 이벤트 진행도"></progress>
       </div>
       <nav aria-label="기록 및 도구">
+        ${rewindPlaying ? '<button data-action="rewind-original">원래 엔딩</button>' : ''}
         ${screen !== 'game' ? '<button data-action="game">게임으로</button>' : ''}
         <button data-action="inventory" aria-current="${screen === 'inventory' ? 'page' : 'false'}">인벤토리</button>
         <button data-action="grades" aria-current="${screen === 'grades' ? 'page' : 'false'}">학점 기록</button>
@@ -518,11 +671,11 @@ function openArchive() {
   dialog.showModal();
 }
 
-function currentEnding() {
-  const { ending, majorId } = game.state;
+function currentEnding(playthrough = game) {
+  const { ending, majorId } = playthrough.state;
   const legacy = !Object.hasOwn(ending, 'route');
   const info = (legacy ? LEGACY_ENDINGS.find(item => item.id === ending.id)
-    : majorEnding(ending.id, majorId, employmentForEnding(game.state, ending.id))) ?? ENDINGS.ordinary;
+    : majorEnding(ending.id, majorId, employmentForEnding(playthrough.state, ending.id))) ?? ENDINGS.ordinary;
   if (!legacy && ending.id === 'ordinary' && !ending.route) {
     return {
       ...info, id: ending.id, legacy, major: findMajor(majorId)?.name,
@@ -655,13 +808,27 @@ function showEnding() {
   const main = currentEnding();
   const score = endingScore(game.state, game.gpa, main.id);
   const missedGraduation = !main.legacy && !ending.route && main.id === 'ordinary';
-  unlockEnding(main.id, majorId, main.employer?.id);
+  if (!rewindPlaying) unlockEnding(main.id, majorId, main.employer?.id);
+  const canRewind = rewindPreview || (rewindEnabled && !inPreview && !challengeRun && Boolean(accountId));
+  const sourceCanRewind = canRewind && availableRewindSemesters(rewindSource()).length > 0;
+  const hasBranch = sourceCanRewind && hasRewindBranch();
+  let comparison = '';
+  if (rewindPlaying) {
+    const original = new AtlasGame(rewindSource());
+    const originalEnding = currentEnding(original);
+    comparison = rewindComparisonMarkup(
+      { title: originalEnding.title, score: endingScore(original.state, original.gpa, originalEnding.id), gpa: original.gpa },
+      { title: main.title, score, gpa: game.gpa },
+      firstChangedChoice(original.state, game.state),
+      { escape, termLabel, gpaText },
+    );
+  }
   const achievements = (ending.achievements ?? []).map(id => LEGACY_ENDINGS.find(outcome => outcome.id === id)?.title).filter(Boolean);
   const recap = endingChoices(history, main.id);
   const record = history.map(entry => `<li><strong>${termLabel(entry.semester)} · ${escape(entry.title)}</strong><p>${escape(entry.choice)}</p></li>`).join('');
   return `${sceneMarkup()}
     <article class="panel ending${main.hidden ? ' hidden-ending' : ''}">
-      <p class="context-label">${main.legacy ? '지난 플레이 결과' : main.hidden ? '히든 엔딩' : '기본 엔딩'}</p>
+      <p class="context-label">${rewindPlaying ? '치팅모드 결과 · 개인 기록' : main.legacy ? '지난 플레이 결과' : main.hidden ? '히든 엔딩' : '기본 엔딩'}</p>
       <h1 tabindex="-1">${escape(main.title)}</h1>
       ${main.major ? `<p class="student-major">${escape(main.major)}</p>` : ''}
       <p class="event-description">${escape(main.description)}</p>
@@ -673,10 +840,15 @@ function showEnding() {
         <div><h2 id="score-title">토탈 스코어</h2><p><strong>${score.total.toLocaleString('ko-KR')}</strong> / ${score.max.toLocaleString('ko-KR')}</p></div>
         <dl><div><dt>스탯 · 평점 · 자금</dt><dd>${score.base} / ${score.statsMax}</dd></div><div><dt>엔딩 보너스</dt><dd>${score.bonus} / ${score.bonusMax}</dd></div></dl>
       </section>
+      ${comparison}
       <div class="actions ending-actions">
         <button class="primary" data-action="profile">프로필 보기</button>
         ${endingFilms.has(main.id) ? '<button class="secondary" data-action="ending-film">영상 다시 보기</button>' : ''}
         <button class="secondary" data-action="archive">엔딩 도감</button>
+        ${sourceCanRewind && (!hasBranch || rewindSession.state.phase === 'ended') ? '<button class="secondary" data-action="rewind-open">다른 선택 해보기</button>' : ''}
+        ${!rewindPlaying && hasBranch ? `<button class="secondary" data-action="rewind-resume">치팅모드 ${rewindSession.state.phase === 'ended' ? '결과 보기' : '이어하기'}</button>` : ''}
+        ${rewindPlaying ? '<button class="secondary" data-action="rewind-original">원래 엔딩으로</button>' : ''}
+        ${rewindPreview && !rewindPlaying ? '<button class="secondary" data-action="rewind-reset">미리보기 초기화</button>' : ''}
         <button class="secondary" data-action="title">시작 화면</button>
       </div>
       ${challengeRun ? `<section class="challenge-result" aria-label="도전모드 결과">
@@ -699,7 +871,11 @@ function showEnding() {
 }
 
 function render(focus = false) {
-  if (screen === 'title') {
+  if (screen === 'rewind-picker') {
+    root.innerHTML = rewindPicker(rewindSource(), rewindPanel, { escape, termLabel, preview: rewindPreview });
+  } else if (screen === 'rewind-checkout') {
+    root.innerHTML = rewindCheckoutPreview(readRewindDraft(), termLabel);
+  } else if (screen === 'title') {
     root.innerHTML = titleScreen();
     const portrait = root.querySelector('.save-portrait');
     if (portrait) paintProfile(portrait, saved.id);
@@ -707,8 +883,9 @@ function render(focus = false) {
   } else {
     const views = { event: showEvent, result: showReceipt, term: showTerm, career: showCareer, ended: showEnding };
     const body = screen === 'inventory' ? showInventory() : screen === 'grades' ? showGrades() : views[game.state.phase]();
-    const storageMessage = inPreview ? '테스트 · 진행과 도감은 이 탭에만 기록돼요.' : storageNotice;
-    const messages = [notice, storageMessage].filter(Boolean);
+    const previewNotice = inPreview ? '테스트 · 진행은 이 탭에만 기록돼요.' : '';
+    const branchNotice = rewindPlaying ? '개인 연습 회차 · 결과는 두 엔딩 비교에 저장돼요.' : '';
+    const messages = [notice, storageNotice, previewNotice, branchNotice].filter(Boolean);
     root.innerHTML = `${gameHeader()}<main class="dashboard">${statPanel()}<div class="workspace">
       <p class="notice" role="status" ${messages.length ? '' : 'hidden'}>${messages.map(escape).join(' ')}</p>
       ${challengeRun ? '<p class="challenge-status notice" role="status"></p>' : ''}
@@ -973,11 +1150,63 @@ root.addEventListener('click', event => {
       break;
     case 'resume':
       if (!accountId || !saved) break;
+      rewindPlaying = false;
       game = new AtlasGame(saved);
       screen = 'game';
+      if (rewindEnabled && !game.event?.ending && game.state.phase === 'event') persist();
       render(true);
       break;
+    case 'rewind-open':
+      openRewindPicker();
+      break;
+    case 'rewind-select': {
+      const semester = Number(value);
+      if (rewindPanel.busy || !availableRewindSemesters(rewindSource()).includes(semester)) break;
+      rewindPanel.semester = semester;
+      render();
+      root.querySelector('[data-action="rewind-select"][aria-pressed="true"]')?.focus();
+      break;
+    }
+    case 'rewind-refresh':
+      void refreshRewindAccess();
+      break;
+    case 'rewind-submit':
+      void startRewind();
+      break;
+    case 'rewind-resume':
+      resumeRewindBranch();
+      break;
+    case 'rewind-original':
+      showOriginalEnding();
+      break;
+    case 'rewind-demo-pay':
+    case 'rewind-demo-cancel':
+      if (!rewindPreview || screen !== 'rewind-checkout') break;
+      try {
+        if (action === 'rewind-demo-pay') {
+          rewindClient.completePurchase();
+          location.assign('?rewind=preview-return');
+        } else {
+          clearRewindQuery();
+          openRewindPicker();
+        }
+      } catch {
+        root.querySelector('[data-rewind-checkout-status]').textContent = '이 탭에서 테스트 결제 결과를 저장하지 못했어요.';
+      }
+      break;
+    case 'rewind-reset':
+      if (!rewindPreview) break;
+      rewindClient.reset();
+      sessionStorage.removeItem(rewindStorageKey('branch'));
+      sessionStorage.removeItem(rewindStorageKey('draft'));
+      rewindSession = null;
+      showOriginalEnding();
+      break;
     case 'title':
+      if (rewindPlaying || rewindPreview) {
+        showOriginalEnding();
+        break;
+      }
       if (inPreview) {
         window.location.assign(window.location.pathname);
         break;
@@ -1040,7 +1269,20 @@ root.addEventListener('click', event => {
   }
 });
 
-render();
+if (rewindPreview) {
+  loadRewindBranch();
+  if (rewindPage === 'preview-checkout' && readRewindDraft()) {
+    screen = 'rewind-checkout';
+    render(true);
+  } else if (rewindPage === 'preview-return' && readRewindDraft()) {
+    clearRewindQuery();
+    openRewindPicker(true);
+  } else {
+    render();
+  }
+} else {
+  render();
+}
 
 watchPlayer(() => {
   if (inPreview) return;
@@ -1048,12 +1290,21 @@ watchPlayer(() => {
   if (nextId !== accountId) {
     accountId = nextId;
     challengeRun = null;
+    rewindPlaying = false;
+    rewindPanel = null;
     screen = 'title';
     game = null;
     notice = '';
     unlockedEndings.clear();
     for (const variants of endingVariants.values()) variants.clear();
     loadSave();
+    loadRewindBranch();
+    if (rewindEnabled && new URLSearchParams(location.search).get('rewind') === 'return' && readRewindDraft()) {
+      clearRewindQuery();
+      game = new AtlasGame(saved);
+      openRewindPicker(true);
+      return;
+    }
     render();
   }
   if (screen === 'title') openAccountCallback(root);

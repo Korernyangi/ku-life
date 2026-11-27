@@ -12,6 +12,20 @@
 
 https://ku-life-dqkk.vercel.app/
 
+### 치팅모드 결제 연동
+
+게임 쪽은 학기 시작 상태와 분기 회차를 브라우저에 저장합니다. 결제 쪽은 로그인한 계정의 첫 무료 분기와 일회 구매 이용권을 관리합니다. 아래 요청에는 기존 Supabase 액세스 토큰을 Bearer 토큰으로 보냅니다.
+
+| 요청 | 요청 본문 | 성공 응답 |
+| --- | --- | --- |
+| `GET /api/rewind-access` | 없음 | `{ status }`. 값은 `free`, `purchase_required`, `unlimited` 중 하나 |
+| `POST /api/rewind-start` | `{ sourceId, semester, requestId }` | 승인 시 `{ branchId }`. 구매가 필요하면 `{ status: "purchase_required", branchId: null }` |
+| `POST /api/rewind-checkout` | `{}` | `{ checkoutUrl }`. 그로블 HTTPS 결제창 주소 |
+
+무료 분기 사용과 분기 ID 발급은 한 번에 저장하고, 같은 계정의 동일한 `requestId`에는 처음 발급한 분기 ID를 반환합니다. 그로블의 결제 완료 후 이동 주소는 KU-LIFE의 `/?rewind=return`으로 설정합니다. 게임은 동일한 브라우저 탭에서 선택한 학기를 복원한 다음 이용권을 다시 조회합니다.
+
+`VITE_REWIND_PREVIEW=1`로 빌드한 뒤 `?rewind=preview`를 열면 모의 응답으로 확인할 수 있습니다. 실제 이용권 API를 연결한 배포에서는 `VITE_REWIND_ENABLED=1`로 빌드합니다. 일반 모드의 학기 시작 저장은 해당 기능을 켜고 플레이한 계정에 기록됩니다.
+
 ### 고려대 이메일 회원가입과 로그인
 
 시작 화면 오른쪽 위의 **로그인**을 누르면 고려대 Google 계정 선택 화면으로 바로 이동합니다. 첫 로그인에서는 닉네임을 설정하면 가입이 완료됩니다. 로그인한 뒤에는 같은 위치의 **내 계정**에서 프로필을 열 수 있습니다.

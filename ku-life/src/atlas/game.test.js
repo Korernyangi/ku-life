@@ -8,6 +8,9 @@ import { EVENTS } from './events.js';
 import { AtlasGame } from './game.js';
 import { cafeFilmPlan } from './cafe-film.js';
 import { createEndingPreview } from './ending-preview.js';
+import { availableRewindSemesters, firstChangedChoice, recordSemesterStart, rewindStateAt } from './rewind.js';
+import { createRewindAccess } from './rewind-access.js';
+import { createRewindPreview } from './rewind-preview.js';
 
 function fixture(eventId, overrides = {}, random = () => .25) {
   const { state } = new AtlasGame();
@@ -18,6 +21,61 @@ function fixture(eventId, overrides = {}, random = () => .25) {
 function play(game, index) {
   assert.equal(game.choose(index, game.eventToken), true);
 }
+
+test('rewinding restores the term start and keeps the completed original unchanged', () => {
+  const original = createRewindPreview();
+  const saved = JSON.parse(JSON.stringify(original.state));
+  assert.deepEqual(availableRewindSemesters(saved), [1, 2, 3, 4, 5, 6, 7, 8]);
+  const checkpoint = saved.rewindCheckpoints[8];
+  const restored = rewindStateAt(saved, 8);
+  assert.equal(restored.eventId, 'graduation');
+  assert.deepEqual(restored.grades, saved.grades.slice(0, 7));
+  assert.deepEqual(restored.history, saved.history.slice(0, checkpoint.historyLength));
+  assert.deepEqual(restored.scheduled, checkpoint.state.scheduled);
+  assert.deepEqual(restored.inventory, checkpoint.state.inventory);
+  assert.equal(restored.rewindCheckpoints, undefined);
+
+  const branch = new AtlasGame(restored, () => .65);
+  play(branch, 2);
+  const changed = firstChangedChoice(saved, branch.state);
+  assert.equal(changed.semester, 8);
+  assert.equal(changed.before.eventId, 'graduation');
+  assert.equal(changed.after.choice, '동기들과 졸업사진을 찍는다');
+  assert.deepEqual(original.state, saved);
+  assert.equal(rewindStateAt(saved, 9), null);
+  assert.deepEqual(availableRewindSemesters({ ...saved, rewindCheckpoints: undefined }), []);
+});
+
+test('a checkpoint is recorded before the first choice, once per semester', () => {
+  const game = new AtlasGame();
+  recordSemesterStart(game.state);
+  const checkpoint = structuredClone(game.state.rewindCheckpoints[1]);
+  play(game, 2);
+  recordSemesterStart(game.state);
+  assert.deepEqual(game.state.rewindCheckpoints[1], checkpoint);
+  assert.notDeepEqual(game.state.stats, checkpoint.state.stats);
+  assert.equal(checkpoint.historyLength, 0);
+  assert.deepEqual(availableRewindSemesters(game.state), []);
+});
+
+test('the mock free branch is idempotent and a new client sees the simulated purchase', async () => {
+  const records = new Map();
+  const storage = {
+    getItem: key => records.get(key) ?? null,
+    setItem: (key, value) => records.set(key, value),
+  };
+  const client = createRewindAccess(null, storage);
+  assert.equal(await client.access(), 'free');
+  const first = await client.start({ requestId: 'first' });
+  assert.equal(await client.access(), 'purchase_required');
+  assert.deepEqual(await client.start({ requestId: 'first' }), first);
+  assert.deepEqual(await client.start({ requestId: 'second' }), { branchId: null });
+  assert.equal(await client.checkout(), '?rewind=preview-checkout');
+  client.completePurchase();
+  const afterRedirect = createRewindAccess(null, storage);
+  assert.equal(await afterRedirect.access(), 'unlimited');
+  assert.deepEqual(await afterRedirect.start({ requestId: 'second' }), { branchId: 'second' });
+});
 
 test('four integer stats, cash separate, locked choices and stale tokens are enforced', () => {
   const fresh = new AtlasGame();

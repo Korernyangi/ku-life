@@ -1,0 +1,51 @@
+.rewind-page {
+  width: min(1040px, calc(100% - 32px));
+  margin-inline: auto;
+  padding-block: clamp(20px, 5vw, 48px);
+}
+.rewind-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-block-end: 22px;
+}
+.rewind-heading h1, .rewind-checkout h1 { margin-block: 6px 10px; color: var(--crimson); }
+.rewind-layout { display: grid; grid-template-columns: minmax(230px, .75fr) minmax(0, 1.25fr); gap: 18px; align-items: start; }
+.rewind-timeline, .rewind-selection, .rewind-checkout { border-top: 4px solid var(--crimson); }
+.rewind-terms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-block-start: 14px; }
+.rewind-terms button {
+  min-height: 44px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  background: #f8ecda;
+  font-weight: 700;
+}
+.rewind-terms button[aria-pressed="true"] { border-color: var(--crimson); color: white; background: var(--crimson); }
+.rewind-terms button[aria-pressed="false"]:hover { border-color: var(--crimson); }
+.rewind-stats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-block: 12px 18px; }
+.rewind-stats dt, .rewind-difference dt, .rewind-results small { font-size: .875rem; color: var(--muted); }
+.rewind-stats dd { font-weight: 800; }
+.rewind-choices summary { cursor: pointer; font-weight: 750; }
+.rewind-choices ol { max-height: 15rem; overflow: auto; padding-inline-start: 22px; margin-block-start: 8px; }
+.rewind-choices li { margin-block: 5px; }
+.rewind-choices li span { display: block; color: var(--muted); font-size: .875rem; }
+.rewind-access { margin-block-start: 18px; padding: 12px; background: #f3e5d2; border-left: 3px solid var(--crimson); }
+.rewind-access p { margin-block-start: 4px; }
+.rewind-checkout { max-width: 520px; margin-block-start: clamp(24px, 9vw, 96px); padding: 24px; }
+.rewind-checkout .muted { margin-block-start: 10px; }
+.rewind-comparison { margin-block: 24px; padding: clamp(12px, 3vw, 20px); border: 1px solid var(--line); background: #f9eedb; }
+.rewind-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-block: 12px; }
+.rewind-results article { padding: 10px; border: 1px solid var(--line); border-top: 3px solid #877164; background: var(--paper); }
+.rewind-results article + article { border-top-color: var(--crimson); }
+.rewind-results h3 { margin-block: 4px 7px; }
+.rewind-results p strong { color: var(--crimson); }
+.rewind-results p span { font-size: .875rem; }
+.rewind-difference dl { display: grid; gap: 8px; margin-block-start: 6px; }
+@media (max-width: 670px) {
+  .rewind-layout { grid-template-columns: minmax(0, 1fr); }
+  .rewind-heading { display: grid; }
+  .rewind-heading button { justify-self: start; }
+}
