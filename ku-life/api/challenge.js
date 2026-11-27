@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabaseClients } from '../server/supabase.js';
 import { AtlasGame } from '../src/atlas/game.js';
 import { applyChallengeAction, challengeScore, createChallenge } from '../src/atlas/challenge.js';
 
@@ -106,20 +106,11 @@ export function challengeHandler(db, auth = db.auth) {
 }
 
 export default function handler(req, res) {
-  const env = process.env;
-  const url = (env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL)?.trim();
-  const publicKey = (env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY
-    || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    || env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY)?.trim();
-  const key = (env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY)?.trim();
-  if (!url || !publicKey || !key) return unavailable(res, 'CHALLENGE_CONFIGURATION_MISSING');
-  let db, auth;
   try {
-    const options = { auth: { persistSession: false, autoRefreshToken: false } };
-    db = createClient(url, key, options);
-    auth = createClient(url, publicKey, options).auth;
-  } catch {
-    return unavailable(res, 'CHALLENGE_CONFIGURATION_INVALID');
+    const { db, auth } = supabaseClients();
+    return challengeHandler(db, auth)(req, res);
+  } catch (error) {
+    return unavailable(res, error.message === 'SUPABASE_CONFIGURATION_MISSING'
+      ? 'CHALLENGE_CONFIGURATION_MISSING' : 'CHALLENGE_CONFIGURATION_INVALID');
   }
-  return challengeHandler(db, auth)(req, res);
 }
