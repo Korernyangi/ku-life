@@ -397,6 +397,17 @@ thead, tfoot { background: #f4e5cb; }
   font-size: clamp(.68rem, 1.7vw, .9rem);
   font-weight: 700;
 }
+.cafe-film-date {
+  position: absolute;
+  inset-block-start: 1.2%;
+  inset-inline-start: 2.6%;
+  margin: 0;
+  color: #f4d1ab;
+  font-size: clamp(.68rem, 1.8vw, 1.02rem);
+  font-weight: 650;
+  line-height: 1.25;
+  pointer-events: none;
+}
 .film-actions {
   display: grid;
   grid-template-columns: auto minmax(32px, 1fr) repeat(3, auto);

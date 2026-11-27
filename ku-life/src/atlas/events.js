@@ -392,7 +392,7 @@ export const EVENTS = [
   {
     id: 'recovery_leave', title: '상담센터에서 온 연락', scene: 'campus', kind: 'crisis', ending: 'recovery',
     requires: { anyStatuses: ['depression'] },
-    description: '동기가 학교 앞 카페에서 커피를 마시자고 했지만, 수업과 마감에 쫓겨 약속을 미뤄 왔다. 버거운 날이 이어지자 상담 선생님과 상의해 이번 학기는 쉬면서 치료에 시간을 내기로 했다.',
+    description: '동기와 학교 앞 카페에서 잠깐 만났던 날, 수업 알람이 울려 먼저 일어났다. 수업과 마감으로 다음 약속까지 미루던 중 상담센터에서 연락이 왔다. 상담 선생님과 이야기한 끝에 이번 학기는 쉬면서 진료를 받기로 했다.',
     choices: [
       pick('휴학하고 진료와 회복에 시간을 쓰기로 한다', '상담 선생님과 진료 일정을 잡았다. 이번 학기 시간표에서 가장 먼저 비운 칸은 내일 아침이다.', {}, { grant: ['recoveryLeave'] }),
     ],
@@ -400,7 +400,7 @@ export const EVENTS = [
   {
     id: 'couple_future', title: '우리의 다음 시간표', scene: 'parttime', kind: 'chain', ending: 'family',
     requires: { flags: ['dating', 'coupleTime'] },
-    description: '공강에 만나던 카페에서 두 사람이 생활 계획을 펼쳤다. 같이 살 집과 생활비를 정리하고, 장보기와 집안일은 번갈아 맡기로 했다.',
+    description: '공강에 만나던 카페에서 두 사람이 생활 계획을 펼쳤다. 아이를 맞이할 준비를 함께 하고 싶다는 데 마음이 모였다. 같이 살 집과 생활비를 정리하고, 장보기와 집안일은 번갈아 맡기로 했다.',
     choices: [
       pick('한 학기 쉬고 둘이 세운 가족 계획을 시작한다', '휴학 신청서를 내고, 둘이 그려 둔 생활을 준비하기 시작했다.', {}, { grant: ['familyPlan'] }),
     ],
@@ -425,7 +425,7 @@ export const EVENTS = [
   {
     id: 'claw_handoff', title: '기계 뒷문이 열렸다', scene: 'club', kind: 'chain', ending: 'claw',
     endingTrigger: state => state.clawWins >= 3,
-    description: '세 번째 상품을 꺼내고 보니 옆 칸 곰 인형의 팔이 벽에 끼어 있었다. 운영자에게 알려 주자 장갑을 건네며 같이 배치를 바꿔 보자고 했다.',
+    description: '지금까지 세 번 상품을 뽑았다. 이번 상품을 꺼내고 보니 옆 칸 곰 인형의 팔이 벽에 끼어 있었다. 운영자에게 알려 주자 장갑을 건네며 같이 배치를 바꿔 보자고 했다.',
     choices: [
       pick('작업 장갑을 끼고 곰 인형을 가운데로 옮긴다', '운영자가 기계 뒷문을 열었다. 다음 손님이 들어오기 전에 곰이 놓인 칸을 정리했다.'),
     ],

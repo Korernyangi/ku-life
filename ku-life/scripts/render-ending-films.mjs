@@ -14,6 +14,7 @@ import { endingFilmAudio } from './ending-film-audio.mjs';
 import { drawPixelStudent } from '../src/ui/pixel-student.js';
 import { drawClueBear, drawClueCat, drawFestivalPhoto } from '../src/ui/ending-clues.js';
 import { ENDINGS } from '../src/atlas/endings.js';
+import { CAFE_SHOT_SECONDS } from '../src/atlas/cafe-film.js';
 
 const width = 320;
 const height = 180;
@@ -416,12 +417,23 @@ function key(x, y) {
 }
 
 function cafeHandoff(t) {
-  setPlate('cafe', '#43243457');
-  student(75, 51);
-  student(204, 52, owner);
-  counter(106);
-  paper(60, 100, 50, 35);
-  key(walk(184, 121, t * 1.6), 111);
+  setPlate('cafe', '#392c5158');
+  student(69, 43, undefined, 2, 0, { gaze: 1, blink: t < .24 && t > .20 });
+  student(208, 43, owner, 2, 0, { gaze: -1 });
+  counter(106, '#4d3946');
+  paper(36, 102, 58, 27);
+  const slide = walk(177, 123, (t - .31) / .23);
+  const reach = walk(92, 124, (t - .67) / .15);
+  if (t > .20 && t < .63) {
+    rect(slide + 59, 107, 42, 10, '#4c6153');
+    rect(slide + 50, 108, 11, 8, '#d8ae8c');
+  }
+  key(slide, 109);
+  if (t > .67) {
+    rect(78, 125, reach - 68, 12, '#893f4f');
+    rect(reach + 1, 122, 13, 11, '#e0ad8d');
+    if (t > .83) rect(141, 122, 5, 4, '#e0ad8d');
+  }
 }
 
 function cafeOpening(t) {
@@ -432,9 +444,140 @@ function cafeOpening(t) {
   student(walk(95, 216, t * 1.7), 65, undefined, 2, t < .66 ? Math.sin(t * 40) * 3 : 0);
 }
 
-function groupOrder(t, repeat = true) {
+function cafeDoorMatch(t, opening) {
+  setPlate('cafe', opening ? '#ffb76a21' : '#493c5c58');
+  const door = walk(0, 30, (t - .16) / .18);
+  panel(254, 25, 61, 97, '#403547', '#282535');
+  rect(259, 31, 48, 77, opening ? '#885f66' : '#71627c');
+  rect(262, 34, 42, 59, opening ? '#b7847c' : '#8b7c94');
+  rect(262, 73, 42, 2, '#e3a88699');
+  rect(263, 34, 2, 58, '#dcc0b06f');
+  rect(259, 95, 48, 13, '#594253');
+  rect(297, 81, 5, 11, '#cb9c6b');
+  if (door) {
+    const x = 307 - door;
+    rect(x, 31, door, 77, opening ? '#ffe0a7' : '#a69eb8');
+    rect(x + 3, 69, door - 3, 17, opening ? '#eeb782' : '#746580');
+    rect(x + 3, 86, door - 3, 22, opening ? '#f9cf99' : '#bea1a3');
+    rect(x, 31, 3, 77, '#d5ab8f');
+    rect(x + 7, 105, 28, 4, '#d99f748e');
+  }
+  const swing = t > .19 ? Math.sin((t - .19) * 62) * Math.exp(-(t - .19) * 10) : 0;
+  rect(278, 16, 2, 8, '#a28665');
+  rect(275 + 4 * swing, 24, 8, 4, '#ddb16e');
+  rect(273 + 4 * swing, 28, 12, 2, '#eed69c');
+  const entry = walk(315, 229, (t - .31) / .36);
+  if (t > .31) student(entry, 57, friend, 1.75, t < .67 ? Math.sin(t * 61) * 2 : 0, { gaze: -1 });
+
+  if (!opening) student(25, 46, owner, 1.8, 0, { gaze: 1 });
+  const headY = opening ? 47 : walk(53, 47, (t - .24) / .34);
+  student(77, headY, undefined, 2, 0, { gaze: t > .24 ? 1 : 0, blink: t > .66 && t < .70 });
+  rect(90, 88, 22, 23, '#564150');
+  rect(90, 88, 2, 20, '#a37b77');
+  rect(103, 88, 2, 18, '#a37b77');
+  counter(112, opening ? '#92645a' : '#55414d');
+  cup(142, 106, opening ? '#cad29a' : '#cbac93', opening ? t : null);
+  paper(37, 106, 34, 22);
+  if (opening) {
+    panel(154, 29, 81, 33, '#3f4245', '#684b4a');
+    label('팀플 세트', 195, 49, 12, '#fae0b0', 'center');
+    rect(115, 116, 9, 2, '#fbcf86');
+  }
+  for (let i = 0; i < 11; i++) {
+    const y = 39 + (i * 23 + t * 31) % 67;
+    const x = 13 + (i * 29 + 5 * Math.sin(t * 3 + i)) % 61;
+    rect(x, y, 1, 1, opening ? '#ffe1a486' : '#ecc6aa4d');
+  }
+}
+
+function cafePayday(t) {
+  setPlate('cafe', '#523b5359');
+  counter(67, '#6e4950');
+  panel(38, 73, 119, 60, '#f9e4b9', '#a2766b');
+  label('주말 근무 정산', 97, 91, 12, '#654550', 'center');
+  lines(48, 98, [83, 69, 85, 74, 83], '#ddc39d');
+  const phone = walk(212, 184, t * 2.3);
+  panel(phone, 44, 105, 87, '#24343b', '#302637');
+  rect(phone + 7, 54, 91, 64, '#c9ded0');
+  rect(phone + 7, 54, 91, 14, '#789989');
+  if (t > .27) {
+    rect(phone + 13, 76, 79, 33, '#f1e8c9');
+    label('근무 수당', phone + 52, 86, 9, '#3b5150', 'center');
+    label('+250,000원', phone + 52, 102, 12, '#32534d', 'center');
+  }
+  cup(4, 50, '#bb827c', t);
+  const pencil = walk(59, 124, (t - .42) / .48);
+  rect(57, 112, pencil - 51, 2, '#97716e');
+  rect(pencil, 110, 7, 4, '#8c635b');
+  rect(pencil + 6, 108, 44, 6, '#c8a36a');
+  rect(pencil + 8, 108, 39, 2, '#f0c681');
+}
+
+function cafeShortShift(t) {
+  setPlate('cafe', '#58345242');
+  student(50, 42, undefined, 1.9, 0, { gaze: 1 });
+  student(139, 56, friend, 1.8, 0, { gaze: -1 });
+  student(196, 55, { ...friend, outfitColor: '#8d5470' }, 1.8, 0, { blink: t > .31 && t < .36 });
+  student(245, 55, { ...friend, hairStyle: 'short', outfitColor: '#a97061' }, 1.8);
+  counter(106, '#885552');
+  paper(217, 104, 51, 29);
+  const slide = walk(91, 152, (t - .22) / .41);
+  cup(slide, 102, '#bd9682', t);
+  cup(198, 101, '#84af9a', t + .2);
+  cup(245, 102, '#be8b91', t + .32);
+  if (t > .65) {
+    rect(274, 110, 26, 20, '#665367');
+    rect(277, 109, 20, 2, '#c09a9f');
+  }
+}
+
+function cafeWeekendRest(t) {
+  setPlate('rest', '#4236595c');
+  rect(0, 13, 91, 130, '#3f374d');
+  rect(259, 13, 61, 130, '#403549');
+  rect(0, 102, width, 41, '#564351');
+  rect(12, 57, 67, 9, '#765468');
+  rect(12, 64, 67, 3, '#291e33');
+  rect(20, 32, 6, 25, '#a07e72');
+  rect(28, 36, 5, 21, '#8d5871');
+  rect(35, 34, 8, 23, '#776a89');
+  rect(45, 38, 5, 19, '#c78a78');
+  rect(53, 37, 8, 20, '#594b6b');
+
+  // Still rain in the window and a quilt that moves with each quiet breath.
+  for (let i = 0; i < 18; i++) {
+    const x = 108 + (i * 29) % 114;
+    const y = 18 + (i * 11 + t * 62) % 69;
+    rect(x, y, 1, 4 + i % 4, '#9fd4eb47');
+  }
+  panel(87, 98, 215, 36, '#8a7292', '#3b3048');
+  rect(205, 91, 70, 23, '#ac9fb5');
+  rect(211, 87, 57, 5, '#c7b9c6');
+  rect(209, 106, 64, 6, '#77627e');
+  rect(218, 87, 31, 17, '#322d43');
+  rect(224, 91, 21, 16, '#d39c87');
+  rect(221, 91, 6, 10, '#433548');
+  rect(232, 96, 7, 2, '#674657');
+  rect(241, 100, 5, 2, '#ebad91');
+  rect(214, 89, 5, 14, '#49394e');
+  const top = 96 + Math.round(Math.sin(t * Math.PI * 4) * 1.5);
+  rect(86, top + 7, 128, 31, '#554b70');
+  rect(92, top + 3, 114, 8, '#877398');
+  rect(107, top, 86, 4, '#ac8eab');
+  for (let x = 101; x < 202; x += 17) {
+    rect(x, top + 10, 1, 21, '#c2a5c267');
+    rect(x + 5, top + 22, 7, 1, '#c2a5c245');
+  }
+  rect(13, 121, 61, 22, '#624858');
+  rect(11, 119, 65, 5, '#98707d');
+  rect(24, 111, 39, 10, '#674b64');
+  rect(27, 109, 33, 4, '#9b7795');
+  rect(29, 113, 29, 1, '#bd91a8');
+}
+
+function groupOrder(t) {
   setPlate('cafe', '#3d25352e');
-  const opened = repeat ? walk(0, 23, (t - .24) / .17) : 0;
+  const opened = walk(0, 23, (t - .24) / .17);
   rect(285, 46, 35, 66, '#492e44');
   rect(290, 50, 30, 61, '#855773');
   if (opened) {
@@ -443,16 +586,11 @@ function groupOrder(t, repeat = true) {
     rect(319 - opened, 106, opened + 1, 5, '#f1bd8d');
   }
   rect(294, 76, 4, 8, '#d2a279');
-  if (repeat) {
-    panel(107, 20, 106, 49, '#51434d', '#8b665c');
-    label('팀플 세트', 160, 41, 14, cream, 'center');
-    label('세 잔 먼저', 160, 58, 11, '#e2b39c', 'center');
-  }
-  student(13, 63, undefined, 2, 0, { gaze: repeat && t > .37 ? 1 : 0 });
-  student(75, 68, friend, 2, 0, { gaze: repeat && t > .35 ? 1 : 0, blink: t > .17 && t < .21 });
-  student(128, 67, { ...friend, outfitColor: '#926166' }, 2, 0, { gaze: repeat && t > .39 ? 1 : 0 });
-  student(181, 68, { ...friend, hairStyle: 'short', outfitColor: '#5d7161' }, 2, 0, { gaze: repeat && t > .44 ? 1 : 0, blink: t > .31 && t < .36 });
-  if (repeat && t > .32) {
+  student(13, 63, undefined, 2, 0, { gaze: t > .37 ? 1 : 0 });
+  student(75, 68, friend, 2, 0, { gaze: t > .35 ? 1 : 0, blink: t > .17 && t < .21 });
+  student(128, 67, { ...friend, outfitColor: '#926166' }, 2, 0, { gaze: t > .39 ? 1 : 0 });
+  student(181, 68, { ...friend, hairStyle: 'short', outfitColor: '#5d7161' }, 2, 0, { gaze: t > .44 ? 1 : 0, blink: t > .31 && t < .36 });
+  if (t > .32) {
     const stride = t < .66 ? Math.sin((t - .32) * 56) * 4 : 0;
     const sit = walk(0, 4, (t - .68) / .15);
     student(walk(318, 244, (t - .32) / .34), 62 + sit, { ...friend, hairStyle: 'long', outfitColor: '#82668a' }, 2, stride, { gaze: -1 });
@@ -464,7 +602,7 @@ function groupOrder(t, repeat = true) {
   ['#be8b91', '#88a898', '#ca9976'].forEach((color, index) => {
     if (t * 10 >= index) cup(86 + index * 53, 106, color, t + index * .16);
   });
-  if (repeat && t > .67) cup(47, 102, '#916f98', t);
+  if (t > .67) cup(47, 102, '#916f98', t);
 }
 
 function cupHandoff(t) {
@@ -659,31 +797,40 @@ function clawLog(t) {
   label('곰 3호 · 7분 만에 퇴근', x + 55, 122, 9, '#60405d', 'center');
 }
 
+function cafeFilm(memoryShot, memoryLine) {
+  return [
+    [t => cafeDoorMatch(t, false), '', '문종이 울렸다. “한 잔씩 하면 돼.”', { zoom: 1, fadeIn: 18 }],
+    [memoryShot, '', memoryLine, { zoom: 1.046 }],
+    [groupOrder, '', '“오늘도 세 잔 먼저죠?” 빈자리 쪽에 작은 주문표를 남겨 뒀다.', { zoom: 1.045 }],
+    [cafeHandoff, '', '“내일부터 문 열어 줄래? 내가 없는 동안만.”', { zoom: 1.10, y: 92, fadeOut: 17 }],
+    [cafeOpening, '', '', { zoom: 1.04, fadeIn: 15 }],
+    [t => cafeDoorMatch(t, true), '', '다시 울린 문종. 이번엔 내가 먼저 “어서 오세요.”', { zoom: 1 }],
+    [cupHandoff, '', '늦은 친구가 앉자 세 사람이 네 번째 잔을 밀어 줬다.', { zoom: 1.07, y: 104, fadeOut: 21 }],
+  ].map(([paint, heading, subtitle, camera], index) =>
+    [paint, heading, subtitle, { ...camera, seconds: CAFE_SHOT_SECONDS[index] }]);
+}
+
 const films = {
   family: [
     [familyPlan, '겹치는 공강', '두 시간표의 같은 빈칸에 동그라미를 쳤다.', { zoom: 1.12, y: 114 }],
     [familyTogether, '함께 살게 된 뒤', '', { seconds: 3, fadeOut: 12 }],
-    [nursery, '이듬해', '울음소리에 두 사람이 잠을 깼다.', { x: 195, y: 102, zoom: 1.10, fadeIn: 10 }],
+    [nursery, '이듬해, 아기가 태어난 뒤', '울음소리에 두 사람이 잠을 깼다.', { x: 195, y: 102, zoom: 1.10, fadeIn: 10 }],
     [nightShift, '새벽 4시', '“오늘 내 당번이야.” 옆 사람의 알람을 끄고 분유를 챙겼다.', { seconds: 4.2, y: 101, zoom: 1.1 }],
   ],
   recovery: [
     [recoveryIntertitle('cafe', '휴학 전, 어느 평일 오후'), '', '', { seconds: 1.8 }],
     [t => cafeWindow(t, 'past'), '학교 앞 카페', '내 휴대폰에서 수업 알람이 울렸다.', { seconds: 4.7 }],
     [counseling, '상담센터에 간 날', '진료 일정을 잡고 한 학기 쉬기로 했다.', { seconds: 4.0, zoom: 1.10, y: 108 }],
-    [recoveryIntertitle('rest', '휴학 후, 새 학기 첫 주'), '', '', { seconds: 1.9, fadeIn: 8 }],
-    [leaveMessage, '새 시간표가 올라온 날', '', { seconds: 5.9 }],
+    [recoveryIntertitle('rest', '휴학 직후, 시간표를 비운 날'), '', '', { seconds: 1.9, fadeIn: 8 }],
+    [leaveMessage, '학과 단톡방에 남긴 말', '', { seconds: 5.9 }],
     [recoveryIntertitle('cafe', '휴학하고 몇 달 뒤'), '', '', { seconds: 1.9, fadeIn: 8 }],
     [t => cafeWindow(t, 'later'), '비가 오던 오후, 같은 창가', '이번에는 동기 쪽에서 같은 알람이 울렸다.', { seconds: 5.8 }],
     [t => cafeWindow(t, 'alone'), '창가에 남은 두 잔', '', { seconds: 5.2 }],
     [nextCoffee, '그날 오후', '', { seconds: 7.2, fadeOut: 14 }],
   ],
-  cafe: [
-    [t => groupOrder(t, false), '주말 근무', '“세 잔만 먼저요. 나머지 한 명은 또 늦어요.”'],
-    [cafeHandoff, '마감 뒤', '사장님이 자리를 비우는 동안 매장을 맡게 됐다.', { zoom: 1.14, y: 111 }],
-    [cafeOpening, '다음 날 아침', '카페 문을 열고 팀플 세트를 메뉴판에 적었다.', { seconds: 2.8 }],
-    [groupOrder, '다시 온 단골 조', '오늘도 빈자리가 하나. 그때 문이 열렸다.', { seconds: 4.3 }],
-    [cupHandoff, '네 번째 잔', '자리에 앉자 자기 잔이 슬며시 다가왔다.', { seconds: 4.8, y: 104, zoom: 1.08 }],
-  ],
+  cafe: cafeFilm(cafePayday, '주말 두 타임을 마치고 정산표를 접었다.'),
+  'cafe-short': cafeFilm(cafeShortShift, '저녁 한 타임. 세 학생은 친구 자리만 비워 뒀다.'),
+  'cafe-rest': cafeFilm(cafeWeekendRest, '그 주말은 앞치마를 접어 두고 밀린 잠을 잤다.'),
   newspaper: [
     [comparePhotos, '기자단 책상', '두 행사 사진에 똑같은 자세의 고양이가 찍혔다.'],
     [pawCloseup, '사진 확대', '왼쪽 고양이만 앞발이 하얬다.', { seconds: 3.6 }],
@@ -691,7 +838,7 @@ const films = {
     [printExtra, '호외 발행', '사진 설명은 ‘앞발 색으로 본인 확인 완료’.', { seconds: 3.9, zoom: 1.08, y: 106 }],
   ],
   claw: [
-    [thirdPrize, '세 번째 뽑기', '옆 칸의 곰 인형은 벽에 팔이 끼어 있었다.', { x: 206, zoom: 1.19 }],
+    [thirdPrize, '세 번째 뽑기 성공', '상품을 꺼내다 벽에 팔이 끼인 곰 인형을 봤다.', { x: 206, zoom: 1.19 }],
     [rearrange, '기계 뒷문', '운영자와 함께 곰 인형을 가운데로 옮겼다.', { zoom: 1.12 }],
     [newWin, '7분 뒤', '다음 손님이 그 곰을 한 번에 뽑았다.', { seconds: 4.6, zoom: 1.24, y: 82 }],
     [clawLog, '첫 토요일 근무', '“토요일에 두 시간만 같이 배치해 볼래요?”', { seconds: 4.0, zoom: 1.10, y: 104 }],
@@ -788,7 +935,8 @@ function filmSubtitles(id, shots) {
     if (subtitle) entries += `Dialogue: 0,${assTime(start)},${assTime(end)},Story,,0,0,0,,${wrapSubtitle(subtitle)}\n`;
     start = end;
   }
-  return subtitlePreamble + `Dialogue: 0,0:00:00.00,${assTime(start)},Title,,0,0,0,,${ENDINGS[id].title}\n` + entries;
+  const title = id === 'cafe' ? '' : `Dialogue: 0,0:00:00.00,${assTime(start)},Title,,0,0,0,,${ENDINGS[id].title}\n`;
+  return subtitlePreamble + title + entries;
 }
 
 const directory = new URL('../src/assets/ending-films/', import.meta.url);
@@ -800,10 +948,11 @@ const temp = await mkdtemp(join(tmpdir(), 'ku-ending-films-'));
 try {
   for (const [id, shots] of Object.entries(films)) {
     if (requested.length && !requested.includes(id)) continue;
+    const endingId = id.startsWith('cafe-') ? 'cafe' : id;
     const output = fileURLToPath(new URL(`${id}.mp4`, directory));
     const subtitles = `${id}.ass`;
     const audio = `${id}.wav`;
-    await writeFile(join(temp, subtitles), filmSubtitles(id, shots));
+    await writeFile(join(temp, subtitles), filmSubtitles(endingId, shots));
     await writeFile(join(temp, audio), endingFilmAudio(id, shots.map(([, , , camera = {}]) => frameCount(camera) / fps)));
     const ffmpeg = spawn('ffmpeg', [
       '-hide_banner', '-loglevel', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba',
@@ -813,7 +962,7 @@ try {
       '-profile:v', 'high', '-level', '4.0', '-preset', 'fast',
       '-pix_fmt', 'yuv420p', '-crf', '17', '-movflags', '+faststart', '-threads', '3', output,
     ], { cwd: temp, stdio: ['pipe', 'ignore', 'inherit'] });
-    const [exit] = await Promise.all([once(ffmpeg, 'exit'), pipeline(Readable.from(frames(id, shots)), ffmpeg.stdin)]);
+    const [exit] = await Promise.all([once(ffmpeg, 'exit'), pipeline(Readable.from(frames(endingId, shots)), ffmpeg.stdin)]);
     if (exit[0] !== 0) throw new Error(`Video encoding failed for ${id}`);
     console.log(output);
   }

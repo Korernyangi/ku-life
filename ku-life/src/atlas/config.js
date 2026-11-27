@@ -4,7 +4,7 @@ export const TERM_CALENDAR = [
   ['teamwork', 'registration', 'club', { followUp: 'study_group' }, 'midterm', 'ipselenti', { support: ['double_major', 'representative', 'dating', 'chamsari', 'walk'] }, 'community_center', 'finals'],
   ['night_review', 'syllabus', 'department_talk', { followUp: 'library_shift' }, 'midterm', 'koyeonjeon', { support: ['dating', 'club_chair', 'exchange', 'pub', 'laptop_fault', 'walk'] }, 'reading_room', 'finals'],
   ['career_plan', 'registration', 'competition', { followUp: 'parttime' }, 'midterm', 'ipselenti', { support: ['reporter', 'double_major', 'dating', 'scholarship', 'walk'] }, 'career_fair', 'finals'],
-  ['night_review', 'syllabus', 'prep_interview', { followUp: 'department_talk' }, 'midterm', 'koyeonjeon', { support: ['exchange', 'club_chair', 'pub', 'scholarship', 'laptop_fault', 'walk'] }, 'alumni_mentoring', 'finals'],
+  ['night_review', 'syllabus', 'prep_interview', { followUp: 'department_talk', cafeReturn: true }, 'midterm', 'koyeonjeon', { support: ['exchange', 'club_chair', 'pub', 'scholarship', 'laptop_fault', 'walk'] }, 'alumni_mentoring', 'finals'],
   ['capstone', 'registration', 'portfolio_review', { followUp: 'competition' }, 'midterm', 'ipselenti', { support: ['lab_offer', 'scholarship', 'walk'] }, 'parttime', 'finals'],
   ['graduation', 'syllabus', 'photos', { followUp: 'prep_interview' }, 'midterm', 'koyeonjeon', { support: ['scholarship', 'laptop_fault', 'walk'] }, 'last_lunch', 'finals'],
 ];

@@ -9,9 +9,12 @@ import { findMajor } from './majors.js';
 import { openAdmission } from './admission.js';
 import { showEndingProfile } from './ending-profile.js';
 import { createEndingPreview } from './ending-preview.js';
+import { cafeFilmPlan } from './cafe-film.js';
 import familyFilm from '../assets/ending-films/family.mp4?url';
 import recoveryFilm from '../assets/ending-films/recovery.mp4?url';
 import cafeFilm from '../assets/ending-films/cafe.mp4?url';
+import cafeShortFilm from '../assets/ending-films/cafe-short.mp4?url';
+import cafeRestFilm from '../assets/ending-films/cafe-rest.mp4?url';
 import newspaperFilm from '../assets/ending-films/newspaper.mp4?url';
 import clawFilm from '../assets/ending-films/claw.mp4?url';
 import { itemSprite, paintSprites, paintTrophy, statSprite } from './sprites.js';
@@ -39,6 +42,7 @@ const endingFilms = new Map([
   ['family', familyFilm], ['recovery', recoveryFilm], ['cafe', cafeFilm],
   ['newspaper', newspaperFilm], ['claw', clawFilm],
 ]);
+const cafeFilmCuts = { full: cafeFilm, short: cafeShortFilm, rest: cafeRestFilm };
 const endingStorageKey = 'ending:';
 const variantStorageKey = 'ending-major:';
 const unlockedEndings = new Set();
@@ -544,13 +548,15 @@ function festivalFilmMemory(endingId, history) {
 }
 
 function openEndingFilm(ending) {
-  const url = endingFilms.get(ending.id);
+  const cafeCut = ending.id === 'cafe' ? cafeFilmPlan(game.state.history) : null;
+  const url = cafeCut ? cafeFilmCuts[cafeCut.cut] : endingFilms.get(ending.id);
   if (!url) return false;
   root.innerHTML = `<main class="ending-cinema" aria-labelledby="film-title">
     <h1 id="film-title" tabindex="-1">${escape(ending.title)}</h1>
     <div class="film-frame">
       <video src="${escape(url)}" muted playsinline preload="metadata" aria-label="픽셀 엔딩 영상"></video>
       ${festivalFilmMemory(ending.id, game.state.history)}
+      ${cafeCut ? '<p class="cafe-film-date" hidden></p>' : ''}
     </div>
     <div class="film-actions">
       <button type="button" class="secondary" data-film-play>재생</button>
@@ -567,6 +573,10 @@ function openEndingFilm(ending) {
   const playback = root.querySelector('[data-film-play]');
   const sound = root.querySelector('[data-film-sound]');
   const memory = root.querySelector('.film-memory');
+  const date = root.querySelector('.cafe-film-date');
+  const datedBeats = cafeCut?.beats.map(beat => ({
+    ...beat, text: beat.semester ? `${termLabel(beat.semester)} · ${beat.label}` : beat.label,
+  }));
   const expand = root.querySelector('[data-film-expand]');
   const position = root.querySelector('.film-actions input');
   const time = root.querySelector('.film-time');
@@ -575,6 +585,11 @@ function openEndingFilm(ending) {
   const updatePlayback = () => {
     playback.textContent = video.paused ? '재생' : '일시정지';
     if (memory) memory.hidden = video.currentTime >= 3.2;
+    if (date) {
+      const beat = datedBeats.find(({ start, end }) => video.currentTime >= start && video.currentTime < end);
+      date.hidden = !beat;
+      if (beat && date.textContent !== beat.text) date.textContent = beat.text;
+    }
     if (Number.isFinite(video.duration) && video.duration > 0) {
       position.disabled = false;
       position.max = video.duration;
@@ -604,6 +619,18 @@ function openEndingFilm(ending) {
     });
   } else if (video.webkitEnterFullscreen) {
     expand.hidden = false;
+    if (datedBeats && typeof window.VTTCue === 'function') {
+      const dates = video.addTextTrack('captions', '장면 시간', 'ko');
+      dates.mode = 'hidden';
+      for (const { start, end, text } of datedBeats) {
+        const cue = new window.VTTCue(start, end, text);
+        cue.snapToLines = false;
+        cue.line = 4;
+        dates.addCue(cue);
+      }
+      video.addEventListener('webkitbeginfullscreen', () => { dates.mode = 'showing'; });
+      video.addEventListener('webkitendfullscreen', () => { dates.mode = 'hidden'; });
+    }
     expand.addEventListener('click', () => { if (video.readyState > 0) video.webkitEnterFullscreen(); });
   }
   root.querySelector('[data-film-finish]').addEventListener('click', () => finish());
@@ -612,9 +639,10 @@ function openEndingFilm(ending) {
   });
   video.addEventListener('ended', () => finish(), { once: true });
   video.addEventListener('error', () => finish('엔딩 영상을 불러오지 못했어요.'), { once: true });
-  for (const event of ['loadedmetadata', 'timeupdate', 'play', 'pause']) {
+  for (const event of ['loadedmetadata', 'timeupdate', 'seeked', 'play', 'pause']) {
     video.addEventListener(event, updatePlayback);
   }
+  updatePlayback();
   root.querySelector('#film-title').focus();
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     play();

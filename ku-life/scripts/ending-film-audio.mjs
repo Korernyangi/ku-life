@@ -21,13 +21,34 @@ const effects = {
   }],
   press: [.98, (t, n) => (.34 * tone(158, t) + .32 * n) * (.65 + .20 * tone(12, t)) * Math.min(1, t * 22, (.98 - t) * 22)],
   drop: [.26, (t, n) => .56 * ring(94, 16, t) + .30 * n * Math.exp(-t * 18)],
+  chord: [3.1, t => .38 * ring(130.81, 1.1, t) + .17 * ring(195.99, 1.4, t) + .20 * ring(329.63, 1.8, t)],
+  cloth: [.7, (t, n) => .55 * n * Math.sin(Math.PI * t / .7) ** 2 * (.52 + .17 * tone(7, t))],
+  baby: [.70, (t, n) => {
+    const phase = 424 * t + 34 * t * t + .28 * tone(5.5, t);
+    const vowel = tone(1, phase) + .30 * tone(2, phase) + .16 * tone(3, phase);
+    return (.54 * vowel + .18 * n) * Math.sin(Math.PI * t / .70) ** 2;
+  }],
 };
+
+const cafeDoorSound = ['cafe', [[.20, 'bell', .43], [.39, 'foot', .13], [.47, 'foot', .12], [.63, 'cup', .12]]];
+
+function cafeFilmSounds(memory) {
+  return [
+    cafeDoorSound,
+    memory,
+    ['cafe', [[.18, 'cup', .17], [.24, 'bell', .24], [.38, 'foot', .12], [.51, 'foot', .09], [.67, 'paper', .17]]],
+    ['cafe', [[.21, 'paper', .12], [.35, 'slide', .15], [.54, 'key', .33], [.77, 'cloth', .13]]],
+    ['outside', [[.22, 'foot', .11], [.32, 'key', .20], [.52, 'tap', .15], [.57, 'chord', .095]]],
+    cafeDoorSound,
+    ['cafe', [[.16, 'chord', .15], [.29, 'slide', .23], [.56, 'cup', .23]]],
+  ];
+}
 
 const cuesByFilm = {
   family: [
     ['cafe', [[.22, 'paper', .12], [.56, 'cup', .14]]],
     ['night', [[.16, 'paper', .075], [.43, 'paper', .045]]],
-    ['night', [[.24, 'foot', .12], [.38, 'foot', .11], [.58, 'paper', .10]]],
+    ['night', [[.08, 'baby', .14], [.24, 'foot', .12], [.39, 'foot', .11], [.58, 'paper', .10]]],
     ['night', [[.07, 'phone', .19], [.47, 'tap', .17], [.62, 'cup', .09]]],
   ],
   recovery: [
@@ -41,13 +62,9 @@ const cuesByFilm = {
     ['rain', []],
     ['rain', [[.16, 'tap', .11], [.44, 'paper', .11], [.50, 'slide', .065]]],
   ],
-  cafe: [
-    ['cafe', [[.11, 'cup', .17], [.25, 'cup', .16], [.40, 'cup', .15]]],
-    ['cafe', [[.20, 'paper', .13], [.60, 'key', .25]]],
-    ['outside', [[.23, 'foot', .12], [.35, 'key', .17], [.47, 'bell', .19]]],
-    ['cafe', [[.24, 'bell', .31], [.37, 'foot', .16], [.46, 'foot', .13], [.57, 'foot', .12], [.70, 'slide', .14]]],
-    ['cafe', [[.29, 'slide', .23], [.54, 'cup', .25], [.70, 'tap', .08]]],
-  ],
+  cafe: cafeFilmSounds(['cafe', [[.26, 'phone', .15], [.45, 'paper', .15], [.75, 'tap', .10]]]),
+  'cafe-short': cafeFilmSounds(['cafe', [[.22, 'slide', .14], [.38, 'cup', .21], [.65, 'foot', .09]]]),
+  'cafe-rest': cafeFilmSounds(['room', [[.20, 'cloth', .16], [.64, 'cloth', .075]]]),
   newspaper: [
     ['room', [[.18, 'paper', .16], [.39, 'paper', .15], [.72, 'tap', .11]]],
     ['room', [[.20, 'tap', .13], [.62, 'paper', .08]]],

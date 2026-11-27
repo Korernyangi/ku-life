@@ -149,7 +149,16 @@ export class AtlasGame {
     if (typeof slot === 'string') {
       next = eventById[slot];
     } else if (slot.followUp) {
-      next = this.scheduledEvent() ?? eventById[slot.followUp];
+      next = this.scheduledEvent();
+      if (!next && slot.cafeReturn) {
+        const shifts = s.history.filter(receipt => receipt.eventId === 'parttime');
+        const shortenedLastShift = [0, 90_000].includes(shifts.at(-1)?.cash);
+        // A shorter shift or a weekend off can lead back to the café in the next term.
+        if (shortenedLastShift && shifts.some(receipt => receipt.cash >= 250_000) && this.eligible(eventById.parttime)) {
+          next = eventById.parttime;
+        }
+      }
+      next ??= eventById[slot.followUp];
     } else {
       const recovery = s.termEvents.some(id => eventById[id].kind === 'crisis')
         ? undefined : recoveryEvents.find(event => this.eligible(event));

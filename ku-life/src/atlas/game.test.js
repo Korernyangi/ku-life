@@ -6,6 +6,7 @@ import { employmentForEnding, employmentOptions } from './employment.js';
 import { MAJOR_GROUPS } from './majors.js';
 import { EVENTS } from './events.js';
 import { AtlasGame } from './game.js';
+import { cafeFilmPlan } from './cafe-film.js';
 import { createEndingPreview } from './ending-preview.js';
 
 function fixture(eventId, overrides = {}, random = () => .25) {
@@ -341,6 +342,41 @@ test('the calendar preserves past choices and does not repeat a festival already
   assert.equal(resumed.nextEvent(), true);
   assert.equal(resumed.state.phase, 'term');
   assert.equal(resumed.state.history.length, 9);
+});
+
+test('each cafe montage is reachable through ordinary play and keeps its dates on reload', () => {
+  const cuts = [
+    ['full', [2, 5, 7], '주말 두 타임'],
+    ['short', [2, 5, 6, 7], '저녁 한 타임'],
+    ['rest', [2, 5, 6, 7], '쉬기로 한 주말'],
+  ];
+  for (const [alternate, [cut, semesters, memory]] of cuts.entries()) {
+    const game = new AtlasGame(null, () => .9, 'business');
+    while (game.state.phase !== 'ended') {
+      if (game.state.phase === 'term') {
+        assert.ok(game.state.semester < 8);
+        assert.ok(game.nextTerm());
+        continue;
+      }
+      const { id, choices } = game.event;
+      const options = choices.map((choice, index) => ({ choice, index }))
+        .filter(({ choice }) => !game.choiceReasons(choice).length && !choice.chance && !choice.schedule && (choice.cash ?? 0) >= 0)
+        .sort((a, b) => (b.choice.stats.hp ?? 0) - (a.choice.stats.hp ?? 0));
+      const index = id === 'parttime' && game.state.semester === 5 ? alternate
+        : id === 'parttime' || id === 'cafe_keys' ? 0 : options[0]?.index;
+      play(game, index);
+      if (game.state.phase === 'result') assert.ok(game.nextEvent());
+    }
+    assert.equal(game.state.ending.id, 'cafe');
+    assert.deepEqual(game.state.history.filter(entry => entry.eventId === 'parttime').map(entry => entry.semester), semesters);
+    const plan = cafeFilmPlan(game.state.history);
+    assert.equal(plan.cut, cut);
+    assert.deepEqual(plan.beats.slice(0, 4).map(beat => beat.semester), [2, 5, 7, 7]);
+    assert.equal(plan.beats[1].label, memory);
+    assert.equal(plan.beats.at(-1).end, 38);
+    assert.deepEqual(cafeFilmPlan(JSON.parse(JSON.stringify(game.state.history))), plan);
+
+  }
 });
 
 test('all basic endings remain reachable and award the corresponding score', () => {
